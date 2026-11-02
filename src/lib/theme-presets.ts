@@ -5,6 +5,8 @@ export interface ThemeColorPreset {
   label: string
   /** 色板展示色 */
   swatch: string
+  /** 深色模式下的色板展示色（如默认色在浅色下近黑、深色下近白），不传则与 swatch 一致 */
+  swatchDark?: string
   vars: {
     light: Record<string, string>
     dark: Record<string, string>
@@ -18,6 +20,7 @@ export const THEME_COLORS: ThemeColorPreset[] = [
     name: 'default',
     label: '默认',
     swatch: 'oklch(0.205 0 0)',
+    swatchDark: 'oklch(0.92 0 0)',
     vars: { light: {}, dark: {} }
   },
   {

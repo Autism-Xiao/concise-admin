@@ -48,7 +48,7 @@ function ThumbCard({ selected, onClick, label, children }: { selected: boolean; 
       {selected && <CircleCheck className="fill-primary stroke-background absolute -top-2 -right-2 z-10 size-5" />}
       <div
         className={cn(
-          'bg-muted/40 relative h-16 w-full overflow-hidden rounded-md border transition-colors',
+          'bg-muted/40 relative h-16 w-full rounded-md border p-1.5 transition-colors',
           selected ? 'border-primary ring-primary ring-1' : 'hover:border-muted-foreground/40'
         )}
       >
@@ -59,73 +59,140 @@ function ThumbCard({ selected, onClick, label, children }: { selected: boolean; 
   )
 }
 
+// 迷你窗口外框：带标题栏，让缩略图读起来像一个真实应用
+function MiniWindow({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={cn('bg-background flex h-full flex-col overflow-hidden rounded-sm border shadow-sm', className)}>
+      <div className="border-border/60 flex h-2 shrink-0 items-center gap-0.5 border-b px-1">
+        <span className="bg-foreground/25 size-0.5 rounded-full" />
+        <span className="bg-foreground/25 size-0.5 rounded-full" />
+        <span className="bg-foreground/25 size-0.5 rounded-full" />
+      </div>
+      <div className="relative flex flex-1 overflow-hidden">{children}</div>
+    </div>
+  )
+}
+
+// 侧栏内容：logo 点 + 菜单线
+function SidebarLines() {
+  return (
+    <div className="flex h-full w-full flex-col gap-[3px] p-1">
+      <span className="bg-primary size-1 shrink-0 rounded-full" />
+      <span className="bg-foreground/30 h-[2px] w-3/4 shrink-0 rounded-full" />
+      <span className="bg-foreground/20 h-[2px] w-2/3 shrink-0 rounded-full" />
+      <span className="bg-foreground/20 h-[2px] w-1/2 shrink-0 rounded-full" />
+    </div>
+  )
+}
+
+// 内容区：标题线 + 卡片块
+function ContentBlock() {
+  return (
+    <div className="flex h-full w-full flex-col gap-1 p-1">
+      <span className="bg-foreground/25 h-[2px] w-1/3 shrink-0 rounded-full" />
+      <span className="bg-foreground/10 border-border/40 w-full flex-1 rounded-[2px] border" />
+    </div>
+  )
+}
+
 function SidebarThumb({ variant }: { variant: SidebarVariant }) {
   if (variant === 'floating') {
     return (
-      <div className="flex h-full p-1.5">
-        <div className="bg-foreground/25 w-1/4 rounded-sm" />
-        <div className="flex-1" />
-      </div>
+      <MiniWindow className="bg-muted/50">
+        <div className="h-full w-2/5 p-1">
+          <div className="bg-foreground/20 h-full w-full rounded-[3px] shadow-sm">
+            <SidebarLines />
+          </div>
+        </div>
+        <div className="h-full flex-1 py-1 pr-1">
+          <ContentBlock />
+        </div>
+      </MiniWindow>
     )
   }
   if (variant === 'inset') {
     return (
-      <div className="bg-foreground/15 flex h-full p-1.5">
-        <div className="w-1/4" />
-        <div className="bg-background flex-1 rounded-sm shadow-sm" />
-      </div>
+      <MiniWindow className="bg-foreground/10">
+        <div className="h-full w-1/4">
+          <SidebarLines />
+        </div>
+        <div className="h-full flex-1 p-1">
+          <div className="bg-background h-full w-full rounded-[3px] border shadow-sm">
+            <ContentBlock />
+          </div>
+        </div>
+      </MiniWindow>
     )
   }
   return (
-    <div className="flex h-full">
-      <div className="bg-foreground/25 w-1/4" />
-      <div className="flex-1" />
-    </div>
+    <MiniWindow>
+      <div className="bg-foreground/15 h-full w-1/4">
+        <SidebarLines />
+      </div>
+      <div className="h-full flex-1">
+        <ContentBlock />
+      </div>
+    </MiniWindow>
   )
 }
 
 function LayoutThumb({ layout }: { layout: LayoutMode }) {
   if (layout === 'compact') {
     return (
-      <div className="flex h-full">
-        <div className="bg-foreground/25 w-2" />
-        <div className="flex-1" />
-      </div>
+      <MiniWindow>
+        <div className="bg-foreground/15 flex h-full w-2.5 flex-col items-center gap-[3px] py-1">
+          <span className="bg-primary size-1 shrink-0 rounded-full" />
+          <span className="bg-foreground/30 size-0.5 shrink-0 rounded-full" />
+          <span className="bg-foreground/30 size-0.5 shrink-0 rounded-full" />
+          <span className="bg-foreground/30 size-0.5 shrink-0 rounded-full" />
+        </div>
+        <div className="h-full flex-1">
+          <ContentBlock />
+        </div>
+      </MiniWindow>
     )
   }
   if (layout === 'offcanvas') {
     return (
-      <div className="relative h-full">
-        <div className="absolute start-1.5 top-1.5 space-y-0.5">
-          <div className="bg-foreground/40 h-0.5 w-3 rounded-full" />
-          <div className="bg-foreground/40 h-0.5 w-3 rounded-full" />
-          <div className="bg-foreground/40 h-0.5 w-3 rounded-full" />
+      <MiniWindow>
+        <div className="h-full w-full p-1">
+          <div className="bg-primary flex size-2.5 flex-col items-center justify-center gap-px rounded-[2px]">
+            <span className="bg-primary-foreground h-px w-1.5 rounded-full" />
+            <span className="bg-primary-foreground h-px w-1.5 rounded-full" />
+            <span className="bg-primary-foreground h-px w-1.5 rounded-full" />
+          </div>
         </div>
-      </div>
+      </MiniWindow>
     )
   }
   return (
-    <div className="flex h-full">
-      <div className="bg-foreground/25 w-1/4" />
-      <div className="flex-1" />
-    </div>
+    <MiniWindow>
+      <div className="bg-foreground/15 h-full w-1/4">
+        <SidebarLines />
+      </div>
+      <div className="h-full flex-1">
+        <ContentBlock />
+      </div>
+    </MiniWindow>
   )
 }
 
 function DirectionThumb({ dir }: { dir: Direction }) {
   const align = dir === 'ltr' ? 'items-start' : 'items-end'
   return (
-    <div className={cn('flex h-full flex-col justify-center gap-1 px-2', align)}>
-      <div className="bg-foreground/40 h-1 w-3/4 rounded-full" />
-      <div className="bg-foreground/40 h-1 w-1/2 rounded-full" />
-      <div className="bg-foreground/40 h-1 w-2/3 rounded-full" />
-    </div>
+    <MiniWindow>
+      <div className={cn('flex h-full w-full flex-col justify-center gap-[3px] px-1.5', align)}>
+        <span className="bg-primary/70 h-[2px] w-3/4 rounded-full" />
+        <span className="bg-foreground/25 h-[2px] w-1/2 rounded-full" />
+        <span className="bg-foreground/25 h-[2px] w-2/3 rounded-full" />
+      </div>
+    </MiniWindow>
   )
 }
 
 export function ConfigDrawer() {
   const { t } = useLocale()
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, resolvedTheme } = useTheme()
   const { settings, update } = useSettings()
   const [mounted, setMounted] = useState(false)
 
@@ -218,6 +285,9 @@ export function ConfigDrawer() {
             <div className="flex flex-wrap gap-3">
               {THEME_COLORS.map(color => {
                 const selected = settings.themeColor === color.name
+                // 色板跟随当前明暗模式展示（默认色在深色下显示为浅色圆点）
+                const swatch = mounted && resolvedTheme === 'dark' ? (color.swatchDark ?? color.swatch) : color.swatch
+                const lightSwatch = mounted && resolvedTheme === 'dark' && !!color.swatchDark
                 return (
                   <button
                     key={color.name}
@@ -226,12 +296,12 @@ export function ConfigDrawer() {
                     aria-label={color.label}
                     onClick={() => update({ themeColor: color.name })}
                     className={cn(
-                      'flex size-7 items-center justify-center rounded-full transition-transform hover:scale-110',
+                      'flex size-7 items-center justify-center rounded-full border border-black/10 transition-transform hover:scale-110 dark:border-white/20',
                       selected && 'ring-primary ring-offset-background ring-2 ring-offset-2'
                     )}
-                    style={{ backgroundColor: color.swatch }}
+                    style={{ backgroundColor: swatch }}
                   >
-                    {selected && <Check className="size-4 text-white" />}
+                    {selected && <Check className={cn('size-4', lightSwatch ? 'text-black' : 'text-white')} />}
                   </button>
                 )
               })}

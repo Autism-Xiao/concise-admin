@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions } from '@/components/data-table'
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { UserFormDialog } from './components/user-form-dialog'
 import { users as mockUsers, type User, type UserStatus } from './data/users'
 
@@ -31,7 +31,6 @@ const columnLabels: Record<string, string> = {
 
 export function UsersPage() {
   const [list, setList] = useState<User[]>(mockUsers)
-  const [keyword, setKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<User | null>(null)
@@ -112,24 +111,7 @@ export function UsersPage() {
   )
 
   const columnFilters = useMemo(() => (statusFilter === 'all' ? [] : [{ id: 'status', value: statusFilter }]), [statusFilter])
-
-  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table v8 API 返回不可记忆化函数，React Compiler 跳过本组件即可
-  const table = useReactTable({
-    data: list,
-    columns,
-    state: {
-      globalFilter: keyword,
-      columnFilters
-    },
-    onGlobalFilterChange: setKeyword,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: {
-      pagination: { pageSize: 10 }
-    }
-  })
+  const { table, keyword, setKeyword } = useDataTable({ data: list, columns, columnFilters })
 
   const handleSubmit = (values: Omit<User, 'id' | 'createdAt'>) => {
     if (editing) {
@@ -192,22 +174,12 @@ export function UsersPage() {
 
       {formOpen && <UserFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} user={editing} onSubmit={handleSubmit} />}
 
-      <Dialog open={!!deleting} onOpenChange={v => !v && setDeleting(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>确认删除</DialogTitle>
-            <DialogDescription>即将删除用户「{deleting?.name}」，该操作不可恢复。</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleting(null)}>
-              取消
-            </Button>
-            <Button variant="destructive" onClick={handleDelete}>
-              删除
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDeleteDialog
+        open={!!deleting}
+        onOpenChange={v => !v && setDeleting(null)}
+        description={<>即将删除用户「{deleting?.name}」，该操作不可恢复。</>}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }
