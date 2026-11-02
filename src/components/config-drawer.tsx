@@ -313,6 +313,30 @@ export function ConfigDrawer() {
                   </button>
                 )
               })}
+              {/* 自定义颜色：未选中时显示彩虹圈，选中后显示所选颜色 */}
+              <label
+                title="自定义"
+                aria-label="自定义"
+                className={cn(
+                  'relative flex size-7 cursor-pointer items-center justify-center rounded-full border border-black/10 transition-transform hover:scale-110 dark:border-white/20',
+                  settings.themeColor === 'custom' && 'ring-primary ring-offset-background ring-2 ring-offset-2'
+                )}
+                style={{
+                  backgroundColor: settings.themeColor === 'custom' ? settings.customColor : undefined,
+                  backgroundImage:
+                    settings.themeColor === 'custom'
+                      ? undefined
+                      : 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)'
+                }}
+              >
+                {settings.themeColor === 'custom' && <Check className="size-4 text-white" />}
+                <input
+                  type="color"
+                  className="absolute inset-0 size-full cursor-pointer opacity-0"
+                  value={settings.customColor}
+                  onChange={e => update({ themeColor: 'custom', customColor: e.target.value })}
+                />
+              </label>
             </div>
           </section>
 

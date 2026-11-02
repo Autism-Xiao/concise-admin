@@ -171,80 +171,6 @@ export const THEME_COLORS: ThemeColorPreset[] = [
     }
   },
   {
-    name: 'soft-pop',
-    label: '柔粉',
-    swatch: 'oklch(0.5106 0.2301 276.9656)',
-    vars: {
-      light: {
-        '--radius': '1rem',
-        '--card': 'oklch(1 0 0)',
-        '--card-foreground': 'oklch(0 0 0)',
-        '--popover': 'oklch(1 0 0)',
-        '--popover-foreground': 'oklch(0 0 0)',
-        '--primary': 'oklch(0.5106 0.2301 276.9656)',
-        '--primary-foreground': 'oklch(1 0 0)',
-        '--secondary': 'oklch(0.7038 0.123 182.5025)',
-        '--secondary-foreground': 'oklch(1 0 0)',
-        '--muted': 'oklch(0.9551 0 0)',
-        '--muted-foreground': 'oklch(0.3211 0 0)',
-        '--accent': 'oklch(0.7686 0.1647 70.0804)',
-        '--accent-foreground': 'oklch(0 0 0)',
-        '--destructive': 'oklch(0.6368 0.2078 25.3313)',
-        '--border': 'oklch(0 0 0)',
-        '--input': 'oklch(0.5555 0 0)',
-        '--ring': 'oklch(0.7853 0.1041 274.7134)',
-        '--chart-1': 'oklch(0.5106 0.2301 276.9656)',
-        '--chart-2': 'oklch(0.7038 0.123 182.5025)',
-        '--chart-3': 'oklch(0.7686 0.1647 70.0804)',
-        '--chart-4': 'oklch(0.6559 0.2118 354.3084)',
-        '--chart-5': 'oklch(0.7227 0.192 149.5793)',
-        '--sidebar': 'oklch(0.9789 0.0082 121.6272)',
-        '--sidebar-foreground': 'oklch(0 0 0)',
-        '--sidebar-primary': 'oklch(0.5106 0.2301 276.9656)',
-        '--sidebar-primary-foreground': 'oklch(1 0 0)',
-        '--sidebar-accent': 'oklch(0.7686 0.1647 70.0804)',
-        '--sidebar-accent-foreground': 'oklch(0 0 0)',
-        '--sidebar-border': 'oklch(0 0 0)',
-        '--sidebar-ring': 'oklch(0.7853 0.1041 274.7134)',
-        '--background': 'oklch(0.9789 0.0082 121.6272)',
-        '--foreground': 'oklch(0 0 0)'
-      },
-      dark: {
-        '--background': 'oklch(0 0 0)',
-        '--foreground': 'oklch(1 0 0)',
-        '--card': 'oklch(0.2455 0.0217 257.2823)',
-        '--card-foreground': 'oklch(1 0 0)',
-        '--popover': 'oklch(0.2455 0.0217 257.2823)',
-        '--popover-foreground': 'oklch(1 0 0)',
-        '--primary': 'oklch(0.6801 0.1583 276.9349)',
-        '--primary-foreground': 'oklch(0 0 0)',
-        '--secondary': 'oklch(0.7845 0.1325 181.912)',
-        '--secondary-foreground': 'oklch(0 0 0)',
-        '--muted': 'oklch(0.3211 0 0)',
-        '--muted-foreground': 'oklch(0.8452 0 0)',
-        '--accent': 'oklch(0.879 0.1534 91.6054)',
-        '--accent-foreground': 'oklch(0 0 0)',
-        '--destructive': 'oklch(0.7106 0.1661 22.2162)',
-        '--border': 'oklch(0.4459 0 0)',
-        '--input': 'oklch(1 0 0)',
-        '--ring': 'oklch(0.6801 0.1583 276.9349)',
-        '--chart-1': 'oklch(0.6801 0.1583 276.9349)',
-        '--chart-2': 'oklch(0.7845 0.1325 181.912)',
-        '--chart-3': 'oklch(0.879 0.1534 91.6054)',
-        '--chart-4': 'oklch(0.7253 0.1752 349.7607)',
-        '--chart-5': 'oklch(0.8003 0.1821 151.711)',
-        '--sidebar': 'oklch(0 0 0)',
-        '--sidebar-foreground': 'oklch(1 0 0)',
-        '--sidebar-primary': 'oklch(0.6801 0.1583 276.9349)',
-        '--sidebar-primary-foreground': 'oklch(0 0 0)',
-        '--sidebar-accent': 'oklch(0.879 0.1534 91.6054)',
-        '--sidebar-accent-foreground': 'oklch(0 0 0)',
-        '--sidebar-border': 'oklch(1 0 0)',
-        '--sidebar-ring': 'oklch(0.6801 0.1583 276.9349)'
-      }
-    }
-  },
-  {
     name: 'cobalt',
     label: '钴蓝',
     swatch: 'oklch(0.52 0.2 250)',
@@ -837,80 +763,6 @@ export const THEME_COLORS: ThemeColorPreset[] = [
     }
   },
   {
-    name: 'brutalist',
-    label: '粗野',
-    swatch: 'oklch(0.6489 0.237 26.9728)',
-    vars: {
-      light: {
-        '--radius': '0px',
-        '--card': 'oklch(1 0 0)',
-        '--card-foreground': 'oklch(0 0 0)',
-        '--popover': 'oklch(1 0 0)',
-        '--popover-foreground': 'oklch(0 0 0)',
-        '--primary': 'oklch(0.6489 0.237 26.9728)',
-        '--primary-foreground': 'oklch(1 0 0)',
-        '--secondary': 'oklch(0.968 0.211 109.7692)',
-        '--secondary-foreground': 'oklch(0 0 0)',
-        '--muted': 'oklch(0.9551 0 0)',
-        '--muted-foreground': 'oklch(0.3211 0 0)',
-        '--accent': 'oklch(0.5635 0.2408 260.8178)',
-        '--accent-foreground': 'oklch(1 0 0)',
-        '--destructive': 'oklch(0 0 0)',
-        '--border': 'oklch(0 0 0)',
-        '--input': 'oklch(0 0 0)',
-        '--ring': 'oklch(0.6489 0.237 26.9728)',
-        '--chart-1': 'oklch(0.6489 0.237 26.9728)',
-        '--chart-2': 'oklch(0.968 0.211 109.7692)',
-        '--chart-3': 'oklch(0.5635 0.2408 260.8178)',
-        '--chart-4': 'oklch(0.7323 0.2492 142.4953)',
-        '--chart-5': 'oklch(0.5931 0.2726 328.3634)',
-        '--sidebar': 'oklch(0.9551 0 0)',
-        '--sidebar-foreground': 'oklch(0 0 0)',
-        '--sidebar-primary': 'oklch(0.6489 0.237 26.9728)',
-        '--sidebar-primary-foreground': 'oklch(1 0 0)',
-        '--sidebar-accent': 'oklch(0.5635 0.2408 260.8178)',
-        '--sidebar-accent-foreground': 'oklch(1 0 0)',
-        '--sidebar-border': 'oklch(0 0 0)',
-        '--sidebar-ring': 'oklch(0.6489 0.237 26.9728)',
-        '--background': 'oklch(1 0 0)',
-        '--foreground': 'oklch(0 0 0)'
-      },
-      dark: {
-        '--background': 'oklch(0 0 0)',
-        '--foreground': 'oklch(1 0 0)',
-        '--card': 'oklch(0.3211 0 0)',
-        '--card-foreground': 'oklch(1 0 0)',
-        '--popover': 'oklch(0.3211 0 0)',
-        '--popover-foreground': 'oklch(1 0 0)',
-        '--primary': 'oklch(0.7044 0.1872 23.1858)',
-        '--primary-foreground': 'oklch(0 0 0)',
-        '--secondary': 'oklch(0.9691 0.2005 109.6228)',
-        '--secondary-foreground': 'oklch(0 0 0)',
-        '--muted': 'oklch(0.3211 0 0)',
-        '--muted-foreground': 'oklch(0.8452 0 0)',
-        '--accent': 'oklch(0.6755 0.1765 252.2592)',
-        '--accent-foreground': 'oklch(0 0 0)',
-        '--destructive': 'oklch(1 0 0)',
-        '--border': 'oklch(1 0 0)',
-        '--input': 'oklch(1 0 0)',
-        '--ring': 'oklch(0.7044 0.1872 23.1858)',
-        '--chart-1': 'oklch(0.7044 0.1872 23.1858)',
-        '--chart-2': 'oklch(0.9691 0.2005 109.6228)',
-        '--chart-3': 'oklch(0.6755 0.1765 252.2592)',
-        '--chart-4': 'oklch(0.7395 0.2268 142.8504)',
-        '--chart-5': 'oklch(0.6131 0.2458 328.0714)',
-        '--sidebar': 'oklch(0 0 0)',
-        '--sidebar-foreground': 'oklch(1 0 0)',
-        '--sidebar-primary': 'oklch(0.7044 0.1872 23.1858)',
-        '--sidebar-primary-foreground': 'oklch(0 0 0)',
-        '--sidebar-accent': 'oklch(0.6755 0.1765 252.2592)',
-        '--sidebar-accent-foreground': 'oklch(0 0 0)',
-        '--sidebar-border': 'oklch(1 0 0)',
-        '--sidebar-ring': 'oklch(0.7044 0.1872 23.1858)'
-      }
-    }
-  },
-  {
     name: 'forest',
     label: '森林',
     swatch: 'oklch(0.55 0.16 145)',
@@ -1064,8 +916,127 @@ export function getThemeColorPreset(name: string): ThemeColorPreset {
   return THEME_COLORS.find(p => p.name === name) ?? THEME_COLORS[0]
 }
 
-// 生成覆盖 CSS 变量的 style 内容；default 返回空串（使用默认主题）
-export function buildThemeColorCss(name: string): string {
+// ---------- 自定义颜色 ----------
+// 把 #rrggbb 转成 OKLCH（sRGB → linear → OKLab → OKLCH），供自定义主题色生成整套变量
+export function hexToOklch(hex: string): { l: number; c: number; h: number } | null {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
+  if (!m) return null
+  const n = parseInt(m[1], 16)
+  const toLin = (v: number) => {
+    const s = v / 255
+    return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+  }
+  const lr = toLin((n >> 16) & 255)
+  const lg = toLin((n >> 8) & 255)
+  const lb = toLin(n & 255)
+  const l_ = 0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb
+  const m_ = 0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb
+  const s_ = 0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb
+  const l3 = Math.cbrt(l_)
+  const m3 = Math.cbrt(m_)
+  const s3 = Math.cbrt(s_)
+  const l = 0.2104542553 * l3 + 0.793617785 * m3 - 0.0040720468 * s3
+  const a = 1.9779984951 * l3 - 2.428592205 * m3 + 0.4505937099 * s3
+  const b = 0.0259040371 * l3 + 0.7827717662 * m3 - 0.808675766 * s3
+  let h = (Math.atan2(b, a) * 180) / Math.PI
+  if (h < 0) h += 360
+  return { l, c: Math.sqrt(a * a + b * b), h }
+}
+
+const clampNum = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max)
+const round4 = (v: number) => Math.round(v * 10000) / 10000
+
+// 由任意颜色生成整套主题变量：明度按角色取固定阶梯（与内置预设一致），色相/彩度跟随所选颜色
+export function buildCustomThemeVars(hex: string): { light: Record<string, string>; dark: Record<string, string> } | null {
+  const ok = hexToOklch(hex)
+  if (!ok) return null
+  const H = Math.round(ok.h * 100) / 100
+  // 彩度限制在可读范围内，避免选了灰色/荧光色导致界面脏或刺眼
+  const C = clampNum(ok.c, 0.05, 0.2)
+  const p = (l: number, c: number, h = H) => `oklch(${round4(l)} ${round4(Math.max(c, 0))} ${round4(h)})`
+  const primaryLight = p(clampNum(ok.l, 0.45, 0.68), C)
+  const primaryDark = p(clampNum(ok.l + 0.12, 0.55, 0.75), C * 0.9)
+  const light: Record<string, string> = {
+    '--background': p(0.985, C * 0.05),
+    '--foreground': p(0.15, C * 0.15),
+    '--card': 'oklch(1 0 0)',
+    '--card-foreground': p(0.15, C * 0.15),
+    '--popover': 'oklch(1 0 0)',
+    '--popover-foreground': p(0.15, C * 0.15),
+    '--primary': primaryLight,
+    '--primary-foreground': p(0.98, C * 0.05),
+    '--secondary': p(0.93, C * 0.15),
+    '--secondary-foreground': p(0.22, C * 0.25),
+    '--muted': p(0.95, C * 0.06),
+    '--muted-foreground': p(0.47, C * 0.15),
+    '--accent': p(0.9, C * 0.25),
+    '--accent-foreground': p(0.22, C * 0.25),
+    '--destructive': 'oklch(0.55 0.22 25)',
+    '--border': p(0.91, C * 0.11),
+    '--input': p(0.91, C * 0.11),
+    '--ring': primaryLight,
+    '--chart-1': primaryLight,
+    '--chart-2': p(0.6, C * 0.85, H + 30),
+    '--chart-3': p(0.62, C * 0.8, H - 30),
+    '--chart-4': p(0.68, C * 0.7, H + 60),
+    '--chart-5': p(0.52, C * 0.9, H - 60),
+    '--sidebar': p(0.975, C * 0.06),
+    '--sidebar-foreground': p(0.26, C * 0.18),
+    '--sidebar-primary': primaryLight,
+    '--sidebar-primary-foreground': p(0.98, C * 0.05),
+    '--sidebar-accent': p(0.93, C * 0.15),
+    '--sidebar-accent-foreground': p(0.22, C * 0.25),
+    '--sidebar-border': p(0.91, C * 0.11),
+    '--sidebar-ring': primaryLight
+  }
+  const dark: Record<string, string> = {
+    '--background': p(0.12, C * 0.13),
+    '--foreground': p(0.92, C * 0.05),
+    '--card': p(0.16, C * 0.15),
+    '--card-foreground': p(0.92, C * 0.05),
+    '--popover': p(0.16, C * 0.15),
+    '--popover-foreground': p(0.92, C * 0.05),
+    '--primary': primaryDark,
+    '--primary-foreground': p(0.1, C * 0.1),
+    '--secondary': p(0.22, C * 0.2),
+    '--secondary-foreground': p(0.9, C * 0.06),
+    '--muted': p(0.2, C * 0.1),
+    '--muted-foreground': p(0.65, C * 0.12),
+    '--accent': p(0.26, C * 0.25),
+    '--accent-foreground': p(0.88, C * 0.06),
+    '--destructive': 'oklch(0.55 0.22 25)',
+    '--border': p(0.26, C * 0.18),
+    '--input': p(0.26, C * 0.18),
+    '--ring': primaryDark,
+    '--chart-1': primaryDark,
+    '--chart-2': p(0.6, C * 0.85, H + 30),
+    '--chart-3': p(0.62, C * 0.8, H - 30),
+    '--chart-4': p(0.68, C * 0.7, H + 60),
+    '--chart-5': p(0.55, C * 0.9, H - 60),
+    '--sidebar': p(0.1, C * 0.12),
+    '--sidebar-foreground': p(0.85, C * 0.06),
+    '--sidebar-primary': primaryDark,
+    '--sidebar-primary-foreground': p(0.1, C * 0.1),
+    '--sidebar-accent': p(0.2, C * 0.2),
+    '--sidebar-accent-foreground': p(0.85, C * 0.06),
+    '--sidebar-border': p(0.22, C * 0.16),
+    '--sidebar-ring': primaryDark
+  }
+  return { light, dark }
+}
+
+// 生成覆盖 CSS 变量的 style 内容；default 返回空串（使用默认主题），custom 由所选颜色实时生成
+export function buildThemeColorCss(name: string, customColor?: string): string {
+  if (name === 'custom') {
+    if (!customColor) return ''
+    const vars = buildCustomThemeVars(customColor)
+    if (!vars) return ''
+    const toCustomRules = (v: Record<string, string>) =>
+      Object.entries(v)
+        .map(([k, val]) => `${k}:${val}`)
+        .join(';')
+    return `:root{${toCustomRules(vars.light)}}.dark{${toCustomRules(vars.dark)}}`
+  }
   const preset = getThemeColorPreset(name)
   if (preset.name === 'default') return ''
   const toRules = (vars: Record<string, string>) =>

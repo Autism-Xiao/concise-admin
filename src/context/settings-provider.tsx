@@ -12,7 +12,7 @@ const STYLE_ID = 'app-settings-override'
 
 // 主题色与滤镜通过注入的 style 标签生效（首屏由 vite 注入同款内容，无闪烁）
 function applyOverrides(settings: AppSettings) {
-  const css = buildThemeColorCss(settings.themeColor) + buildFilterCss(settings.grayscale, settings.colorWeak)
+  const css = buildThemeColorCss(settings.themeColor, settings.customColor) + buildFilterCss(settings.grayscale, settings.colorWeak)
   let styleEl = document.getElementById(STYLE_ID) as HTMLStyleElement | null
   if (!css) {
     styleEl?.remove()

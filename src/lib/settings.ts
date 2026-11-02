@@ -6,8 +6,10 @@ export type WatermarkDensity = 'compact' | 'default' | 'loose'
 
 export interface AppSettings {
   fontSize: FontSize
-  /** 主题色预设名（对应 theme-presets.ts），default 表示跟随默认主题 */
+  /** 主题色预设名（对应 theme-presets.ts），default 表示跟随默认主题，custom 表示自定义颜色 */
   themeColor: string
+  /** 自定义主题色（themeColor 为 custom 时生效），格式 #rrggbb */
+  customColor: string
   /** 灰色模式 */
   grayscale: boolean
   /** 色弱模式 */
@@ -29,6 +31,7 @@ export interface AppSettings {
 export const DEFAULT_SETTINGS: AppSettings = {
   fontSize: 'default',
   themeColor: 'default',
+  customColor: '#2563eb',
   grayscale: false,
   colorWeak: false,
   sidebarVariant: 'sidebar',

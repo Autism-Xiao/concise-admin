@@ -12,6 +12,7 @@ const SETTINGS_FILE = path.resolve(__dirname, 'settings.json')
 const DEFAULT_SETTINGS = {
   fontSize: 'default',
   themeColor: 'default',
+  customColor: '#2563eb',
   grayscale: false,
   colorWeak: false,
   sidebarVariant: 'sidebar',
@@ -38,7 +39,7 @@ function settingsApi(): Plugin {
     transformIndexHtml(html) {
       const s = readSettings()
       const size = FONT_SIZE_MAP[s.fontSize] ?? FONT_SIZE_MAP.default
-      const css = `html{font-size:${size}}` + buildThemeColorCss(s.themeColor) + buildFilterCss(s.grayscale, s.colorWeak)
+      const css = `html{font-size:${size}}` + buildThemeColorCss(s.themeColor, s.customColor) + buildFilterCss(s.grayscale, s.colorWeak)
       return {
         html,
         tags: [{ tag: 'style', children: css, injectTo: 'head' as const }],
