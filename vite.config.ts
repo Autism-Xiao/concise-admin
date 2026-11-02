@@ -62,7 +62,10 @@ function settingsApi(): Plugin {
           req.on('end', () => {
             try {
               const next = { ...readSettings(), ...JSON.parse(body) }
-              fs.writeFileSync(SETTINGS_FILE, JSON.stringify(next, null, 2))
+              // 原子写：先写临时文件再重命名，避免并发读取拿到半截 JSON
+              const tmp = SETTINGS_FILE + '.tmp'
+              fs.writeFileSync(tmp, JSON.stringify(next, null, 2))
+              fs.renameSync(tmp, SETTINGS_FILE)
               res.setHeader('Content-Type', 'application/json')
               res.end(JSON.stringify(next))
             } catch {
