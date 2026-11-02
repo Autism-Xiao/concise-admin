@@ -1,14 +1,16 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { useLocale } from '@/context/locale-provider'
 import { useSettings } from '@/context/settings-provider'
 import { cn } from '@/lib/utils'
 import type { FontSize } from '@/lib/settings'
+import type { TranslationKey } from '@/config/i18n'
 
-const FONT_SIZE_OPTIONS: { value: FontSize; label: string; preview: string }[] = [
-  { value: 'small', label: '紧凑', preview: 'A' },
-  { value: 'default', label: '默认', preview: 'A' },
-  { value: 'large', label: '宽松', preview: 'A' }
+const FONT_SIZE_OPTIONS: { value: FontSize; labelKey: TranslationKey; preview: string }[] = [
+  { value: 'small', labelKey: 'fontSize.small', preview: 'A' },
+  { value: 'default', labelKey: 'fontSize.default', preview: 'A' },
+  { value: 'large', labelKey: 'fontSize.large', preview: 'A' }
 ]
 
 const FONT_SIZE_PREVIEW_CLASS: Record<FontSize, string> = {
@@ -19,6 +21,7 @@ const FONT_SIZE_PREVIEW_CLASS: Record<FontSize, string> = {
 
 export function SettingsPage() {
   const { settings, update } = useSettings()
+  const { t } = useLocale()
 
   return (
     <div className="space-y-6">
@@ -48,7 +51,7 @@ export function SettingsPage() {
               onClick={() => update({ fontSize: option.value })}
             >
               <span className={cn(FONT_SIZE_PREVIEW_CLASS[option.value], 'font-semibold')}>{option.preview}</span>
-              <span className="text-xs">{option.label}</span>
+              <span className="text-xs">{t(option.labelKey)}</span>
             </Button>
           ))}
         </CardContent>

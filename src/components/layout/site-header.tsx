@@ -1,4 +1,6 @@
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import { ConfigDrawer } from '@/components/config-drawer'
+import { FullscreenToggle } from '@/components/fullscreen-toggle'
 import { LanguageToggle } from '@/components/language-toggle'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
@@ -10,8 +12,10 @@ export function SiteHeader() {
       <SidebarTrigger className="-ml-1" />
       <div className="flex-1" />
       <Search />
+      <FullscreenToggle />
       <ThemeToggle />
       <LanguageToggle />
+      <ConfigDrawer />
       <ProfileDropdown />
     </header>
   )
