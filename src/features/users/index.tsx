@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions } from '@/components/data-table'
 import { UserFormDialog } from './components/user-form-dialog'
 import { users as mockUsers, type User, type UserStatus } from './data/users'
 
@@ -16,18 +18,24 @@ const statusMap: Record<UserStatus, { label: string; className: string }> = {
   suspended: { label: '已停用', className: 'bg-destructive/15 text-destructive' }
 }
 
+const columnLabels: Record<string, string> = {
+  id: 'ID',
+  name: '姓名',
+  username: '用户名',
+  email: '邮箱',
+  phone: '手机号',
+  status: '状态',
+  role: '角色',
+  createdAt: '创建时间'
+}
+
 export function UsersPage() {
   const [list, setList] = useState<User[]>(mockUsers)
   const [keyword, setKeyword] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<User | null>(null)
   const [deleting, setDeleting] = useState<User | null>(null)
-
-  const filtered = useMemo(() => {
-    const q = keyword.trim().toLowerCase()
-    if (!q) return list
-    return list.filter(u => u.name.toLowerCase().includes(q) || u.username.includes(q) || u.email.includes(q))
-  }, [list, keyword])
 
   const openCreate = () => {
     setEditing(null)
@@ -38,6 +46,90 @@ export function UsersPage() {
     setEditing(user)
     setFormOpen(true)
   }
+
+  const columns = useMemo<ColumnDef<User>[]>(
+    () => [
+      {
+        accessorKey: 'id',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
+        cell: ({ row }) => row.getValue('id')
+      },
+      {
+        accessorKey: 'name',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="姓名" />,
+        cell: ({ row }) => <span className="font-medium">{row.getValue('name')}</span>
+      },
+      {
+        accessorKey: 'username',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="用户名" />
+      },
+      {
+        accessorKey: 'email',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="邮箱" />
+      },
+      {
+        accessorKey: 'phone',
+        header: '手机号',
+        enableSorting: false
+      },
+      {
+        accessorKey: 'status',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="状态" />,
+        cell: ({ row }) => {
+          const status = row.getValue<UserStatus>('status')
+          return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusMap[status].className}`}>{statusMap[status].label}</span>
+        },
+        filterFn: (row, id, value) => row.getValue(id) === value
+      },
+      {
+        accessorKey: 'role',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="角色" />
+      },
+      {
+        accessorKey: 'createdAt',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="创建时间" />
+      },
+      {
+        id: 'actions',
+        header: () => <div className="text-end">操作</div>,
+        enableSorting: false,
+        enableHiding: false,
+        cell: ({ row }) => (
+          <div className="text-end">
+            <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
+              <Pencil className="size-4" />
+              <span className="sr-only">编辑</span>
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setDeleting(row.original)}>
+              <Trash2 className="text-destructive size-4" />
+              <span className="sr-only">删除</span>
+            </Button>
+          </div>
+        )
+      }
+    ],
+    []
+  )
+
+  const columnFilters = useMemo(() => (statusFilter === 'all' ? [] : [{ id: 'status', value: statusFilter }]), [statusFilter])
+
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table v8 API 返回不可记忆化函数，React Compiler 跳过本组件即可
+  const table = useReactTable({
+    data: list,
+    columns,
+    state: {
+      globalFilter: keyword,
+      columnFilters
+    },
+    onGlobalFilterChange: setKeyword,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: { pageSize: 10 }
+    }
+  })
 
   const handleSubmit = (values: Omit<User, 'id' | 'createdAt'>) => {
     if (editing) {
@@ -72,58 +164,29 @@ export function UsersPage() {
 
       <Card>
         <CardContent className="space-y-4">
-          <div className="relative max-w-xs">
-            <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
-            <Input placeholder="搜索姓名 / 用户名 / 邮箱" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative w-full max-w-xs">
+              <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
+              <Input placeholder="搜索姓名 / 用户名 / 邮箱" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-9 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部状态</SelectItem>
+                {Object.entries(statusMap).map(([value, { label }]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <DataTableViewOptions table={table} columnLabels={columnLabels} />
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>姓名</TableHead>
-                <TableHead>用户名</TableHead>
-                <TableHead>邮箱</TableHead>
-                <TableHead>状态</TableHead>
-                <TableHead>角色</TableHead>
-                <TableHead>创建时间</TableHead>
-                <TableHead className="text-end">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-muted-foreground h-24 text-center">
-                    没有匹配的用户
-                  </TableCell>
-                </TableRow>
-              )}
-              {filtered.map(user => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.id}</TableCell>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.username}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusMap[user.status].className}`}>
-                      {statusMap[user.status].label}
-                    </span>
-                  </TableCell>
-                  <TableCell>{user.role}</TableCell>
-                  <TableCell>{user.createdAt}</TableCell>
-                  <TableCell className="text-end">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(user)}>
-                      <Pencil className="size-4" />
-                      <span className="sr-only">编辑</span>
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setDeleting(user)}>
-                      <Trash2 className="text-destructive size-4" />
-                      <span className="sr-only">删除</span>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+
+          <DataTable table={table} emptyText="没有匹配的用户" />
+          <DataTablePagination table={table} />
         </CardContent>
       </Card>
 
