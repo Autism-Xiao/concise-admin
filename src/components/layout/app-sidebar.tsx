@@ -78,7 +78,7 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
                 <SidebarMenuButton tooltip={t('nav.search')} onClick={() => setOpen(true)}>
                   <Search />
                   <span>{t('nav.search')}</span>
-                  <SidebarMenuBadge>⌘K</SidebarMenuBadge>
+                  <SidebarMenuBadge>⌘J</SidebarMenuBadge>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

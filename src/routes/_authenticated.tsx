@@ -47,7 +47,7 @@ function AuthenticatedLayout() {
         <SidebarInset className="h-svh overflow-hidden">
           <SiteHeader />
           <PageTabs />
-          <main className="flex-1 overflow-y-auto p-6">
+          <main data-scroll="main" className="flex-1 overflow-y-auto p-6">
             {/* 已登记的页面走多标签页 keep-alive 渲染；未登记路径（如 404）回退到路由 Outlet */}
             {isRegisteredPage(pathname) ? <TabPageRenderer /> : <Outlet />}
           </main>

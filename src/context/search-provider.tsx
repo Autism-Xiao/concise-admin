@@ -12,7 +12,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+      if (e.key === 'j' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         setOpen(prev => !prev)
       }
