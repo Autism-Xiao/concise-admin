@@ -80,5 +80,5 @@ export function Watermark({ content, rotate = -22, fontSize = 14, tileSize = [25
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [textKey, rotate, fontSize, tileW, tileH, resolvedTheme])
 
-  return <div ref={ref} aria-hidden className="pointer-events-none fixed inset-0 z-[100]" />
+  return <div ref={ref} aria-hidden className="pointer-events-none fixed inset-0 z-40" />
 }
