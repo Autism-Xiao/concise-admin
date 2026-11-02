@@ -4,6 +4,7 @@ import { ArrowRight, ChevronRight, Laptop, Moon, Search, Sun } from 'lucide-reac
 import { useTheme } from 'next-themes'
 import { useSearch } from '@/context/search-provider'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { startThemeTransition } from '@/lib/theme'
 import { navGroups } from '@/config/nav'
 
 type RouteUrl = LinkProps['to'] | (string & {})
@@ -36,9 +37,9 @@ export function CommandMenu() {
       }
     }
     list.push(
-      { group: '主题', label: '浅色', action: () => setTheme('light'), icon: <Sun className="size-4" /> },
-      { group: '主题', label: '深色', action: () => setTheme('dark'), icon: <Moon className="size-4" /> },
-      { group: '主题', label: '跟随系统', action: () => setTheme('system'), icon: <Laptop className="size-4" /> }
+      { group: '主题', label: '浅色', action: () => startThemeTransition(() => setTheme('light')), icon: <Sun className="size-4" /> },
+      { group: '主题', label: '深色', action: () => startThemeTransition(() => setTheme('dark')), icon: <Moon className="size-4" /> },
+      { group: '主题', label: '跟随系统', action: () => startThemeTransition(() => setTheme('system')), icon: <Laptop className="size-4" /> }
     )
     return list
   }, [setTheme])

@@ -2,9 +2,12 @@ import { Monitor, Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { startThemeTransition } from '@/lib/theme'
 
 export function ThemeToggle() {
   const { setTheme } = useTheme()
+
+  const switchTheme = (theme: string) => startThemeTransition(() => setTheme(theme))
 
   return (
     <DropdownMenu>
@@ -16,15 +19,15 @@ export function ThemeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme('light')}>
+        <DropdownMenuItem onClick={() => switchTheme('light')}>
           <Sun />
           浅色
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('dark')}>
+        <DropdownMenuItem onClick={() => switchTheme('dark')}>
           <Moon />
           深色
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('system')}>
+        <DropdownMenuItem onClick={() => switchTheme('system')}>
           <Monitor />
           跟随系统
         </DropdownMenuItem>

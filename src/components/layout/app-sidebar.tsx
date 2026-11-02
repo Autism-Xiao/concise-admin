@@ -1,6 +1,8 @@
 import { Link } from '@tanstack/react-router'
-import { ChevronRight, GalleryVerticalEnd } from 'lucide-react'
+import { ChevronRight, Search } from 'lucide-react'
 import { Collapsible } from 'radix-ui'
+import { Logo } from '@/assets/logo'
+import { useSearch } from '@/context/search-provider'
 import {
   Sidebar,
   SidebarContent,
@@ -19,6 +21,8 @@ import {
 import { navGroups } from '@/config/nav'
 
 export function AppSidebar() {
+  const { setOpen } = useSearch()
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -26,10 +30,8 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href="/dashboard">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <GalleryVerticalEnd className="size-4" />
-                </div>
-                <div className="flex flex-col gap-0.5 leading-none">
+                <Logo className="text-sidebar-primary size-8 shrink-0" />
+                <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
                   <span className="font-medium">{import.meta.env.VITE_APP_NAME}</span>
                   <span className="text-muted-foreground text-xs">v1.0.0</span>
                 </div>
@@ -39,6 +41,19 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        <SidebarGroup className="pb-0">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => setOpen(true)}>
+                  <Search />
+                  <span>搜索</span>
+                  <SidebarMenuBadge>⌘K</SidebarMenuBadge>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
         {navGroups.map(group => (
           <SidebarGroup key={group.title}>
             <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
