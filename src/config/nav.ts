@@ -1,55 +1,64 @@
 import type { LinkProps } from '@tanstack/react-router'
-import { Bug, HelpCircle, LayoutDashboard, ListTodo, MessagesSquare, Package, Settings, Users, type LucideIcon } from 'lucide-react'
+import {
+  Bug,
+  HelpCircle,
+  LayoutDashboard,
+  ListTodo,
+  MessagesSquare,
+  Package,
+  Settings,
+  Users,
+  type LucideIcon
+} from 'lucide-react'
+import type { TranslationKey } from '@/config/i18n'
 
 type RouteUrl = LinkProps['to'] | (string & {})
 
 export type NavItem = {
-  title: string
+  titleKey: TranslationKey
   icon: LucideIcon
   badge?: string
-  url?: NavLinkUrl
-  items?: { title: string; url: RouteUrl }[]
+  url?: RouteUrl
+  items?: { titleKey: TranslationKey; url: RouteUrl }[]
 }
 
-type NavLinkUrl = RouteUrl
-
 export interface NavGroup {
-  title: string
+  titleKey: TranslationKey
   items: NavItem[]
 }
 
 export const navGroups: NavGroup[] = [
   {
-    title: '通用',
+    titleKey: 'group.general',
     items: [
-      { title: '仪表盘', url: '/dashboard', icon: LayoutDashboard },
-      { title: '任务', url: '/tasks', icon: ListTodo },
-      { title: '应用', url: '/apps', icon: Package },
-      { title: '聊天', url: '/chats', icon: MessagesSquare, badge: '3' },
-      { title: '用户', url: '/users', icon: Users }
+      { titleKey: 'nav.dashboard', url: '/dashboard', icon: LayoutDashboard },
+      { titleKey: 'nav.tasks', url: '/tasks', icon: ListTodo },
+      { titleKey: 'nav.apps', url: '/apps', icon: Package },
+      { titleKey: 'nav.chats', url: '/chats', icon: MessagesSquare, badge: '3' },
+      { titleKey: 'nav.users', url: '/users', icon: Users }
     ]
   },
   {
-    title: '页面',
+    titleKey: 'group.pages',
     items: [
       {
-        title: '错误页',
+        titleKey: 'nav.errors',
         icon: Bug,
         items: [
-          { title: '401 未授权', url: '/errors/401' },
-          { title: '403 禁止访问', url: '/errors/403' },
-          { title: '404 不存在', url: '/errors/404' },
-          { title: '500 服务器错误', url: '/errors/500' },
-          { title: '503 维护中', url: '/errors/503' }
+          { titleKey: 'nav.errors.401', url: '/errors/401' },
+          { titleKey: 'nav.errors.403', url: '/errors/403' },
+          { titleKey: 'nav.errors.404', url: '/errors/404' },
+          { titleKey: 'nav.errors.500', url: '/errors/500' },
+          { titleKey: 'nav.errors.503', url: '/errors/503' }
         ]
       }
     ]
   },
   {
-    title: '其他',
+    titleKey: 'group.other',
     items: [
-      { title: '设置', url: '/settings', icon: Settings },
-      { title: '帮助中心', url: '/help-center', icon: HelpCircle }
+      { titleKey: 'nav.settings', url: '/settings', icon: Settings },
+      { titleKey: 'nav.helpCenter', url: '/help-center', icon: HelpCircle }
     ]
   }
 ]

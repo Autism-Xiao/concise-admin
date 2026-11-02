@@ -11,10 +11,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import { useLocale } from '@/context/locale-provider'
 import { logout } from '@/lib/auth'
 
 export function ProfileDropdown() {
   const navigate = useNavigate()
+  const { t } = useLocale()
 
   return (
     <DropdownMenu>
@@ -36,11 +38,11 @@ export function ProfileDropdown() {
         <DropdownMenuGroup>
           <DropdownMenuItem onClick={() => void navigate({ to: '/settings' })}>
             <User />
-            个人资料
+            {t('profile.profile')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => void navigate({ to: '/settings' })}>
             <Settings />
-            设置
+            {t('profile.settings')}
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
@@ -52,7 +54,7 @@ export function ProfileDropdown() {
           }}
         >
           <LogOut />
-          退出登录
+          {t('profile.logout')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

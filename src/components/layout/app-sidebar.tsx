@@ -18,10 +18,12 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem
 } from '@/components/ui/sidebar'
+import { useLocale } from '@/context/locale-provider'
 import { navGroups } from '@/config/nav'
 
 export function AppSidebar() {
   const { setOpen } = useSearch()
+  const { t } = useLocale()
 
   return (
     <Sidebar collapsible="icon">
@@ -47,7 +49,7 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton onClick={() => setOpen(true)}>
                   <Search />
-                  <span>搜索</span>
+                  <span>{t('nav.search')}</span>
                   <SidebarMenuBadge>⌘K</SidebarMenuBadge>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -55,18 +57,18 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         {navGroups.map(group => (
-          <SidebarGroup key={group.title}>
-            <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+          <SidebarGroup key={group.titleKey}>
+            <SidebarGroupLabel>{t(group.titleKey)}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map(item =>
                   item.items ? (
-                    <Collapsible.Root key={item.title} className="group/collapsible">
+                    <Collapsible.Root key={item.titleKey} className="group/collapsible">
                       <SidebarMenuItem>
                         <Collapsible.Trigger asChild>
                           <SidebarMenuButton>
                             <item.icon />
-                            <span>{item.title}</span>
+                            <span>{t(item.titleKey)}</span>
                             <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
                           </SidebarMenuButton>
                         </Collapsible.Trigger>
@@ -76,7 +78,7 @@ export function AppSidebar() {
                               <SidebarMenuSubItem key={sub.url}>
                                 <SidebarMenuSubButton asChild>
                                   <Link to={sub.url} activeProps={{ 'data-active': true }}>
-                                    {sub.title}
+                                    {t(sub.titleKey)}
                                   </Link>
                                 </SidebarMenuSubButton>
                               </SidebarMenuSubItem>
@@ -90,7 +92,7 @@ export function AppSidebar() {
                       <SidebarMenuButton asChild>
                         <Link to={item.url!} activeProps={{ 'data-active': true }}>
                           <item.icon />
-                          <span>{item.title}</span>
+                          <span>{t(item.titleKey)}</span>
                           {item.badge && <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>}
                         </Link>
                       </SidebarMenuButton>
