@@ -17,6 +17,8 @@ export interface AppSettings {
   layout: LayoutMode
   /** 文字方向 */
   direction: Direction
+  /** 全屏安全水印 */
+  watermark: boolean
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -26,7 +28,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   colorWeak: false,
   sidebarVariant: 'sidebar',
   layout: 'default',
-  direction: 'ltr'
+  direction: 'ltr',
+  watermark: false
 }
 
 // 开发环境由 vite dev server 插件读写项目根目录 settings.json；

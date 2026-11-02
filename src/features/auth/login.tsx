@@ -32,7 +32,7 @@ export function LoginPage() {
       refreshCaptcha()
       return
     }
-    login()
+    login(account)
     toast.success(t('login.success'))
     void navigate({ to: '/dashboard' })
   }

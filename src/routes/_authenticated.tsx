@@ -2,8 +2,9 @@ import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { SiteHeader } from '@/components/layout/site-header'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { Watermark } from '@/components/watermark'
 import { useSettings } from '@/context/settings-provider'
-import { isAuthenticated } from '@/lib/auth'
+import { getUsername, isAuthenticated } from '@/lib/auth'
 
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: () => {
@@ -27,6 +28,7 @@ function AuthenticatedLayout() {
           <Outlet />
         </main>
       </SidebarInset>
+      {settings.watermark && <Watermark content={[getUsername(), import.meta.env.VITE_APP_NAME]} />}
     </SidebarProvider>
   )
 }

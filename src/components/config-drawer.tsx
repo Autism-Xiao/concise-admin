@@ -135,7 +135,16 @@ export function ConfigDrawer() {
 
   const handleReset = () => {
     startThemeTransition(() => setTheme('system'))
-    update({ fontSize: 'default', themeColor: 'default', grayscale: false, colorWeak: false, sidebarVariant: 'sidebar', layout: 'default', direction: 'ltr' })
+    update({
+      fontSize: 'default',
+      themeColor: 'default',
+      grayscale: false,
+      colorWeak: false,
+      sidebarVariant: 'sidebar',
+      layout: 'default',
+      direction: 'ltr',
+      watermark: false
+    })
   }
 
   return (
@@ -291,6 +300,10 @@ export function ConfigDrawer() {
               <div className="flex items-center justify-between">
                 <span className="text-sm">{t('config.colorWeak')}</span>
                 <Switch checked={settings.colorWeak} onCheckedChange={checked => update({ colorWeak: checked })} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">{t('config.watermark')}</span>
+                <Switch checked={settings.watermark} onCheckedChange={checked => update({ watermark: checked })} />
               </div>
             </div>
           </section>
