@@ -1,61 +1,32 @@
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { useLocale } from '@/context/locale-provider'
-import { useSettings } from '@/context/settings-provider'
-import { cn } from '@/lib/utils'
-import type { FontSize } from '@/lib/settings'
-import type { TranslationKey } from '@/config/i18n'
+import { Outlet } from '@tanstack/react-router'
+import { Bell, Monitor, Palette, UserCog, Wrench } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { SidebarNav, type SettingsNavItem } from './components/sidebar-nav'
 
-const FONT_SIZE_OPTIONS: { value: FontSize; labelKey: TranslationKey; preview: string }[] = [
-  { value: 'small', labelKey: 'fontSize.small', preview: 'A' },
-  { value: 'default', labelKey: 'fontSize.default', preview: 'A' },
-  { value: 'large', labelKey: 'fontSize.large', preview: 'A' }
+const sidebarNavItems: SettingsNavItem[] = [
+  { title: '个人资料', href: '/settings', icon: <UserCog size={18} /> },
+  { title: '账户', href: '/settings/account', icon: <Wrench size={18} /> },
+  { title: '外观', href: '/settings/appearance', icon: <Palette size={18} /> },
+  { title: '通知', href: '/settings/notifications', icon: <Bell size={18} /> },
+  { title: '显示', href: '/settings/display', icon: <Monitor size={18} /> }
 ]
 
-const FONT_SIZE_PREVIEW_CLASS: Record<FontSize, string> = {
-  small: 'text-sm',
-  default: 'text-base',
-  large: 'text-lg'
-}
-
-export function SettingsPage() {
-  const { settings, update } = useSettings()
-  const { t } = useLocale()
-
+export function SettingsLayout() {
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">系统设置</h1>
-
-      <Card className="max-w-md">
-        <CardHeader>
-          <CardTitle>外观</CardTitle>
-          <CardDescription>切换浅色 / 深色 / 跟随系统主题</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ThemeToggle />
-        </CardContent>
-      </Card>
-
-      <Card className="max-w-md">
-        <CardHeader>
-          <CardTitle>字体大小</CardTitle>
-          <CardDescription>调整后即时生效，自动保存到项目根目录 settings.json</CardDescription>
-        </CardHeader>
-        <CardContent className="flex gap-2">
-          {FONT_SIZE_OPTIONS.map(option => (
-            <Button
-              key={option.value}
-              variant={settings.fontSize === option.value ? 'default' : 'outline'}
-              className="h-auto flex-1 flex-col gap-1 py-3"
-              onClick={() => update({ fontSize: option.value })}
-            >
-              <span className={cn(FONT_SIZE_PREVIEW_CLASS[option.value], 'font-semibold')}>{option.preview}</span>
-              <span className="text-xs">{t(option.labelKey)}</span>
-            </Button>
-          ))}
-        </CardContent>
-      </Card>
+      <div className="space-y-0.5">
+        <h1 className="text-2xl font-bold tracking-tight">系统设置</h1>
+        <p className="text-muted-foreground text-sm">管理账户信息与界面偏好设置</p>
+      </div>
+      <Separator />
+      <div className="flex flex-1 flex-col space-y-2 lg:flex-row lg:space-y-0 lg:space-x-12">
+        <aside className="top-0 lg:sticky lg:w-1/5">
+          <SidebarNav items={sidebarNavItems} />
+        </aside>
+        <div className="flex w-full p-1">
+          <Outlet />
+        </div>
+      </div>
     </div>
   )
 }
