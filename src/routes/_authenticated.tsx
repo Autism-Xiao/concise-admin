@@ -31,7 +31,6 @@ export const Route = createFileRoute('/_authenticated')({
 function AuthenticatedLayout() {
   const { settings } = useSettings()
   const ip = usePublicIp()
-  const pathname = useLocation({ select: location => location.pathname })
   const collapsible = settings.layout === 'offcanvas' ? ('offcanvas' as const) : ('icon' as const)
 
   // 自定义内容支持 {username}、{ip} 占位符；留空则默认显示用户名 + IP 两行
@@ -48,8 +47,7 @@ function AuthenticatedLayout() {
           <SiteHeader />
           <PageTabs />
           <main data-scroll="main" className="flex-1 overflow-y-auto p-6">
-            {/* 已登记的页面走多标签页 keep-alive 渲染；未登记路径（如 404）回退到路由 Outlet */}
-            {isRegisteredPage(pathname) ? <TabPageRenderer /> : <Outlet />}
+            <MainContent />
           </main>
         </SidebarInset>
       </TabsProvider>
@@ -58,4 +56,11 @@ function AuthenticatedLayout() {
       )}
     </SidebarProvider>
   )
+}
+
+// 单独订阅路由变化，避免导航时整个布局（侧边栏/头部）跟着重渲染；
+// 已登记的页面走多标签页 keep-alive 渲染，未登记路径（如 404）回退到路由 Outlet
+function MainContent() {
+  const pathname = useLocation({ select: location => location.pathname })
+  return isRegisteredPage(pathname) ? <TabPageRenderer /> : <Outlet />
 }
