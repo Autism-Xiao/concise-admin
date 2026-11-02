@@ -4,13 +4,13 @@
 
 ## 技术栈
 
-| 层 | 选型 |
-|---|---|
-| 框架 | React 19 + TypeScript 6 + Vite 8 |
-| UI | shadcn/ui（Tailwind CSS 4 + Radix UI，风格 radix-vega） |
-| 路由 | TanStack Router（文件式路由，类型安全） |
-| 主题 | next-themes（浅色 / 深色 / 跟随系统） |
-| 图标 | lucide-react |
+| 层     | 选型                                                     |
+| ------ | -------------------------------------------------------- |
+| 框架   | React 19 + TypeScript 6 + Vite 8                         |
+| UI     | shadcn/ui（Tailwind CSS 4 + Radix UI，风格 radix-vega）  |
+| 路由   | TanStack Router（文件式路由，类型安全）                  |
+| 主题   | next-themes（浅色 / 深色 / 跟随系统）                    |
+| 图标   | lucide-react                                             |
 | 工程化 | ESLint 10（flat config）+ Prettier + Husky + lint-staged |
 
 ## 快速开始
@@ -43,8 +43,9 @@ src/
 │   ├── _authenticated/       # 需要登录的页面，自动套用上面的布局
 │   │   ├── dashboard.tsx     # /dashboard
 │   │   ├── users.tsx         # /users
-│   │   ├── settings.tsx      # /settings
-│   │   └── errors/           # /errors/401、403、404、500、503
+│   │   └── settings.tsx      # /settings
+│   ├── errors.tsx            # 错误页布局（全屏居中，无侧边栏）
+│   └── errors/               # /errors/401、403、404、500、503
 │
 ├── components/               # 通用组件
 │   ├── ui/                   # shadcn CLI 生成的组件，视为第三方代码，勿手改
@@ -74,10 +75,10 @@ src/
 3. **`components/ui/` 是不可变区**：只通过 `pnpm dlx shadcn add <组件名>` 增删；要定制就在 `components/` 里包一层
 4. **加新页面**：在 `src/routes/` 下新建文件即可，路由树自动生成：
 
-   | 文件 | URL |
-   |---|---|
-   | `routes/users.tsx` | `/users` |
-   | `routes/users.$userId.tsx` | `/users/123` |
+   | 文件                            | URL                    |
+   | ------------------------------- | ---------------------- |
+   | `routes/users.tsx`              | `/users`               |
+   | `routes/users.$userId.tsx`      | `/users/123`           |
    | `routes/_authenticated/xxx.tsx` | `/xxx`（带侧边栏布局） |
 
 5. **主题变量**：改配色、调暗黑模式（比如觉得不够黑）都改 `src/index.css` 里的 `:root` 和 `.dark` 两个代码块

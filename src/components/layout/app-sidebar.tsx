@@ -25,7 +25,7 @@ export function AppSidebar() {
                   <GalleryVerticalEnd className="size-4" />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-medium">Concise Admin</span>
+                  <span className="font-medium">{import.meta.env.VITE_APP_NAME}</span>
                   <span className="text-muted-foreground text-xs">v1.0.0</span>
                 </div>
               </Link>
@@ -38,7 +38,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>菜单</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navMain.map((item) => (
+              {navMain.map(item => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild>
                     <Link to={item.url} activeProps={{ 'data-active': true }}>

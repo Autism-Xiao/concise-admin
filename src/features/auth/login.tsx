@@ -11,12 +11,12 @@ export function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>登录</CardTitle>
-          <CardDescription>登录到你的 Concise Admin 账户</CardDescription>
+          <CardDescription>登录到你的 {import.meta.env.VITE_APP_NAME} 账户</CardDescription>
         </CardHeader>
         <CardContent>
           <form
             className="space-y-4"
-            onSubmit={(e) => {
+            onSubmit={e => {
               e.preventDefault()
               void navigate({ to: '/dashboard' })
             }}
