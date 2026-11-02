@@ -2,6 +2,7 @@ export type FontSize = 'small' | 'default' | 'large'
 export type SidebarVariant = 'sidebar' | 'floating' | 'inset'
 export type LayoutMode = 'default' | 'compact' | 'offcanvas'
 export type Direction = 'ltr' | 'rtl'
+export type WatermarkDensity = 'compact' | 'default' | 'loose'
 
 export interface AppSettings {
   fontSize: FontSize
@@ -21,6 +22,8 @@ export interface AppSettings {
   watermark: boolean
   /** 水印自定义内容，支持 {username}、{ip} 占位符，留空则默认显示用户名 + IP */
   watermarkContent: string
+  /** 水印密度：紧凑 / 标准 / 宽松 */
+  watermarkDensity: WatermarkDensity
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -32,7 +35,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   layout: 'default',
   direction: 'ltr',
   watermark: false,
-  watermarkContent: ''
+  watermarkContent: '',
+  watermarkDensity: 'default'
 }
 
 // 开发环境由 vite dev server 插件读写项目根目录 settings.json；

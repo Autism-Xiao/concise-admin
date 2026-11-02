@@ -14,11 +14,12 @@ interface WatermarkProps {
 
 // 安全水印：canvas 生成斜向平铺底纹，覆盖登录后的整个区域。
 // 带防篡改观察器：节点被删掉或样式被清空时自动恢复
-export function Watermark({ content, rotate = -22, fontSize = 14, tileSize = [320, 180] }: WatermarkProps) {
+export function Watermark({ content, rotate = -22, fontSize = 14, tileSize = [250, 140] }: WatermarkProps) {
   const { resolvedTheme } = useTheme()
   const ref = useRef<HTMLDivElement>(null)
   const lines = Array.isArray(content) ? content : [content]
   const textKey = lines.join('\n')
+  const [tileW, tileH] = tileSize
 
   useEffect(() => {
     const el = ref.current
@@ -30,20 +31,27 @@ export function Watermark({ content, rotate = -22, fontSize = 14, tileSize = [32
 
     // 高分屏下放大画布，避免文字发虚
     const ratio = window.devicePixelRatio || 1
-    const [tileW, tileH] = tileSize
     canvas.width = tileW * ratio
     canvas.height = tileH * ratio
 
     const lineHeight = fontSize * 1.6
-    ctx.translate((tileW / 2) * ratio, (tileH / 2) * ratio)
-    ctx.rotate((rotate * Math.PI) / 180)
     ctx.font = `${fontSize * ratio}px ui-sans-serif, system-ui, sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillStyle = resolvedTheme === 'dark' ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.08)'
-    lines.forEach((line, i) => {
-      ctx.fillText(line, 0, (i - (lines.length - 1) / 2) * lineHeight * ratio)
-    })
+
+    // 每个区块在中心和左上角各画一次，平铺后形成交错网格，密度翻倍
+    const drawMark = (x: number, y: number) => {
+      ctx.save()
+      ctx.translate(x, y)
+      ctx.rotate((rotate * Math.PI) / 180)
+      lines.forEach((line, i) => {
+        ctx.fillText(line, 0, (i - (lines.length - 1) / 2) * lineHeight * ratio)
+      })
+      ctx.restore()
+    }
+    drawMark((tileW / 2) * ratio, (tileH / 2) * ratio)
+    drawMark(0, 0)
     const url = `url("${canvas.toDataURL('image/png')}")`
 
     const apply = () => {
@@ -70,7 +78,7 @@ export function Watermark({ content, rotate = -22, fontSize = 14, tileSize = [32
       attrObserver.disconnect()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [textKey, rotate, fontSize, resolvedTheme])
+  }, [textKey, rotate, fontSize, tileW, tileH, resolvedTheme])
 
   return <div ref={ref} aria-hidden className="pointer-events-none fixed inset-0 z-[100]" />
 }

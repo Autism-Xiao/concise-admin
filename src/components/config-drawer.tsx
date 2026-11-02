@@ -9,7 +9,7 @@ import { useLocale } from '@/context/locale-provider'
 import { useSettings } from '@/context/settings-provider'
 import { startThemeTransition } from '@/lib/theme'
 import { THEME_COLORS } from '@/lib/theme-presets'
-import type { Direction, FontSize, LayoutMode, SidebarVariant } from '@/lib/settings'
+import type { Direction, FontSize, LayoutMode, SidebarVariant, WatermarkDensity } from '@/lib/settings'
 import type { TranslationKey } from '@/config/i18n'
 import { cn } from '@/lib/utils'
 
@@ -40,6 +40,12 @@ const LAYOUT_MODES: { value: LayoutMode; labelKey: TranslationKey }[] = [
 const DIRECTIONS: { value: Direction; labelKey: TranslationKey }[] = [
   { value: 'ltr', labelKey: 'direction.ltr' },
   { value: 'rtl', labelKey: 'direction.rtl' }
+]
+
+const WATERMARK_DENSITIES: { value: WatermarkDensity; labelKey: TranslationKey }[] = [
+  { value: 'compact', labelKey: 'density.compact' },
+  { value: 'default', labelKey: 'density.default' },
+  { value: 'loose', labelKey: 'density.loose' }
 ]
 
 // 带缩略图的选择卡片
@@ -211,7 +217,8 @@ export function ConfigDrawer() {
       sidebarVariant: 'sidebar',
       layout: 'default',
       direction: 'ltr',
-      watermark: false
+      watermark: false,
+      watermarkDensity: 'default'
     })
   }
 
@@ -377,13 +384,35 @@ export function ConfigDrawer() {
                 <Switch checked={settings.watermark} onCheckedChange={checked => update({ watermark: checked })} />
               </div>
               {settings.watermark && (
-                <div className="space-y-1.5">
-                  <Input
-                    value={settings.watermarkContent}
-                    onChange={e => update({ watermarkContent: e.target.value })}
-                    placeholder={t('config.watermarkContentPlaceholder')}
-                  />
-                  <p className="text-muted-foreground text-xs">{t('config.watermarkContentHint')}</p>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Input
+                      value={settings.watermarkContent}
+                      onChange={e => update({ watermarkContent: e.target.value })}
+                      placeholder={t('config.watermarkContentPlaceholder')}
+                    />
+                    <p className="text-muted-foreground text-xs">{t('config.watermarkContentHint')}</p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">{t('config.watermarkDensity')}</span>
+                    <div className="bg-muted flex rounded-md p-0.5">
+                      {WATERMARK_DENSITIES.map(option => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => update({ watermarkDensity: option.value })}
+                          className={cn(
+                            'rounded-sm px-2.5 py-1 text-xs transition-colors',
+                            settings.watermarkDensity === option.value
+                              ? 'bg-background text-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground'
+                          )}
+                        >
+                          {t(option.labelKey)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

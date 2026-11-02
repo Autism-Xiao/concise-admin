@@ -6,6 +6,14 @@ import { Watermark } from '@/components/watermark'
 import { useSettings } from '@/context/settings-provider'
 import { getUsername, isAuthenticated } from '@/lib/auth'
 import { usePublicIp } from '@/lib/use-public-ip'
+import type { WatermarkDensity } from '@/lib/settings'
+
+// 水印密度 → 单个平铺区块尺寸，区块越小水印越密
+const WATERMARK_TILE_SIZE: Record<WatermarkDensity, [number, number]> = {
+  compact: [200, 110],
+  default: [250, 140],
+  loose: [340, 200]
+}
 
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: () => {
@@ -36,7 +44,9 @@ function AuthenticatedLayout() {
           <Outlet />
         </main>
       </SidebarInset>
-      {settings.watermark && watermarkContent.length > 0 && <Watermark content={watermarkContent} />}
+      {settings.watermark && watermarkContent.length > 0 && (
+        <Watermark content={watermarkContent} tileSize={WATERMARK_TILE_SIZE[settings.watermarkDensity]} />
+      )}
     </SidebarProvider>
   )
 }
