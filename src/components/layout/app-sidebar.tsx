@@ -41,8 +41,8 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="/dashboard">
-                <Logo className="text-sidebar-primary size-8 shrink-0" />
+              <a href="/dashboard" className="group-data-[collapsible=icon]:justify-center">
+                <Logo className="text-sidebar-primary size-8! shrink-0" />
                 <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
                   <span className="font-medium">{import.meta.env.VITE_APP_NAME}</span>
                   <span className="text-muted-foreground text-xs">v1.0.0</span>
