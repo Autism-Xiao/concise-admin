@@ -1,4 +1,5 @@
 import { Outlet } from '@tanstack/react-router'
+import type { ReactNode } from 'react'
 import { Bell, Monitor, Palette, UserCog, Wrench } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { SidebarNav, type SettingsNavItem } from './components/sidebar-nav'
@@ -11,7 +12,7 @@ const sidebarNavItems: SettingsNavItem[] = [
   { title: '显示', href: '/settings/display', icon: <Monitor size={18} /> }
 ]
 
-export function SettingsLayout() {
+export function SettingsLayout({ children }: { children?: ReactNode }) {
   return (
     <div className="space-y-6">
       <div className="space-y-0.5">
@@ -23,9 +24,8 @@ export function SettingsLayout() {
         <aside className="top-0 lg:sticky lg:w-1/5">
           <SidebarNav items={sidebarNavItems} />
         </aside>
-        <div className="flex w-full p-1">
-          <Outlet />
-        </div>
+        {/* 多标签页 keep-alive 渲染时传入子页组件；常规路由渲染走 Outlet */}
+        <div className="flex w-full p-1">{children ?? <Outlet />}</div>
       </div>
     </div>
   )

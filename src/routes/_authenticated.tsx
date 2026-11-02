@@ -1,9 +1,13 @@
-import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+import { createFileRoute, Outlet, redirect, useLocation } from '@tanstack/react-router'
 import { AppSidebar } from '@/components/layout/app-sidebar'
+import { PageTabs } from '@/components/layout/page-tabs'
 import { SiteHeader } from '@/components/layout/site-header'
+import { TabPageRenderer } from '@/components/layout/tab-page-renderer'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Watermark } from '@/components/watermark'
 import { useSettings } from '@/context/settings-provider'
+import { TabsProvider } from '@/context/tabs-provider'
+import { isRegisteredPage } from '@/config/page-registry'
 import { getUsername, isAuthenticated } from '@/lib/auth'
 import { usePublicIp } from '@/lib/use-public-ip'
 import type { WatermarkDensity } from '@/lib/settings'
@@ -27,6 +31,7 @@ export const Route = createFileRoute('/_authenticated')({
 function AuthenticatedLayout() {
   const { settings } = useSettings()
   const ip = usePublicIp()
+  const pathname = useLocation({ select: location => location.pathname })
   const collapsible = settings.layout === 'offcanvas' ? ('offcanvas' as const) : ('icon' as const)
 
   // 自定义内容支持 {username}、{ip} 占位符；留空则默认显示用户名 + IP 两行
@@ -37,13 +42,17 @@ function AuthenticatedLayout() {
 
   return (
     <SidebarProvider key={settings.layout} defaultOpen={settings.layout === 'default'}>
-      <AppSidebar variant={settings.sidebarVariant} collapsible={collapsible} direction={settings.direction} />
-      <SidebarInset className="h-svh overflow-hidden">
-        <SiteHeader />
-        <main className="flex-1 overflow-y-auto p-6">
-          <Outlet />
-        </main>
-      </SidebarInset>
+      <TabsProvider>
+        <AppSidebar variant={settings.sidebarVariant} collapsible={collapsible} direction={settings.direction} />
+        <SidebarInset className="h-svh overflow-hidden">
+          <SiteHeader />
+          <PageTabs />
+          <main className="flex-1 overflow-y-auto p-6">
+            {/* 已登记的页面走多标签页 keep-alive 渲染；未登记路径（如 404）回退到路由 Outlet */}
+            {isRegisteredPage(pathname) ? <TabPageRenderer /> : <Outlet />}
+          </main>
+        </SidebarInset>
+      </TabsProvider>
       {settings.watermark && watermarkContent.length > 0 && (
         <Watermark content={watermarkContent} tileSize={WATERMARK_TILE_SIZE[settings.watermarkDensity]} />
       )}
