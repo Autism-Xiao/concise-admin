@@ -35,11 +35,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    // 初始字号已由 index.html 注入的 style 确定（vite transformIndexHtml），
+    // 加载完成前不要动根字号，避免从默认值跳变闪烁
+    if (!loaded) return
     document.documentElement.style.fontSize = FONT_SIZE_MAP[settings.fontSize]
     // 初始加载完成后才开启过渡，页面首次渲染不播放动画
-    if (loaded) {
-      document.documentElement.classList.add('font-size-transition')
-    }
+    document.documentElement.classList.add('font-size-transition')
   }, [settings.fontSize, loaded])
 
   const update = useCallback((patch: Partial<AppSettings>) => {

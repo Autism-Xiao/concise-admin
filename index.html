@@ -5,6 +5,20 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>%VITE_APP_NAME%</title>
+    <script>
+      // 首帧前确定主题，避免暗色模式刷新时白屏闪烁（与 next-themes 的存储键保持一致）
+      ;(function () {
+        try {
+          var theme = localStorage.getItem('theme') || 'system'
+          var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          var root = document.documentElement
+          if (isDark) root.classList.add('dark')
+          root.style.colorScheme = isDark ? 'dark' : 'light'
+          // dev 模式下样式由 JS 注入，先铺一层背景色盖住无样式的白屏窗口
+          root.style.backgroundColor = isDark ? 'oklch(0.145 0 0)' : 'oklch(1 0 0)'
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -9,6 +9,11 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite'
 // 生产环境可替换为后端接口，前端代码不变）
 const SETTINGS_FILE = path.resolve(__dirname, 'settings.json')
 const DEFAULT_SETTINGS = { fontSize: 'default' }
+const FONT_SIZE_MAP: Record<string, string> = {
+  small: '14px',
+  default: '16px',
+  large: '18px'
+}
 
 function settingsApi(): Plugin {
   const readSettings = () => {
@@ -20,6 +25,11 @@ function settingsApi(): Plugin {
   }
   return {
     name: 'concise-settings-api',
+    // 把已保存的字体大小直接注入 HTML，刷新首帧即为正确字号，避免文字闪烁
+    transformIndexHtml() {
+      const size = FONT_SIZE_MAP[readSettings().fontSize] ?? FONT_SIZE_MAP.default
+      return [{ tag: 'style', children: `html{font-size:${size}}`, injectTo: 'head-prepend' as const }]
+    },
     configureServer(server) {
       server.middlewares.use('/api/settings', (req, res) => {
         if (req.method === 'GET') {
