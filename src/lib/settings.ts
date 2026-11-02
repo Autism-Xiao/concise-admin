@@ -1,4 +1,7 @@
 export type FontSize = 'small' | 'default' | 'large'
+export type SidebarVariant = 'sidebar' | 'floating' | 'inset'
+export type LayoutMode = 'default' | 'compact' | 'offcanvas'
+export type Direction = 'ltr' | 'rtl'
 
 export interface AppSettings {
   fontSize: FontSize
@@ -8,13 +11,22 @@ export interface AppSettings {
   grayscale: boolean
   /** 色弱模式 */
   colorWeak: boolean
+  /** 侧边栏样式 */
+  sidebarVariant: SidebarVariant
+  /** 布局模式：默认展开 / 紧凑图标 / 隐藏（offcanvas） */
+  layout: LayoutMode
+  /** 文字方向 */
+  direction: Direction
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   fontSize: 'default',
   themeColor: 'default',
   grayscale: false,
-  colorWeak: false
+  colorWeak: false,
+  sidebarVariant: 'sidebar',
+  layout: 'default',
+  direction: 'ltr'
 }
 
 // 开发环境由 vite dev server 插件读写项目根目录 settings.json；

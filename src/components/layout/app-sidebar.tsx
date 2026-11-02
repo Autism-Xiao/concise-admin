@@ -23,12 +23,20 @@ import {
 import { useLocale } from '@/context/locale-provider'
 import { navGroups } from '@/config/nav'
 
-export function AppSidebar() {
+import type { Direction, SidebarVariant } from '@/lib/settings'
+
+interface AppSidebarProps {
+  variant?: SidebarVariant
+  collapsible?: 'icon' | 'offcanvas'
+  direction?: Direction
+}
+
+export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', direction = 'ltr' }: AppSidebarProps) {
   const { setOpen } = useSearch()
   const { t } = useLocale()
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible={collapsible} variant={variant} side={direction === 'rtl' ? 'right' : 'left'}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>

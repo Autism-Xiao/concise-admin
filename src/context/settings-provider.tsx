@@ -58,6 +58,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     // 加载完成前不要动样式，避免从默认值跳变闪烁
     if (!loaded) return
     document.documentElement.style.fontSize = FONT_SIZE_MAP[settings.fontSize]
+    document.documentElement.dir = settings.direction
     applyOverrides(settings)
     // 初始加载完成后才开启过渡，页面首次渲染不播放动画
     document.documentElement.classList.add('font-size-transition')

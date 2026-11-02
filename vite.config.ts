@@ -9,7 +9,15 @@ import { buildFilterCss, buildThemeColorCss } from './src/lib/theme-presets.ts'
 // 应用设置持久化到项目根目录 settings.json（开发环境由 dev server 读写，
 // 生产环境可替换为后端接口，前端代码不变）
 const SETTINGS_FILE = path.resolve(__dirname, 'settings.json')
-const DEFAULT_SETTINGS = { fontSize: 'default', themeColor: 'default', grayscale: false, colorWeak: false }
+const DEFAULT_SETTINGS = {
+  fontSize: 'default',
+  themeColor: 'default',
+  grayscale: false,
+  colorWeak: false,
+  sidebarVariant: 'sidebar',
+  layout: 'default',
+  direction: 'ltr'
+}
 const FONT_SIZE_MAP: Record<string, string> = {
   small: '14px',
   default: '16px',
@@ -27,11 +35,15 @@ function settingsApi(): Plugin {
   return {
     name: 'concise-settings-api',
     // 把已保存的设置直接注入 HTML，刷新首帧即为正确效果，避免闪烁
-    transformIndexHtml() {
+    transformIndexHtml(html) {
       const s = readSettings()
       const size = FONT_SIZE_MAP[s.fontSize] ?? FONT_SIZE_MAP.default
       const css = `html{font-size:${size}}` + buildThemeColorCss(s.themeColor) + buildFilterCss(s.grayscale, s.colorWeak)
-      return [{ tag: 'style', children: css, injectTo: 'head-prepend' as const }]
+      return {
+        html,
+        tags: [{ tag: 'style', children: css, injectTo: 'head-prepend' as const }],
+        htmlAttrs: { dir: s.direction === 'rtl' ? 'rtl' : 'ltr' }
+      }
     },
     configureServer(server) {
       server.middlewares.use('/api/settings', (req, res) => {
