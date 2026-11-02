@@ -127,6 +127,10 @@
   html {
     @apply font-sans;
   }
+  /* 字体大小切换时平滑过渡，避免整页 rem 布局瞬间跳变闪烁 */
+  html.font-size-transition {
+    transition: font-size 0.2s ease-in-out;
+  }
 }
 
 /* 主题切换：左上角 → 右下角 扫光过渡 */

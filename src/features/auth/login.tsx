@@ -42,19 +42,21 @@ export function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center text-center">
           <Logo className="text-primary size-12" />
-          <CardTitle className="text-xl">{t('login.title')} {import.meta.env.VITE_APP_NAME}</CardTitle>
+          <CardTitle className="text-xl">
+            {t('login.title')} {import.meta.env.VITE_APP_NAME}
+          </CardTitle>
           <CardDescription>{t('login.desc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <Label htmlFor="account">{t('login.account')}</Label>
-              <Input id="account" placeholder={t('login.accountPlaceholder')} value={account} onChange={(e) => setAccount(e.target.value)} required />
+              <Input id="account" placeholder={t('login.accountPlaceholder')} value={account} onChange={e => setAccount(e.target.value)} required />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">{t('login.password')}</Label>
-                <Link to="/login" className="text-muted-foreground hover:text-foreground text-xs" onClick={(e) => e.preventDefault()}>
+                <Link to="/login" className="text-muted-foreground hover:text-foreground text-xs" onClick={e => e.preventDefault()}>
                   {t('login.forgot')}
                 </Link>
               </div>
@@ -65,16 +67,10 @@ export function LoginPage() {
                   placeholder={t('login.passwordPlaceholder')}
                   className="pr-9"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={e => setPassword(e.target.value)}
                   required
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-0 right-0 h-9 w-9"
-                  onClick={() => setShowPassword(v => !v)}
-                >
+                <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-9 w-9" onClick={() => setShowPassword(v => !v)}>
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   <span className="sr-only">显示/隐藏密码</span>
                 </Button>
@@ -88,7 +84,7 @@ export function LoginPage() {
                   placeholder={t('login.captchaPlaceholder')}
                   className="flex-1"
                   value={captchaInput}
-                  onChange={(e) => setCaptchaInput(e.target.value)}
+                  onChange={e => setCaptchaInput(e.target.value)}
                   maxLength={4}
                   required
                 />

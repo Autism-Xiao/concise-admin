@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { CommandMenu } from '@/components/command-menu'
 import { SearchProvider } from '@/context/search-provider'
 import { LocaleProvider } from '@/context/locale-provider'
+import { SettingsProvider } from '@/context/settings-provider'
 import { NotFoundError } from '@/features/errors'
 
 export const Route = createRootRoute({
@@ -20,13 +21,15 @@ function RootLayout() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <LocaleProvider>
-        <SearchProvider>
-          <TooltipProvider>
-            <Outlet />
-            <CommandMenu />
-            <Toaster richColors position="top-center" />
-          </TooltipProvider>
-        </SearchProvider>
+        <SettingsProvider>
+          <SearchProvider>
+            <TooltipProvider>
+              <Outlet />
+              <CommandMenu />
+              <Toaster richColors position="top-center" />
+            </TooltipProvider>
+          </SearchProvider>
+        </SettingsProvider>
       </LocaleProvider>
       {/* <TanStackRouterDevtools /> */}
     </ThemeProvider>

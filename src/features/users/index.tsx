@@ -104,7 +104,9 @@ export function UsersPage() {
                   <TableCell>{user.username}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusMap[user.status].className}`}>{statusMap[user.status].label}</span>
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusMap[user.status].className}`}>
+                      {statusMap[user.status].label}
+                    </span>
                   </TableCell>
                   <TableCell>{user.role}</TableCell>
                   <TableCell>{user.createdAt}</TableCell>
@@ -131,9 +133,7 @@ export function UsersPage() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>确认删除</DialogTitle>
-            <DialogDescription>
-              即将删除用户「{deleting?.name}」，该操作不可恢复。
-            </DialogDescription>
+            <DialogDescription>即将删除用户「{deleting?.name}」，该操作不可恢复。</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleting(null)}>

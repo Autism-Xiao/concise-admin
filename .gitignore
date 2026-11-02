@@ -25,3 +25,6 @@ dist-ssr
 
 # TanStack Router cache
 .tanstack
+
+# 用户界面设置（个人偏好不入库）
+settings.json

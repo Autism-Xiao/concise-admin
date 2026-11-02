@@ -48,13 +48,7 @@ export function CaptchaImage({ code, onRefresh }: CaptchaImageProps) {
             <line key={i} {...line} className="stroke-muted-foreground/40" strokeWidth="1" />
           ))}
           {chars.map((c, i) => (
-            <text
-              key={i}
-              x={c.x}
-              y={c.y}
-              transform={`rotate(${c.rotate} ${c.x} ${c.y})`}
-              className="fill-foreground font-mono text-lg font-bold"
-            >
+            <text key={i} x={c.x} y={c.y} transform={`rotate(${c.rotate} ${c.x} ${c.y})`} className="fill-foreground font-mono text-lg font-bold">
               {c.char}
             </text>
           ))}
