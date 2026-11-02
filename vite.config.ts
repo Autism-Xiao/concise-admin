@@ -41,7 +41,7 @@ function settingsApi(): Plugin {
       const css = `html{font-size:${size}}` + buildThemeColorCss(s.themeColor) + buildFilterCss(s.grayscale, s.colorWeak)
       return {
         html,
-        tags: [{ tag: 'style', children: css, injectTo: 'head-prepend' as const }],
+        tags: [{ tag: 'style', children: css, injectTo: 'head' as const }],
         htmlAttrs: { dir: s.direction === 'rtl' ? 'rtl' : 'ltr' }
       }
     },
