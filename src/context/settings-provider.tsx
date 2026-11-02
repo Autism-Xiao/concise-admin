@@ -1,10 +1,29 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { DEFAULT_SETTINGS, loadSettings, saveSettings, type AppSettings, type FontSize } from '@/lib/settings'
+import { buildFilterCss, buildThemeColorCss } from '@/lib/theme-presets'
 
 const FONT_SIZE_MAP: Record<FontSize, string> = {
   small: '14px',
   default: '16px',
   large: '18px'
+}
+
+const STYLE_ID = 'app-settings-override'
+
+// 主题色与滤镜通过注入的 style 标签生效（首屏由 vite 注入同款内容，无闪烁）
+function applyOverrides(settings: AppSettings) {
+  const css = buildThemeColorCss(settings.themeColor) + buildFilterCss(settings.grayscale, settings.colorWeak)
+  let styleEl = document.getElementById(STYLE_ID) as HTMLStyleElement | null
+  if (!css) {
+    styleEl?.remove()
+    return
+  }
+  if (!styleEl) {
+    styleEl = document.createElement('style')
+    styleEl.id = STYLE_ID
+    document.head.appendChild(styleEl)
+  }
+  styleEl.textContent = css
 }
 
 interface SettingsContextValue {
@@ -35,13 +54,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    // 初始字号已由 index.html 注入的 style 确定（vite transformIndexHtml），
-    // 加载完成前不要动根字号，避免从默认值跳变闪烁
+    // 初始值已由 index.html 注入的 style 确定（vite transformIndexHtml），
+    // 加载完成前不要动样式，避免从默认值跳变闪烁
     if (!loaded) return
     document.documentElement.style.fontSize = FONT_SIZE_MAP[settings.fontSize]
+    applyOverrides(settings)
     // 初始加载完成后才开启过渡，页面首次渲染不播放动画
     document.documentElement.classList.add('font-size-transition')
-  }, [settings.fontSize, loaded])
+  }, [settings, loaded])
 
   const update = useCallback((patch: Partial<AppSettings>) => {
     setSettings(prev => ({ ...prev, ...patch }))

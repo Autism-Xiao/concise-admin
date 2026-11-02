@@ -1,11 +1,13 @@
 import { useEffect, useState, type ComponentType } from 'react'
-import { CircleCheck, Monitor, Moon, RotateCcw, Settings, Sun } from 'lucide-react'
+import { Check, CircleCheck, Monitor, Moon, RotateCcw, Settings, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Switch } from '@/components/ui/switch'
 import { useLocale } from '@/context/locale-provider'
 import { useSettings } from '@/context/settings-provider'
 import { startThemeTransition } from '@/lib/theme'
+import { THEME_COLORS } from '@/lib/theme-presets'
 import type { FontSize } from '@/lib/settings'
 import type { TranslationKey } from '@/config/i18n'
 import { cn } from '@/lib/utils'
@@ -34,7 +36,7 @@ export function ConfigDrawer() {
 
   const handleReset = () => {
     startThemeTransition(() => setTheme('system'))
-    update({ fontSize: 'default' })
+    update({ fontSize: 'default', themeColor: 'default', grayscale: false, colorWeak: false })
   }
 
   return (
@@ -99,6 +101,47 @@ export function ConfigDrawer() {
                   </button>
                 )
               })}
+            </div>
+          </section>
+
+          {/* 主题色 */}
+          <section>
+            <h3 className="text-muted-foreground mb-2 text-sm font-semibold">{t('config.color')}</h3>
+            <div className="flex flex-wrap gap-3">
+              {THEME_COLORS.map(color => {
+                const selected = settings.themeColor === color.name
+                return (
+                  <button
+                    key={color.name}
+                    type="button"
+                    title={color.label}
+                    aria-label={color.label}
+                    onClick={() => update({ themeColor: color.name })}
+                    className={cn(
+                      'flex size-7 items-center justify-center rounded-full transition-transform hover:scale-110',
+                      selected && 'ring-primary ring-offset-background ring-2 ring-offset-2'
+                    )}
+                    style={{ backgroundColor: color.swatch }}
+                  >
+                    {selected && <Check className="size-4 text-white" />}
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+
+          {/* 界面设置 */}
+          <section>
+            <h3 className="text-muted-foreground mb-2 text-sm font-semibold">{t('config.interface')}</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">{t('config.grayscale')}</span>
+                <Switch checked={settings.grayscale} onCheckedChange={checked => update({ grayscale: checked })} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">{t('config.colorWeak')}</span>
+                <Switch checked={settings.colorWeak} onCheckedChange={checked => update({ colorWeak: checked })} />
+              </div>
             </div>
           </section>
         </div>

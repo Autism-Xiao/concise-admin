@@ -2,10 +2,19 @@ export type FontSize = 'small' | 'default' | 'large'
 
 export interface AppSettings {
   fontSize: FontSize
+  /** 主题色预设名（对应 theme-presets.ts），default 表示跟随默认主题 */
+  themeColor: string
+  /** 灰色模式 */
+  grayscale: boolean
+  /** 色弱模式 */
+  colorWeak: boolean
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  fontSize: 'default'
+  fontSize: 'default',
+  themeColor: 'default',
+  grayscale: false,
+  colorWeak: false
 }
 
 // 开发环境由 vite dev server 插件读写项目根目录 settings.json；

@@ -4,11 +4,12 @@ import path from 'path'
 import { defineConfig, type Plugin } from 'vite'
 import tailwindcss from '@tailwindcss/vite'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
+import { buildFilterCss, buildThemeColorCss } from './src/lib/theme-presets.ts'
 
 // 应用设置持久化到项目根目录 settings.json（开发环境由 dev server 读写，
 // 生产环境可替换为后端接口，前端代码不变）
 const SETTINGS_FILE = path.resolve(__dirname, 'settings.json')
-const DEFAULT_SETTINGS = { fontSize: 'default' }
+const DEFAULT_SETTINGS = { fontSize: 'default', themeColor: 'default', grayscale: false, colorWeak: false }
 const FONT_SIZE_MAP: Record<string, string> = {
   small: '14px',
   default: '16px',
@@ -18,17 +19,19 @@ const FONT_SIZE_MAP: Record<string, string> = {
 function settingsApi(): Plugin {
   const readSettings = () => {
     try {
-      return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'))
+      return { ...DEFAULT_SETTINGS, ...JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8')) }
     } catch {
       return DEFAULT_SETTINGS
     }
   }
   return {
     name: 'concise-settings-api',
-    // 把已保存的字体大小直接注入 HTML，刷新首帧即为正确字号，避免文字闪烁
+    // 把已保存的设置直接注入 HTML，刷新首帧即为正确效果，避免闪烁
     transformIndexHtml() {
-      const size = FONT_SIZE_MAP[readSettings().fontSize] ?? FONT_SIZE_MAP.default
-      return [{ tag: 'style', children: `html{font-size:${size}}`, injectTo: 'head-prepend' as const }]
+      const s = readSettings()
+      const size = FONT_SIZE_MAP[s.fontSize] ?? FONT_SIZE_MAP.default
+      const css = `html{font-size:${size}}` + buildThemeColorCss(s.themeColor) + buildFilterCss(s.grayscale, s.colorWeak)
+      return [{ tag: 'style', children: css, injectTo: 'head-prepend' as const }]
     },
     configureServer(server) {
       server.middlewares.use('/api/settings', (req, res) => {
