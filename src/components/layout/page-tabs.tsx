@@ -62,7 +62,7 @@ export function PageTabs() {
     : []
 
   return (
-    <div className="bg-muted/40 relative hidden h-10 shrink-0 items-center gap-1 overflow-x-auto border-b px-2 md:flex">
+    <div data-scroll="tabs" className="bg-muted/40 relative hidden h-10 shrink-0 items-center gap-1 overflow-x-auto border-b px-2 md:flex">
       {tabs.map((tab, i) => {
         const entry = PAGE_REGISTRY[tab.path]
         if (!entry) return null
