@@ -2,10 +2,12 @@ import { Link } from '@tanstack/react-router'
 import { ChevronRight, Search } from 'lucide-react'
 import { Collapsible } from 'radix-ui'
 import { Logo } from '@/assets/logo'
+import { NavUser } from '@/components/layout/nav-user'
 import { useSearch } from '@/context/search-provider'
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -104,6 +106,9 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
+      <SidebarFooter>
+        <NavUser />
+      </SidebarFooter>
     </Sidebar>
   )
 }

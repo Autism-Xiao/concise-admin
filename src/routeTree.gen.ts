@@ -18,12 +18,17 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedHelpCenterRouteImport } from './routes/_authenticated/help-center'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
-import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
 import { Route as AuthenticatedErrors401RouteImport } from './routes/_authenticated/errors/401'
 import { Route as AuthenticatedErrors403RouteImport } from './routes/_authenticated/errors/403'
 import { Route as AuthenticatedErrors404RouteImport } from './routes/_authenticated/errors/404'
 import { Route as AuthenticatedErrors500RouteImport } from './routes/_authenticated/errors/500'
 import { Route as AuthenticatedErrors503RouteImport } from './routes/_authenticated/errors/503'
+import { Route as AuthenticatedSystemDeptRouteImport } from './routes/_authenticated/system/dept'
+import { Route as AuthenticatedSystemDictRouteImport } from './routes/_authenticated/system/dict'
+import { Route as AuthenticatedSystemLogRouteImport } from './routes/_authenticated/system/log'
+import { Route as AuthenticatedSystemMenuRouteImport } from './routes/_authenticated/system/menu'
+import { Route as AuthenticatedSystemRoleRouteImport } from './routes/_authenticated/system/role'
+import { Route as AuthenticatedSystemUsersRouteImport } from './routes/_authenticated/system/users'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -69,11 +74,6 @@ const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
   path: '/tasks',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedErrors401Route = AuthenticatedErrors401RouteImport.update({
   id: '/errors/401',
   path: '/errors/401',
@@ -99,6 +99,37 @@ const AuthenticatedErrors503Route = AuthenticatedErrors503RouteImport.update({
   path: '/errors/503',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSystemDeptRoute = AuthenticatedSystemDeptRouteImport.update({
+  id: '/system/dept',
+  path: '/system/dept',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSystemDictRoute = AuthenticatedSystemDictRouteImport.update({
+  id: '/system/dict',
+  path: '/system/dict',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSystemLogRoute = AuthenticatedSystemLogRouteImport.update({
+  id: '/system/log',
+  path: '/system/log',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSystemMenuRoute = AuthenticatedSystemMenuRouteImport.update({
+  id: '/system/menu',
+  path: '/system/menu',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSystemRoleRoute = AuthenticatedSystemRoleRouteImport.update({
+  id: '/system/role',
+  path: '/system/role',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSystemUsersRoute =
+  AuthenticatedSystemUsersRouteImport.update({
+    id: '/system/users',
+    path: '/system/users',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -109,12 +140,17 @@ export interface FileRoutesByFullPath {
   '/help-center': typeof AuthenticatedHelpCenterRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
-  '/users': typeof AuthenticatedUsersRoute
   '/errors/401': typeof AuthenticatedErrors401Route
   '/errors/403': typeof AuthenticatedErrors403Route
   '/errors/404': typeof AuthenticatedErrors404Route
   '/errors/500': typeof AuthenticatedErrors500Route
   '/errors/503': typeof AuthenticatedErrors503Route
+  '/system/dept': typeof AuthenticatedSystemDeptRoute
+  '/system/dict': typeof AuthenticatedSystemDictRoute
+  '/system/log': typeof AuthenticatedSystemLogRoute
+  '/system/menu': typeof AuthenticatedSystemMenuRoute
+  '/system/role': typeof AuthenticatedSystemRoleRoute
+  '/system/users': typeof AuthenticatedSystemUsersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -125,12 +161,17 @@ export interface FileRoutesByTo {
   '/help-center': typeof AuthenticatedHelpCenterRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
-  '/users': typeof AuthenticatedUsersRoute
   '/errors/401': typeof AuthenticatedErrors401Route
   '/errors/403': typeof AuthenticatedErrors403Route
   '/errors/404': typeof AuthenticatedErrors404Route
   '/errors/500': typeof AuthenticatedErrors500Route
   '/errors/503': typeof AuthenticatedErrors503Route
+  '/system/dept': typeof AuthenticatedSystemDeptRoute
+  '/system/dict': typeof AuthenticatedSystemDictRoute
+  '/system/log': typeof AuthenticatedSystemLogRoute
+  '/system/menu': typeof AuthenticatedSystemMenuRoute
+  '/system/role': typeof AuthenticatedSystemRoleRoute
+  '/system/users': typeof AuthenticatedSystemUsersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -143,12 +184,17 @@ export interface FileRoutesById {
   '/_authenticated/help-center': typeof AuthenticatedHelpCenterRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
-  '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/errors/401': typeof AuthenticatedErrors401Route
   '/_authenticated/errors/403': typeof AuthenticatedErrors403Route
   '/_authenticated/errors/404': typeof AuthenticatedErrors404Route
   '/_authenticated/errors/500': typeof AuthenticatedErrors500Route
   '/_authenticated/errors/503': typeof AuthenticatedErrors503Route
+  '/_authenticated/system/dept': typeof AuthenticatedSystemDeptRoute
+  '/_authenticated/system/dict': typeof AuthenticatedSystemDictRoute
+  '/_authenticated/system/log': typeof AuthenticatedSystemLogRoute
+  '/_authenticated/system/menu': typeof AuthenticatedSystemMenuRoute
+  '/_authenticated/system/role': typeof AuthenticatedSystemRoleRoute
+  '/_authenticated/system/users': typeof AuthenticatedSystemUsersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,12 +207,17 @@ export interface FileRouteTypes {
     | '/help-center'
     | '/settings'
     | '/tasks'
-    | '/users'
     | '/errors/401'
     | '/errors/403'
     | '/errors/404'
     | '/errors/500'
     | '/errors/503'
+    | '/system/dept'
+    | '/system/dict'
+    | '/system/log'
+    | '/system/menu'
+    | '/system/role'
+    | '/system/users'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,12 +228,17 @@ export interface FileRouteTypes {
     | '/help-center'
     | '/settings'
     | '/tasks'
-    | '/users'
     | '/errors/401'
     | '/errors/403'
     | '/errors/404'
     | '/errors/500'
     | '/errors/503'
+    | '/system/dept'
+    | '/system/dict'
+    | '/system/log'
+    | '/system/menu'
+    | '/system/role'
+    | '/system/users'
   id:
     | '__root__'
     | '/'
@@ -194,12 +250,17 @@ export interface FileRouteTypes {
     | '/_authenticated/help-center'
     | '/_authenticated/settings'
     | '/_authenticated/tasks'
-    | '/_authenticated/users'
     | '/_authenticated/errors/401'
     | '/_authenticated/errors/403'
     | '/_authenticated/errors/404'
     | '/_authenticated/errors/500'
     | '/_authenticated/errors/503'
+    | '/_authenticated/system/dept'
+    | '/_authenticated/system/dict'
+    | '/_authenticated/system/log'
+    | '/_authenticated/system/menu'
+    | '/_authenticated/system/role'
+    | '/_authenticated/system/users'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -273,13 +334,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTasksRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/users': {
-      id: '/_authenticated/users'
-      path: '/users'
-      fullPath: '/users'
-      preLoaderRoute: typeof AuthenticatedUsersRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/errors/401': {
       id: '/_authenticated/errors/401'
       path: '/errors/401'
@@ -315,6 +369,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedErrors503RouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/system/dept': {
+      id: '/_authenticated/system/dept'
+      path: '/system/dept'
+      fullPath: '/system/dept'
+      preLoaderRoute: typeof AuthenticatedSystemDeptRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/system/dict': {
+      id: '/_authenticated/system/dict'
+      path: '/system/dict'
+      fullPath: '/system/dict'
+      preLoaderRoute: typeof AuthenticatedSystemDictRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/system/log': {
+      id: '/_authenticated/system/log'
+      path: '/system/log'
+      fullPath: '/system/log'
+      preLoaderRoute: typeof AuthenticatedSystemLogRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/system/menu': {
+      id: '/_authenticated/system/menu'
+      path: '/system/menu'
+      fullPath: '/system/menu'
+      preLoaderRoute: typeof AuthenticatedSystemMenuRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/system/role': {
+      id: '/_authenticated/system/role'
+      path: '/system/role'
+      fullPath: '/system/role'
+      preLoaderRoute: typeof AuthenticatedSystemRoleRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/system/users': {
+      id: '/_authenticated/system/users'
+      path: '/system/users'
+      fullPath: '/system/users'
+      preLoaderRoute: typeof AuthenticatedSystemUsersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -325,12 +421,17 @@ interface AuthenticatedRouteChildren {
   AuthenticatedHelpCenterRoute: typeof AuthenticatedHelpCenterRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
-  AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
   AuthenticatedErrors401Route: typeof AuthenticatedErrors401Route
   AuthenticatedErrors403Route: typeof AuthenticatedErrors403Route
   AuthenticatedErrors404Route: typeof AuthenticatedErrors404Route
   AuthenticatedErrors500Route: typeof AuthenticatedErrors500Route
   AuthenticatedErrors503Route: typeof AuthenticatedErrors503Route
+  AuthenticatedSystemDeptRoute: typeof AuthenticatedSystemDeptRoute
+  AuthenticatedSystemDictRoute: typeof AuthenticatedSystemDictRoute
+  AuthenticatedSystemLogRoute: typeof AuthenticatedSystemLogRoute
+  AuthenticatedSystemMenuRoute: typeof AuthenticatedSystemMenuRoute
+  AuthenticatedSystemRoleRoute: typeof AuthenticatedSystemRoleRoute
+  AuthenticatedSystemUsersRoute: typeof AuthenticatedSystemUsersRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -340,12 +441,17 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedHelpCenterRoute: AuthenticatedHelpCenterRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
-  AuthenticatedUsersRoute: AuthenticatedUsersRoute,
   AuthenticatedErrors401Route: AuthenticatedErrors401Route,
   AuthenticatedErrors403Route: AuthenticatedErrors403Route,
   AuthenticatedErrors404Route: AuthenticatedErrors404Route,
   AuthenticatedErrors500Route: AuthenticatedErrors500Route,
   AuthenticatedErrors503Route: AuthenticatedErrors503Route,
+  AuthenticatedSystemDeptRoute: AuthenticatedSystemDeptRoute,
+  AuthenticatedSystemDictRoute: AuthenticatedSystemDictRoute,
+  AuthenticatedSystemLogRoute: AuthenticatedSystemLogRoute,
+  AuthenticatedSystemMenuRoute: AuthenticatedSystemMenuRoute,
+  AuthenticatedSystemRoleRoute: AuthenticatedSystemRoleRoute,
+  AuthenticatedSystemUsersRoute: AuthenticatedSystemUsersRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

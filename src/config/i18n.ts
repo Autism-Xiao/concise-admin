@@ -2,6 +2,7 @@ export const zh = {
   // 侧边栏分组
   'group.general': '通用',
   'group.pages': '页面',
+  'group.system': '系统管理',
   'group.other': '其他',
   // 导航菜单
   'nav.dashboard': '仪表盘',
@@ -18,6 +19,13 @@ export const zh = {
   'nav.settings': '设置',
   'nav.helpCenter': '帮助中心',
   'nav.search': '搜索',
+  // 系统管理
+  'nav.system.users': '用户管理',
+  'nav.system.menu': '菜单管理',
+  'nav.system.role': '角色权限',
+  'nav.system.dept': '部门管理',
+  'nav.system.dict': '字典管理',
+  'nav.system.log': '日志管理',
   // 主题
   'theme.light': '浅色',
   'theme.dark': '深色',
@@ -55,6 +63,7 @@ export type TranslationKey = keyof typeof zh
 export const en: Record<TranslationKey, string> = {
   'group.general': 'General',
   'group.pages': 'Pages',
+  'group.system': 'System',
   'group.other': 'Other',
   'nav.dashboard': 'Dashboard',
   'nav.tasks': 'Tasks',
@@ -70,6 +79,12 @@ export const en: Record<TranslationKey, string> = {
   'nav.settings': 'Settings',
   'nav.helpCenter': 'Help Center',
   'nav.search': 'Search',
+  'nav.system.users': 'Users',
+  'nav.system.menu': 'Menus',
+  'nav.system.role': 'Roles',
+  'nav.system.dept': 'Departments',
+  'nav.system.dict': 'Dictionaries',
+  'nav.system.log': 'Logs',
   'theme.light': 'Light',
   'theme.dark': 'Dark',
   'theme.system': 'System',

@@ -1,12 +1,17 @@
 import type { LinkProps } from '@tanstack/react-router'
 import {
+  BookOpen,
   Bug,
   HelpCircle,
   LayoutDashboard,
   ListTodo,
+  ListTree,
   MessagesSquare,
+  Network,
   Package,
+  ScrollText,
   Settings,
+  ShieldCheck,
   Users,
   type LucideIcon
 } from 'lucide-react'
@@ -34,8 +39,18 @@ export const navGroups: NavGroup[] = [
       { titleKey: 'nav.dashboard', url: '/dashboard', icon: LayoutDashboard },
       { titleKey: 'nav.tasks', url: '/tasks', icon: ListTodo },
       { titleKey: 'nav.apps', url: '/apps', icon: Package },
-      { titleKey: 'nav.chats', url: '/chats', icon: MessagesSquare, badge: '3' },
-      { titleKey: 'nav.users', url: '/users', icon: Users }
+      { titleKey: 'nav.chats', url: '/chats', icon: MessagesSquare, badge: '3' }
+    ]
+  },
+  {
+    titleKey: 'group.system',
+    items: [
+      { titleKey: 'nav.system.users', url: '/system/users', icon: Users },
+      { titleKey: 'nav.system.menu', url: '/system/menu', icon: ListTree },
+      { titleKey: 'nav.system.role', url: '/system/role', icon: ShieldCheck },
+      { titleKey: 'nav.system.dept', url: '/system/dept', icon: Network },
+      { titleKey: 'nav.system.dict', url: '/system/dict', icon: BookOpen },
+      { titleKey: 'nav.system.log', url: '/system/log', icon: ScrollText }
     ]
   },
   {
