@@ -3,6 +3,8 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { ThemeProvider } from 'next-themes'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { CommandMenu } from '@/components/command-menu'
+import { SearchProvider } from '@/context/search-provider'
 import { NotFoundError } from '@/features/errors'
 
 export const Route = createRootRoute({
@@ -17,10 +19,13 @@ export const Route = createRootRoute({
 function RootLayout() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <TooltipProvider>
-        <Outlet />
-        <Toaster richColors position="top-center" />
-      </TooltipProvider>
+      <SearchProvider>
+        <TooltipProvider>
+          <Outlet />
+          <CommandMenu />
+          <Toaster richColors position="top-center" />
+        </TooltipProvider>
+      </SearchProvider>
       <TanStackRouterDevtools />
     </ThemeProvider>
   )

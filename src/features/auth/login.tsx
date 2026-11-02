@@ -2,6 +2,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { login } from '@/lib/auth'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -18,6 +19,7 @@ export function LoginPage() {
             className="space-y-4"
             onSubmit={e => {
               e.preventDefault()
+              login()
               void navigate({ to: '/dashboard' })
             }}
           >

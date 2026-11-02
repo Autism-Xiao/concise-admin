@@ -11,16 +11,19 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as ErrorsRouteImport } from './routes/errors'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthenticatedAppsRouteImport } from './routes/_authenticated/apps'
+import { Route as AuthenticatedChatsRouteImport } from './routes/_authenticated/chats'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedHelpCenterRouteImport } from './routes/_authenticated/help-center'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
-import { Route as Errors401RouteImport } from './routes/errors/401'
-import { Route as Errors403RouteImport } from './routes/errors/403'
-import { Route as Errors404RouteImport } from './routes/errors/404'
-import { Route as Errors500RouteImport } from './routes/errors/500'
-import { Route as Errors503RouteImport } from './routes/errors/503'
+import { Route as AuthenticatedErrors401RouteImport } from './routes/_authenticated/errors/401'
+import { Route as AuthenticatedErrors403RouteImport } from './routes/_authenticated/errors/403'
+import { Route as AuthenticatedErrors404RouteImport } from './routes/_authenticated/errors/404'
+import { Route as AuthenticatedErrors500RouteImport } from './routes/_authenticated/errors/500'
+import { Route as AuthenticatedErrors503RouteImport } from './routes/_authenticated/errors/503'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -31,19 +34,29 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ErrorsRoute = ErrorsRouteImport.update({
-  id: '/errors',
-  path: '/errors',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAppsRoute = AuthenticatedAppsRouteImport.update({
+  id: '/apps',
+  path: '/apps',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedChatsRoute = AuthenticatedChatsRouteImport.update({
+  id: '/chats',
+  path: '/chats',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedHelpCenterRoute = AuthenticatedHelpCenterRouteImport.update({
+  id: '/help-center',
+  path: '/help-center',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -51,86 +64,103 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
   id: '/users',
   path: '/users',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const Errors401Route = Errors401RouteImport.update({
-  id: '/401',
-  path: '/401',
-  getParentRoute: () => ErrorsRoute,
+const AuthenticatedErrors401Route = AuthenticatedErrors401RouteImport.update({
+  id: '/errors/401',
+  path: '/errors/401',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const Errors403Route = Errors403RouteImport.update({
-  id: '/403',
-  path: '/403',
-  getParentRoute: () => ErrorsRoute,
+const AuthenticatedErrors403Route = AuthenticatedErrors403RouteImport.update({
+  id: '/errors/403',
+  path: '/errors/403',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const Errors404Route = Errors404RouteImport.update({
-  id: '/404',
-  path: '/404',
-  getParentRoute: () => ErrorsRoute,
+const AuthenticatedErrors404Route = AuthenticatedErrors404RouteImport.update({
+  id: '/errors/404',
+  path: '/errors/404',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const Errors500Route = Errors500RouteImport.update({
-  id: '/500',
-  path: '/500',
-  getParentRoute: () => ErrorsRoute,
+const AuthenticatedErrors500Route = AuthenticatedErrors500RouteImport.update({
+  id: '/errors/500',
+  path: '/errors/500',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const Errors503Route = Errors503RouteImport.update({
-  id: '/503',
-  path: '/503',
-  getParentRoute: () => ErrorsRoute,
+const AuthenticatedErrors503Route = AuthenticatedErrors503RouteImport.update({
+  id: '/errors/503',
+  path: '/errors/503',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/errors': typeof ErrorsRouteWithChildren
   '/login': typeof LoginRoute
+  '/apps': typeof AuthenticatedAppsRoute
+  '/chats': typeof AuthenticatedChatsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/help-center': typeof AuthenticatedHelpCenterRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/tasks': typeof AuthenticatedTasksRoute
   '/users': typeof AuthenticatedUsersRoute
-  '/errors/401': typeof Errors401Route
-  '/errors/403': typeof Errors403Route
-  '/errors/404': typeof Errors404Route
-  '/errors/500': typeof Errors500Route
-  '/errors/503': typeof Errors503Route
+  '/errors/401': typeof AuthenticatedErrors401Route
+  '/errors/403': typeof AuthenticatedErrors403Route
+  '/errors/404': typeof AuthenticatedErrors404Route
+  '/errors/500': typeof AuthenticatedErrors500Route
+  '/errors/503': typeof AuthenticatedErrors503Route
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/errors': typeof ErrorsRouteWithChildren
   '/login': typeof LoginRoute
+  '/apps': typeof AuthenticatedAppsRoute
+  '/chats': typeof AuthenticatedChatsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/help-center': typeof AuthenticatedHelpCenterRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/tasks': typeof AuthenticatedTasksRoute
   '/users': typeof AuthenticatedUsersRoute
-  '/errors/401': typeof Errors401Route
-  '/errors/403': typeof Errors403Route
-  '/errors/404': typeof Errors404Route
-  '/errors/500': typeof Errors500Route
-  '/errors/503': typeof Errors503Route
+  '/errors/401': typeof AuthenticatedErrors401Route
+  '/errors/403': typeof AuthenticatedErrors403Route
+  '/errors/404': typeof AuthenticatedErrors404Route
+  '/errors/500': typeof AuthenticatedErrors500Route
+  '/errors/503': typeof AuthenticatedErrors503Route
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
-  '/errors': typeof ErrorsRouteWithChildren
   '/login': typeof LoginRoute
+  '/_authenticated/apps': typeof AuthenticatedAppsRoute
+  '/_authenticated/chats': typeof AuthenticatedChatsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/help-center': typeof AuthenticatedHelpCenterRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
-  '/errors/401': typeof Errors401Route
-  '/errors/403': typeof Errors403Route
-  '/errors/404': typeof Errors404Route
-  '/errors/500': typeof Errors500Route
-  '/errors/503': typeof Errors503Route
+  '/_authenticated/errors/401': typeof AuthenticatedErrors401Route
+  '/_authenticated/errors/403': typeof AuthenticatedErrors403Route
+  '/_authenticated/errors/404': typeof AuthenticatedErrors404Route
+  '/_authenticated/errors/500': typeof AuthenticatedErrors500Route
+  '/_authenticated/errors/503': typeof AuthenticatedErrors503Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/errors'
     | '/login'
+    | '/apps'
+    | '/chats'
     | '/dashboard'
+    | '/help-center'
     | '/settings'
+    | '/tasks'
     | '/users'
     | '/errors/401'
     | '/errors/403'
@@ -140,10 +170,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/errors'
     | '/login'
+    | '/apps'
+    | '/chats'
     | '/dashboard'
+    | '/help-center'
     | '/settings'
+    | '/tasks'
     | '/users'
     | '/errors/401'
     | '/errors/403'
@@ -154,22 +187,24 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
-    | '/errors'
     | '/login'
+    | '/_authenticated/apps'
+    | '/_authenticated/chats'
     | '/_authenticated/dashboard'
+    | '/_authenticated/help-center'
     | '/_authenticated/settings'
+    | '/_authenticated/tasks'
     | '/_authenticated/users'
-    | '/errors/401'
-    | '/errors/403'
-    | '/errors/404'
-    | '/errors/500'
-    | '/errors/503'
+    | '/_authenticated/errors/401'
+    | '/_authenticated/errors/403'
+    | '/_authenticated/errors/404'
+    | '/_authenticated/errors/500'
+    | '/_authenticated/errors/503'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
-  ErrorsRoute: typeof ErrorsRouteWithChildren
   LoginRoute: typeof LoginRoute
 }
 
@@ -189,13 +224,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/errors': {
-      id: '/errors'
-      path: '/errors'
-      fullPath: '/errors'
-      preLoaderRoute: typeof ErrorsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -203,11 +231,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/apps': {
+      id: '/_authenticated/apps'
+      path: '/apps'
+      fullPath: '/apps'
+      preLoaderRoute: typeof AuthenticatedAppsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/chats': {
+      id: '/_authenticated/chats'
+      path: '/chats'
+      fullPath: '/chats'
+      preLoaderRoute: typeof AuthenticatedChatsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/help-center': {
+      id: '/_authenticated/help-center'
+      path: '/help-center'
+      fullPath: '/help-center'
+      preLoaderRoute: typeof AuthenticatedHelpCenterRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/settings': {
@@ -217,6 +266,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/tasks': {
+      id: '/_authenticated/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof AuthenticatedTasksRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/users': {
       id: '/_authenticated/users'
       path: '/users'
@@ -224,83 +280,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsersRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/errors/401': {
-      id: '/errors/401'
-      path: '/401'
+    '/_authenticated/errors/401': {
+      id: '/_authenticated/errors/401'
+      path: '/errors/401'
       fullPath: '/errors/401'
-      preLoaderRoute: typeof Errors401RouteImport
-      parentRoute: typeof ErrorsRoute
+      preLoaderRoute: typeof AuthenticatedErrors401RouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/errors/403': {
-      id: '/errors/403'
-      path: '/403'
+    '/_authenticated/errors/403': {
+      id: '/_authenticated/errors/403'
+      path: '/errors/403'
       fullPath: '/errors/403'
-      preLoaderRoute: typeof Errors403RouteImport
-      parentRoute: typeof ErrorsRoute
+      preLoaderRoute: typeof AuthenticatedErrors403RouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/errors/404': {
-      id: '/errors/404'
-      path: '/404'
+    '/_authenticated/errors/404': {
+      id: '/_authenticated/errors/404'
+      path: '/errors/404'
       fullPath: '/errors/404'
-      preLoaderRoute: typeof Errors404RouteImport
-      parentRoute: typeof ErrorsRoute
+      preLoaderRoute: typeof AuthenticatedErrors404RouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/errors/500': {
-      id: '/errors/500'
-      path: '/500'
+    '/_authenticated/errors/500': {
+      id: '/_authenticated/errors/500'
+      path: '/errors/500'
       fullPath: '/errors/500'
-      preLoaderRoute: typeof Errors500RouteImport
-      parentRoute: typeof ErrorsRoute
+      preLoaderRoute: typeof AuthenticatedErrors500RouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/errors/503': {
-      id: '/errors/503'
-      path: '/503'
+    '/_authenticated/errors/503': {
+      id: '/_authenticated/errors/503'
+      path: '/errors/503'
       fullPath: '/errors/503'
-      preLoaderRoute: typeof Errors503RouteImport
-      parentRoute: typeof ErrorsRoute
+      preLoaderRoute: typeof AuthenticatedErrors503RouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
   }
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedAppsRoute: typeof AuthenticatedAppsRoute
+  AuthenticatedChatsRoute: typeof AuthenticatedChatsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedHelpCenterRoute: typeof AuthenticatedHelpCenterRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
+  AuthenticatedErrors401Route: typeof AuthenticatedErrors401Route
+  AuthenticatedErrors403Route: typeof AuthenticatedErrors403Route
+  AuthenticatedErrors404Route: typeof AuthenticatedErrors404Route
+  AuthenticatedErrors500Route: typeof AuthenticatedErrors500Route
+  AuthenticatedErrors503Route: typeof AuthenticatedErrors503Route
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAppsRoute: AuthenticatedAppsRoute,
+  AuthenticatedChatsRoute: AuthenticatedChatsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedHelpCenterRoute: AuthenticatedHelpCenterRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
+  AuthenticatedErrors401Route: AuthenticatedErrors401Route,
+  AuthenticatedErrors403Route: AuthenticatedErrors403Route,
+  AuthenticatedErrors404Route: AuthenticatedErrors404Route,
+  AuthenticatedErrors500Route: AuthenticatedErrors500Route,
+  AuthenticatedErrors503Route: AuthenticatedErrors503Route,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
-interface ErrorsRouteChildren {
-  Errors401Route: typeof Errors401Route
-  Errors403Route: typeof Errors403Route
-  Errors404Route: typeof Errors404Route
-  Errors500Route: typeof Errors500Route
-  Errors503Route: typeof Errors503Route
-}
-
-const ErrorsRouteChildren: ErrorsRouteChildren = {
-  Errors401Route: Errors401Route,
-  Errors403Route: Errors403Route,
-  Errors404Route: Errors404Route,
-  Errors500Route: Errors500Route,
-  Errors503Route: Errors503Route,
-}
-
-const ErrorsRouteWithChildren =
-  ErrorsRoute._addFileChildren(ErrorsRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
-  ErrorsRoute: ErrorsRouteWithChildren,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport

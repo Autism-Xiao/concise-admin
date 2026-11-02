@@ -43,9 +43,8 @@ src/
 │   ├── _authenticated/       # 需要登录的页面，自动套用上面的布局
 │   │   ├── dashboard.tsx     # /dashboard
 │   │   ├── users.tsx         # /users
-│   │   └── settings.tsx      # /settings
-│   ├── errors.tsx            # 错误页布局（全屏居中，无侧边栏）
-│   └── errors/               # /errors/401、403、404、500、503
+│   │   ├── settings.tsx      # /settings
+│   │   └── errors/           # /errors/401、403、404、500、503（带侧边栏布局）
 │
 ├── components/               # 通用组件
 │   ├── ui/                   # shadcn CLI 生成的组件，视为第三方代码，勿手改
@@ -56,11 +55,15 @@ src/
 │   ├── auth/                 # 登录
 │   ├── dashboard/            # 仪表盘
 │   ├── errors/               # 错误页（401/403/404/500/503，共享 ErrorPage 组件）
-│   ├── users/                # 用户管理
+│   ├── tasks/                # 任务（data/ 下为 mock 数据）
+│   ├── apps/                 # 应用集成（data/ 下为 mock 数据）
+│   ├── chats/                # 聊天
+│   ├── help-center/          # 帮助中心
+│   ├── users/                # 用户管理（data/ 下为 mock 数据）
 │   └── settings/             # 系统设置
 │
-├── config/                   # 常量配置（导航菜单 nav.ts 等）
-├── context/                  # 全局 Provider
+├── config/                   # 常量配置（侧边栏导航 nav.ts 等）
+├── context/                  # 全局 Provider（search-provider：⌘K 全局搜索状态）
 ├── stores/                   # 全局状态（zustand）
 ├── hooks/                    # 全局通用 hooks
 ├── lib/                      # 工具函数
