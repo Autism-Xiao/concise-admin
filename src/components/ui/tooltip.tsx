@@ -41,7 +41,9 @@ function TooltipContent({
           {...props}
         >
           {children}
-          <TooltipPrimitive.Arrow className="bg-foreground fill-foreground z-50 size-2.5 rotate-45 rounded-[2px]" />
+          {/* Base UI 只负责在交叉轴上居中箭头，贴边偏移要按 side 自己给，
+              否则箭头按静态位置落在弹层内部，黑底方块会盖住文字 */}
+          <TooltipPrimitive.Arrow className="bg-foreground fill-foreground z-50 size-2.5 rotate-45 rounded-[2px] data-[side=bottom]:-top-1.5 data-[side=left]:-right-1.5 data-[side=right]:-left-1.5 data-[side=top]:-bottom-1.5" />
         </TooltipPrimitive.Popup>
       </TooltipPrimitive.Positioner>
     </TooltipPrimitive.Portal>
