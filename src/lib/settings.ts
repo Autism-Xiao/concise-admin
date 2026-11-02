@@ -19,6 +19,8 @@ export interface AppSettings {
   direction: Direction
   /** 全屏安全水印 */
   watermark: boolean
+  /** 水印自定义内容，支持 {username}、{ip} 占位符，留空则默认显示用户名 + IP */
+  watermarkContent: string
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -29,7 +31,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   sidebarVariant: 'sidebar',
   layout: 'default',
   direction: 'ltr',
-  watermark: false
+  watermark: false,
+  watermarkContent: ''
 }
 
 // 开发环境由 vite dev server 插件读写项目根目录 settings.json；

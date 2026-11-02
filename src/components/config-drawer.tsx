@@ -2,6 +2,7 @@ import { useEffect, useState, type ComponentType, type ReactNode } from 'react'
 import { Check, CircleCheck, Monitor, Moon, RotateCcw, Settings, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import { useLocale } from '@/context/locale-provider'
@@ -375,6 +376,16 @@ export function ConfigDrawer() {
                 <span className="text-sm">{t('config.watermark')}</span>
                 <Switch checked={settings.watermark} onCheckedChange={checked => update({ watermark: checked })} />
               </div>
+              {settings.watermark && (
+                <div className="space-y-1.5">
+                  <Input
+                    value={settings.watermarkContent}
+                    onChange={e => update({ watermarkContent: e.target.value })}
+                    placeholder={t('config.watermarkContentPlaceholder')}
+                  />
+                  <p className="text-muted-foreground text-xs">{t('config.watermarkContentHint')}</p>
+                </div>
+              )}
             </div>
           </section>
         </div>

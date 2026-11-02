@@ -5,6 +5,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Watermark } from '@/components/watermark'
 import { useSettings } from '@/context/settings-provider'
 import { getUsername, isAuthenticated } from '@/lib/auth'
+import { usePublicIp } from '@/lib/use-public-ip'
 
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: () => {
@@ -17,7 +18,14 @@ export const Route = createFileRoute('/_authenticated')({
 
 function AuthenticatedLayout() {
   const { settings } = useSettings()
+  const ip = usePublicIp()
   const collapsible = settings.layout === 'offcanvas' ? ('offcanvas' as const) : ('icon' as const)
+
+  // 自定义内容支持 {username}、{ip} 占位符；留空则默认显示用户名 + IP 两行
+  const username = getUsername()
+  const watermarkContent = settings.watermarkContent.trim()
+    ? settings.watermarkContent.replaceAll('{username}', username).replaceAll('{ip}', ip)
+    : [username, ip].filter(Boolean)
 
   return (
     <SidebarProvider key={settings.layout} defaultOpen={settings.layout === 'default'}>
@@ -28,7 +36,7 @@ function AuthenticatedLayout() {
           <Outlet />
         </main>
       </SidebarInset>
-      {settings.watermark && <Watermark content={[getUsername(), import.meta.env.VITE_APP_NAME]} />}
+      {settings.watermark && watermarkContent.length > 0 && <Watermark content={watermarkContent} />}
     </SidebarProvider>
   )
 }
