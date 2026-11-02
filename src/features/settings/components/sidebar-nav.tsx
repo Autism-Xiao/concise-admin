@@ -24,7 +24,7 @@ export function SidebarNav({ items, className }: { items: SettingsNavItem[]; cla
     <>
       {/* 移动端：下拉选择 */}
       <div className="p-1 md:hidden">
-        <Select value={val} onValueChange={handleSelect}>
+        <Select value={val} onValueChange={handleSelect} items={Object.fromEntries(items.map(item => [item.href, item.title]))}>
           <SelectTrigger className="h-12 sm:w-48">
             <SelectValue />
           </SelectTrigger>

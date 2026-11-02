@@ -46,7 +46,7 @@ export function DictFormDialog({ open, onOpenChange, dict, onSubmit }: DictFormD
           </div>
           <div className="space-y-2">
             <Label>状态</Label>
-            <Select value={form.status} onValueChange={v => set('status', v as DictStatus)}>
+            <Select value={form.status} onValueChange={v => set('status', v as DictStatus)} items={{ 正常: '正常', 停用: '停用' }}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

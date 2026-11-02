@@ -57,7 +57,11 @@ export function UserFormDialog({ open, onOpenChange, user, onSubmit }: UserFormD
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>角色</Label>
-              <Select value={form.role} onValueChange={v => set('role', v as UserRole)}>
+              <Select
+                value={form.role}
+                onValueChange={v => set('role', v as UserRole)}
+                items={{ superadmin: '超级管理员', admin: '管理员', manager: '经理', cashier: '收银' }}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -71,7 +75,11 @@ export function UserFormDialog({ open, onOpenChange, user, onSubmit }: UserFormD
             </div>
             <div className="space-y-2">
               <Label>状态</Label>
-              <Select value={form.status} onValueChange={v => set('status', v as UserStatus)}>
+              <Select
+                value={form.status}
+                onValueChange={v => set('status', v as UserStatus)}
+                items={{ active: '活跃', inactive: '未激活', invited: '已邀请', suspended: '已停用' }}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

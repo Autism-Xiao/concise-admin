@@ -160,33 +160,14 @@
   }
 }
 
-/* 侧边栏子菜单展开/收起高度动画（参照 radix collapsible） */
+/* 侧边栏子菜单展开/收起高度动画（Base UI Collapsible：高度变量 + 过渡） */
 .CollapsibleContent {
+  height: var(--collapsible-panel-height);
   overflow: hidden;
+  transition: height 300ms ease-out;
 }
 
-.CollapsibleContent[data-state='open'] {
-  animation: slide-down 300ms ease-out;
-}
-
-.CollapsibleContent[data-state='closed'] {
-  animation: slide-up 300ms ease-out;
-}
-
-@keyframes slide-down {
-  from {
-    height: 0;
-  }
-  to {
-    height: var(--radix-collapsible-content-height);
-  }
-}
-
-@keyframes slide-up {
-  from {
-    height: var(--radix-collapsible-content-height);
-  }
-  to {
-    height: 0;
-  }
+.CollapsibleContent[data-starting-style],
+.CollapsibleContent[data-ending-style] {
+  height: 0;
 }

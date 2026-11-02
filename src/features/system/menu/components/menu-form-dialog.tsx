@@ -51,7 +51,7 @@ export function MenuFormDialog({ open, onOpenChange, menu, onSubmit }: MenuFormD
             </div>
             <div className="space-y-2">
               <Label>状态</Label>
-              <Select value={form.status} onValueChange={v => set('status', v as MenuStatus)}>
+              <Select value={form.status} onValueChange={v => set('status', v as MenuStatus)} items={{ 正常: '正常', 停用: '停用' }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

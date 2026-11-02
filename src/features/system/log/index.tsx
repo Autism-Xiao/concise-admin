@@ -116,7 +116,7 @@ export function LogPage() {
               <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
               <Input placeholder="搜索操作人 / 类型 / IP" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={setStatusFilter} items={{ all: '全部状态', 成功: '成功', 失败: '失败' }}>
               <SelectTrigger className="h-9 w-32">
                 <SelectValue />
               </SelectTrigger>

@@ -50,7 +50,11 @@ export function DeptFormDialog({ open, onOpenChange, dept, depts, onSubmit }: De
         >
           <div className="space-y-2">
             <Label>上级部门</Label>
-            <Select value={form.parentId == null ? 'none' : String(form.parentId)} onValueChange={v => set('parentId', v === 'none' ? null : Number(v))}>
+            <Select
+              value={form.parentId == null ? 'none' : String(form.parentId)}
+              onValueChange={v => set('parentId', v === 'none' ? null : Number(v))}
+              items={{ none: '无（顶级部门）', ...Object.fromEntries(depts.map(d => [String(d.id), d.name])) }}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

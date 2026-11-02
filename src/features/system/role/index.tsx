@@ -134,7 +134,7 @@ export function RolePage() {
               <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
               <Input placeholder="搜索名称 / 权限字符" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={setStatusFilter} items={{ all: '全部状态', 正常: '正常', 停用: '停用' }}>
               <SelectTrigger className="h-9 w-32">
                 <SelectValue />
               </SelectTrigger>

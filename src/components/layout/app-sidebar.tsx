@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { ChevronRight, Search } from 'lucide-react'
-import { Collapsible } from 'radix-ui'
+import { Collapsible } from '@base-ui/react/collapsible'
 import { Logo } from '@/assets/logo'
 import { NavUser } from '@/components/layout/nav-user'
 import { useSearch } from '@/context/search-provider'
@@ -75,14 +75,16 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
                   item.items ? (
                     <Collapsible.Root key={item.titleKey} className="group/collapsible">
                       <SidebarMenuItem>
-                        <Collapsible.Trigger asChild>
-                          <SidebarMenuButton>
-                            <item.icon />
-                            <span>{t(item.titleKey)}</span>
-                            <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                          </SidebarMenuButton>
-                        </Collapsible.Trigger>
-                        <Collapsible.Content className="CollapsibleContent">
+                        <Collapsible.Trigger
+                          render={
+                            <SidebarMenuButton>
+                              <item.icon />
+                              <span>{t(item.titleKey)}</span>
+                              <ChevronRight className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
+                            </SidebarMenuButton>
+                          }
+                        />
+                        <Collapsible.Panel className="CollapsibleContent">
                           <SidebarMenuSub>
                             {item.items.map(sub => (
                               <SidebarMenuSubItem key={sub.url}>
@@ -94,7 +96,7 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
                               </SidebarMenuSubItem>
                             ))}
                           </SidebarMenuSub>
-                        </Collapsible.Content>
+                        </Collapsible.Panel>
                       </SidebarMenuItem>
                     </Collapsible.Root>
                   ) : (
