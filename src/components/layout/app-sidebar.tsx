@@ -82,7 +82,7 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
                             <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
                           </SidebarMenuButton>
                         </Collapsible.Trigger>
-                        <Collapsible.Content>
+                        <Collapsible.Content className="CollapsibleContent">
                           <SidebarMenuSub>
                             {item.items.map(sub => (
                               <SidebarMenuSubItem key={sub.url}>

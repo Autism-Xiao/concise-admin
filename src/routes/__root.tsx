@@ -3,6 +3,7 @@ import { ThemeProvider } from 'next-themes'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { CommandMenu } from '@/components/command-menu'
+import { NavigationProgress } from '@/components/navigation-progress'
 import { SearchProvider } from '@/context/search-provider'
 import { LocaleProvider } from '@/context/locale-provider'
 import { SettingsProvider } from '@/context/settings-provider'
@@ -26,6 +27,7 @@ function RootLayout() {
             <TooltipProvider>
               <Outlet />
               <CommandMenu />
+              <NavigationProgress />
               <Toaster richColors position="top-center" />
             </TooltipProvider>
           </SearchProvider>
