@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, LayoutGrid, Loader2, Palette, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Logo } from '@/assets/logo'
@@ -69,17 +68,59 @@ export function LoginPage() {
     }
   }
 
+  const features = [
+    { icon: LayoutGrid, text: t('login.featureTabs') },
+    { icon: Palette, text: t('login.featureTheme') },
+    { icon: ShieldCheck, text: t('login.featureSafe') }
+  ]
+
   return (
-    <div className="bg-muted flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="items-center text-center">
-          <Logo className="text-primary size-12" />
-          <CardTitle className="text-xl">
-            {t('login.title')} {import.meta.env.VITE_APP_NAME}
-          </CardTitle>
-          <CardDescription>{t('login.desc')}</CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="grid min-h-screen lg:grid-cols-2">
+      {/* 品牌展示区（移动端隐藏），颜色跟随主题预设 / 自定义主题色 */}
+      <div className="bg-primary text-primary-foreground relative hidden flex-col justify-between overflow-hidden p-10 lg:flex xl:p-14">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-10"
+          style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1.5px, transparent 0)', backgroundSize: '26px 26px' }}
+        />
+        <div className="pointer-events-none absolute -top-32 -right-32 size-96 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-40 -left-24 size-96 rounded-full bg-black/10 blur-3xl" />
+
+        <div className="relative flex items-center gap-3">
+          <div className="bg-background flex size-11 items-center justify-center rounded-xl shadow-sm">
+            <Logo className="size-7" />
+          </div>
+          <span className="text-lg font-semibold">{import.meta.env.VITE_APP_NAME}</span>
+        </div>
+
+        <div className="relative space-y-8">
+          <h1 className="max-w-md text-3xl leading-snug font-bold xl:text-4xl">{t('login.brandTagline')}</h1>
+          <ul className="space-y-4">
+            {features.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-center gap-3 text-sm opacity-90">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/10">
+                  <Icon className="size-4" />
+                </span>
+                {text}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="relative text-sm opacity-70">{t('login.copyright')}</p>
+      </div>
+
+      {/* 登录表单区 */}
+      <div className="bg-background relative flex items-center justify-center p-6">
+        <div className="absolute top-6 left-6 flex items-center gap-2 lg:hidden">
+          <Logo className="size-7" />
+          <span className="font-semibold">{import.meta.env.VITE_APP_NAME}</span>
+        </div>
+
+        <div className="animate-in fade-in slide-in-from-bottom-2 w-full max-w-sm space-y-6 duration-500">
+          <div className="space-y-1.5 text-center">
+            <h2 className="text-2xl font-bold tracking-tight">{t('login.welcome')}</h2>
+            <p className="text-muted-foreground text-sm">{t('login.desc')}</p>
+          </div>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <Label htmlFor="account">{t('login.account')}</Label>
@@ -124,12 +165,13 @@ export function LoginPage() {
               </div>
             </div>
             <Button type="submit" className="w-full" disabled={submitting}>
+              {submitting && <Loader2 className="animate-spin" />}
               {submitting ? t('login.submitting') : t('login.submit')}
             </Button>
-            <p className="text-muted-foreground text-center text-xs">{t('login.demoHint')}</p>
+            <p className="text-muted-foreground rounded-md border border-dashed px-3 py-2 text-center text-xs">{t('login.demoHint')}</p>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

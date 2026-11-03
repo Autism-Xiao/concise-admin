@@ -110,7 +110,13 @@ export const zh = {
   'login.captchaError': '验证码错误，请重新输入',
   'login.credentialsError': '账号或密码错误',
   'login.accountDisabled': '账号已停用，请联系管理员',
-  'login.demoHint': '演示账号：admin / admin123（超管），guest / guest123（访客）'
+  'login.demoHint': '演示账号：admin / admin123（超管），guest / guest123（访客）',
+  'login.welcome': '欢迎回来',
+  'login.brandTagline': '简洁、高效、可定制的现代化管理后台',
+  'login.featureTabs': '多标签页工作区，状态自动保留',
+  'login.featureTheme': '主题预设与自定义配色',
+  'login.featureSafe': '安全水印与登录日志审计',
+  'login.copyright': '© 2026 Concise Admin'
 } as const
 
 export type TranslationKey = keyof typeof zh
@@ -216,7 +222,13 @@ export const en: Record<TranslationKey, string> = {
   'login.captchaError': 'Wrong captcha, please try again',
   'login.credentialsError': 'Wrong username or password',
   'login.accountDisabled': 'Account disabled, please contact admin',
-  'login.demoHint': 'Demo accounts: admin / admin123 (super admin), guest / guest123 (guest)'
+  'login.demoHint': 'Demo accounts: admin / admin123 (super admin), guest / guest123 (guest)',
+  'login.welcome': 'Welcome back',
+  'login.brandTagline': 'A clean, fast and customizable admin dashboard',
+  'login.featureTabs': 'Multi-tab workspace with preserved state',
+  'login.featureTheme': 'Theme presets and custom colors',
+  'login.featureSafe': 'Security watermark and login auditing',
+  'login.copyright': '© 2026 Concise Admin'
 }
 
 export const dictionaries = { zh, en }
