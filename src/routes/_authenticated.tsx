@@ -1,4 +1,5 @@
-import { createFileRoute, Outlet, redirect, useLocation } from '@tanstack/react-router'
+import { createFileRoute, Navigate, Outlet, redirect, useLocation } from '@tanstack/react-router'
+import type { ReactNode } from 'react'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { PageTabs } from '@/components/layout/page-tabs'
 import { SiteHeader } from '@/components/layout/site-header'
@@ -9,6 +10,7 @@ import { useSettings } from '@/context/settings-provider'
 import { TabsProvider } from '@/context/tabs-provider'
 import { isRegisteredPage } from '@/config/page-registry'
 import { getUsername, isAuthenticated } from '@/lib/auth'
+import { isPathAllowed, usePermittedPaths } from '@/lib/permissions'
 import { usePublicIp } from '@/lib/use-public-ip'
 import type { WatermarkDensity } from '@/lib/settings'
 
@@ -47,7 +49,9 @@ function AuthenticatedLayout() {
           <SiteHeader />
           <PageTabs />
           <main data-scroll="main" className="flex-1 overflow-y-auto p-6">
-            <MainContent />
+            <PermissionGuard>
+              <MainContent />
+            </PermissionGuard>
           </main>
         </SidebarInset>
       </TabsProvider>
@@ -61,4 +65,13 @@ function AuthenticatedLayout() {
 function MainContent() {
   const pathname = useLocation({ select: location => location.pathname })
   return isRegisteredPage(pathname) ? <TabPageRenderer /> : <Outlet />
+}
+
+// 路由级权限拦截：直接输入无权限的 URL 时跳 403；
+// 超级管理员 / 权限加载中 / 加载失败（permitted 为 null）一律放行
+function PermissionGuard({ children }: { children: ReactNode }) {
+  const pathname = useLocation({ select: location => location.pathname })
+  const permitted = usePermittedPaths()
+  if (!permitted || isPathAllowed(pathname, permitted)) return children
+  return <Navigate to="/errors/403" replace />
 }

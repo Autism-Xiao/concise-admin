@@ -51,3 +51,21 @@ export function usePermittedPaths(): Set<string> | null {
 
   return paths
 }
+
+/** 始终放行的路径前缀：错误页、设置、帮助中心不参与权限拦截 */
+const ALWAYS_ALLOWED = ['/', '/errors', '/settings', '/help-center']
+
+/**
+ * 判断路径是否允许访问：
+ * 1. 白名单前缀直接放行
+ * 2. 精确命中角色可见菜单
+ * 3. 是某个可见菜单的父级路径（如 /system/log 之于 /system/log/login）
+ */
+export function isPathAllowed(pathname: string, permitted: Set<string>): boolean {
+  if (ALWAYS_ALLOWED.some(p => pathname === p || (p !== '/' && pathname.startsWith(p + '/')))) return true
+  if (permitted.has(pathname)) return true
+  for (const p of permitted) {
+    if (p.startsWith(pathname + '/')) return true
+  }
+  return false
+}
