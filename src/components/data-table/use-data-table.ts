@@ -17,6 +17,8 @@ interface UseDataTableOptions<TData> {
   pageSize?: number
 }
 
+const EMPTY_FILTERS: ColumnFiltersState = []
+
 // 封装 TanStack Table 常用装配：全局搜索、列过滤、排序、分页
 export function useDataTable<TData>({ data, columns, columnFilters, pageSize = 10 }: UseDataTableOptions<TData>) {
   const [keyword, setKeyword] = useState('')
@@ -27,7 +29,7 @@ export function useDataTable<TData>({ data, columns, columnFilters, pageSize = 1
     columns,
     state: {
       globalFilter: keyword,
-      columnFilters: columnFilters ?? []
+      columnFilters: columnFilters ?? EMPTY_FILTERS
     },
     onGlobalFilterChange: setKeyword,
     getCoreRowModel: getCoreRowModel(),

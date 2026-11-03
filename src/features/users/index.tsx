@@ -111,6 +111,7 @@ export function UsersPage() {
   )
 
   const columnFilters = useMemo(() => (statusFilter === 'all' ? [] : [{ id: 'status', value: statusFilter }]), [statusFilter])
+  const statusItems = useMemo(() => ({ all: '全部状态', ...Object.fromEntries(Object.entries(statusMap).map(([value, { label }]) => [value, label])) }), [])
   const { table, keyword, setKeyword } = useDataTable({ data: list, columns, columnFilters })
 
   const handleSubmit = (values: Omit<User, 'id' | 'createdAt'>) => {
@@ -151,11 +152,7 @@ export function UsersPage() {
               <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
               <Input placeholder="搜索姓名 / 用户名 / 邮箱" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
             </div>
-            <Select
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-              items={{ all: '全部状态', ...Object.fromEntries(Object.entries(statusMap).map(([value, { label }]) => [value, label])) }}
-            >
+            <Select value={statusFilter} onValueChange={setStatusFilter} items={statusItems}>
               <SelectTrigger className="h-9 w-32">
                 <SelectValue />
               </SelectTrigger>

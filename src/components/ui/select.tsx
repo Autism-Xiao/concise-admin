@@ -58,7 +58,9 @@ function SelectTrigger({
 function SelectContent({
   className,
   children,
-  position = 'item-aligned',
+  // 默认 popper：item-aligned（alignItemWithTrigger）在特定视口高度下会触发
+  // Base UI 已知的定位反馈死循环（#3789/#5358），导致整页卡死
+  position = 'popper',
   side = 'bottom',
   align = 'center',
   sideOffset = 4,
