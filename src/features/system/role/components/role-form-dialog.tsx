@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { Role, RoleStatus } from '../data/roles'
+import type { Role, RoleStatus } from '../api'
 
 interface RoleFormDialogProps {
   open: boolean

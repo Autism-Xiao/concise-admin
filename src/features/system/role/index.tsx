@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { RoleFormDialog } from './components/role-form-dialog'
-import { roles as mockRoles, type Role } from './data/roles'
+import { fetchRoles, type Role } from './api'
 
 const columnLabels: Record<string, string> = {
   id: 'ID',
@@ -22,11 +23,26 @@ const columnLabels: Record<string, string> = {
 }
 
 export function RolePage() {
-  const [list, setList] = useState<Role[]>(mockRoles)
+  const [list, setList] = useState<Role[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Role | null>(null)
   const [deleting, setDeleting] = useState<Role | null>(null)
+
+  const load = () => {
+    setLoading(true)
+    setError(null)
+    fetchRoles()
+      .then(setList)
+      .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(load, [])
+
+  const roles = useMemo(() => list ?? [], [list])
 
   const openCreate = () => {
     setEditing(null)
@@ -94,14 +110,18 @@ export function RolePage() {
   )
 
   const columnFilters = useMemo(() => (statusFilter === 'all' ? [] : [{ id: 'status', value: statusFilter }]), [statusFilter])
-  const { table, keyword, setKeyword } = useDataTable({ data: list, columns, columnFilters })
+  const { table, keyword, setKeyword } = useDataTable({ data: roles, columns, columnFilters })
 
   const handleSubmit = (values: Pick<Role, 'name' | 'code' | 'status'>) => {
     if (editing) {
-      setList(prev => prev.map(r => (r.id === editing.id ? { ...r, ...values } : r)))
+      setList(prev => (prev ?? []).map(r => (r.id === editing.id ? { ...r, ...values } : r)))
       toast.success('角色已更新')
     } else {
-      setList(prev => [{ ...values, id: Math.max(...prev.map(r => r.id)) + 1, userCount: 0, createdAt: new Date().toISOString().slice(0, 10) }, ...prev])
+      setList(prev => {
+        const cur = prev ?? []
+        const id = cur.length ? Math.max(...cur.map(r => r.id)) + 1 : 1
+        return [{ ...values, id, userCount: 0, createdAt: new Date().toISOString().slice(0, 10) }, ...cur]
+      })
       toast.success('角色已创建')
     }
     setFormOpen(false)
@@ -109,7 +129,7 @@ export function RolePage() {
 
   const handleDelete = () => {
     if (!deleting) return
-    setList(prev => prev.filter(r => r.id !== deleting.id))
+    setList(prev => (prev ?? []).filter(r => r.id !== deleting.id))
     toast.success(`已删除角色「${deleting.name}」`)
     setDeleting(null)
   }
@@ -119,7 +139,7 @@ export function RolePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">角色权限</h1>
-          <p className="text-muted-foreground text-sm">共 {list.length} 个角色（mock 数据）</p>
+          <p className="text-muted-foreground text-sm">共 {roles.length} 个角色（mock 数据）</p>
         </div>
         <Button onClick={openCreate}>
           <Plus />
@@ -127,30 +147,48 @@ export function RolePage() {
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative w-full max-w-xs">
-              <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
-              <Input placeholder="搜索名称 / 权限字符" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
+      {loading ? (
+        <Card>
+          <CardContent className="space-y-3 py-6">
+            <Skeleton className="h-9 w-full max-w-md" />
+            <Skeleton className="h-64 w-full" />
+          </CardContent>
+        </Card>
+      ) : error ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-12">
+            <p className="text-muted-foreground text-sm">{error}</p>
+            <Button variant="outline" onClick={load}>
+              重试
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative w-full max-w-xs">
+                <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
+                <Input placeholder="搜索名称 / 权限字符" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter} items={{ all: '全部状态', 正常: '正常', 停用: '停用' }}>
+                <SelectTrigger className="h-9 w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部状态</SelectItem>
+                  <SelectItem value="正常">正常</SelectItem>
+                  <SelectItem value="停用">停用</SelectItem>
+                </SelectContent>
+              </Select>
+              <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter} items={{ all: '全部状态', 正常: '正常', 停用: '停用' }}>
-              <SelectTrigger className="h-9 w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部状态</SelectItem>
-                <SelectItem value="正常">正常</SelectItem>
-                <SelectItem value="停用">停用</SelectItem>
-              </SelectContent>
-            </Select>
-            <DataTableViewOptions table={table} columnLabels={columnLabels} />
-          </div>
 
-          <DataTable table={table} emptyText="没有匹配的角色" />
-          <DataTablePagination table={table} />
-        </CardContent>
-      </Card>
+            <DataTable table={table} emptyText="没有匹配的角色" />
+            <DataTablePagination table={table} />
+          </CardContent>
+        </Card>
+      )}
 
       {formOpen && <RoleFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} role={editing} onSubmit={handleSubmit} />}
 

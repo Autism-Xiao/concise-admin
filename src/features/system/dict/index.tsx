@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { DictFormDialog } from './components/dict-form-dialog'
-import { dicts as mockDicts, type Dict } from './data/dicts'
+import { fetchDicts, type Dict } from './api'
 
 const columnLabels: Record<string, string> = {
   id: 'ID',
@@ -21,11 +22,26 @@ const columnLabels: Record<string, string> = {
 }
 
 export function DictPage() {
-  const [list, setList] = useState<Dict[]>(mockDicts)
+  const [list, setList] = useState<Dict[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Dict | null>(null)
   const [deleting, setDeleting] = useState<Dict | null>(null)
+
+  const load = () => {
+    setLoading(true)
+    setError(null)
+    fetchDicts()
+      .then(setList)
+      .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(load, [])
+
+  const dicts = useMemo(() => list ?? [], [list])
 
   const openCreate = () => {
     setEditing(null)
@@ -91,14 +107,18 @@ export function DictPage() {
   )
 
   const columnFilters = useMemo(() => (statusFilter === 'all' ? [] : [{ id: 'status', value: statusFilter }]), [statusFilter])
-  const { table, keyword, setKeyword } = useDataTable({ data: list, columns, columnFilters })
+  const { table, keyword, setKeyword } = useDataTable({ data: dicts, columns, columnFilters })
 
   const handleSubmit = (values: Omit<Dict, 'id'>) => {
     if (editing) {
-      setList(prev => prev.map(d => (d.id === editing.id ? { ...d, ...values } : d)))
+      setList(prev => (prev ?? []).map(d => (d.id === editing.id ? { ...d, ...values } : d)))
       toast.success('字典已更新')
     } else {
-      setList(prev => [{ ...values, id: Math.max(...prev.map(d => d.id)) + 1 }, ...prev])
+      setList(prev => {
+        const cur = prev ?? []
+        const id = cur.length ? Math.max(...cur.map(d => d.id)) + 1 : 1
+        return [{ ...values, id }, ...cur]
+      })
       toast.success('字典已创建')
     }
     setFormOpen(false)
@@ -106,7 +126,7 @@ export function DictPage() {
 
   const handleDelete = () => {
     if (!deleting) return
-    setList(prev => prev.filter(d => d.id !== deleting.id))
+    setList(prev => (prev ?? []).filter(d => d.id !== deleting.id))
     toast.success(`已删除字典「${deleting.name}」`)
     setDeleting(null)
   }
@@ -116,7 +136,7 @@ export function DictPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">字典管理</h1>
-          <p className="text-muted-foreground text-sm">共 {list.length} 个字典（mock 数据）</p>
+          <p className="text-muted-foreground text-sm">共 {dicts.length} 个字典（mock 数据）</p>
         </div>
         <Button onClick={openCreate}>
           <Plus />
@@ -124,30 +144,48 @@ export function DictPage() {
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative w-full max-w-xs">
-              <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
-              <Input placeholder="搜索名称 / 类型" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
+      {loading ? (
+        <Card>
+          <CardContent className="space-y-3 py-6">
+            <Skeleton className="h-9 w-full max-w-md" />
+            <Skeleton className="h-64 w-full" />
+          </CardContent>
+        </Card>
+      ) : error ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-12">
+            <p className="text-muted-foreground text-sm">{error}</p>
+            <Button variant="outline" onClick={load}>
+              重试
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative w-full max-w-xs">
+                <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
+                <Input placeholder="搜索名称 / 类型" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter} items={{ all: '全部状态', 正常: '正常', 停用: '停用' }}>
+                <SelectTrigger className="h-9 w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部状态</SelectItem>
+                  <SelectItem value="正常">正常</SelectItem>
+                  <SelectItem value="停用">停用</SelectItem>
+                </SelectContent>
+              </Select>
+              <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter} items={{ all: '全部状态', 正常: '正常', 停用: '停用' }}>
-              <SelectTrigger className="h-9 w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部状态</SelectItem>
-                <SelectItem value="正常">正常</SelectItem>
-                <SelectItem value="停用">停用</SelectItem>
-              </SelectContent>
-            </Select>
-            <DataTableViewOptions table={table} columnLabels={columnLabels} />
-          </div>
 
-          <DataTable table={table} emptyText="没有匹配的字典" />
-          <DataTablePagination table={table} />
-        </CardContent>
-      </Card>
+            <DataTable table={table} emptyText="没有匹配的字典" />
+            <DataTablePagination table={table} />
+          </CardContent>
+        </Card>
+      )}
 
       {formOpen && <DictFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} dict={editing} onSubmit={handleSubmit} />}
 

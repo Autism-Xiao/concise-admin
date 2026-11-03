@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Download, FileArchive, FileText, FileSpreadsheet, Film, Folder, Image, Search, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
-import { files as mockFiles, formatSize, type FileItem, type FileType } from './data/files'
+import { fetchFiles, formatSize, type FileItem, type FileType } from './api'
 
 const typeMeta: Record<FileType, { label: string; icon: typeof Folder }> = {
   folder: { label: '文件夹', icon: Folder },
@@ -29,9 +30,24 @@ const columnLabels: Record<string, string> = {
 }
 
 export function FilePage() {
-  const [list, setList] = useState<FileItem[]>(mockFiles)
+  const [list, setList] = useState<FileItem[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
   const [typeFilter, setTypeFilter] = useState('all')
   const [deleting, setDeleting] = useState<FileItem | null>(null)
+
+  const load = () => {
+    setLoading(true)
+    setError(null)
+    fetchFiles()
+      .then(setList)
+      .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(load, [])
+
+  const files = useMemo(() => list ?? [], [list])
 
   const columns = useMemo<ColumnDef<FileItem>[]>(
     () => [
@@ -101,27 +117,31 @@ export function FilePage() {
 
   const columnFilters = useMemo(() => (typeFilter === 'all' ? [] : [{ id: 'type', value: typeFilter }]), [typeFilter])
   const typeItems = useMemo(() => ({ all: '全部类型', ...Object.fromEntries(Object.entries(typeMeta).map(([value, { label }]) => [value, label])) }), [])
-  const { table, keyword, setKeyword } = useDataTable({ data: list, columns, columnFilters })
+  const { table, keyword, setKeyword } = useDataTable({ data: files, columns, columnFilters })
 
   const handleUpload = () => {
-    const name = `未命名文件 ${list.length + 1}.txt`
-    setList(prev => [
-      {
-        id: prev.length ? Math.max(...prev.map(f => f.id)) + 1 : 1,
-        name,
-        type: 'document',
-        size: 1024,
-        owner: '我',
-        modifiedAt: new Date().toISOString().slice(0, 16).replace('T', ' ')
-      },
-      ...prev
-    ])
+    const name = `未命名文件 ${files.length + 1}.txt`
+    setList(prev => {
+      const cur = prev ?? []
+      const id = cur.length ? Math.max(...cur.map(f => f.id)) + 1 : 1
+      return [
+        {
+          id,
+          name,
+          type: 'document',
+          size: 1024,
+          owner: '我',
+          modifiedAt: new Date().toISOString().slice(0, 16).replace('T', ' ')
+        },
+        ...cur
+      ]
+    })
     toast.success(`已上传「${name}」（mock）`)
   }
 
   const handleDelete = () => {
     if (!deleting) return
-    setList(prev => prev.filter(f => f.id !== deleting.id))
+    setList(prev => (prev ?? []).filter(f => f.id !== deleting.id))
     toast.success(`已删除「${deleting.name}」`)
     setDeleting(null)
   }
@@ -131,7 +151,7 @@ export function FilePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">文件管理</h1>
-          <p className="text-muted-foreground text-sm">共 {list.length} 个文件 / 文件夹（mock 数据）</p>
+          <p className="text-muted-foreground text-sm">共 {files.length} 个文件 / 文件夹（mock 数据）</p>
         </div>
         <Button onClick={handleUpload}>
           <Upload />
@@ -139,33 +159,51 @@ export function FilePage() {
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative w-full max-w-xs">
-              <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
-              <Input placeholder="搜索文件名 / 所有者" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
+      {loading ? (
+        <Card>
+          <CardContent className="space-y-3 py-6">
+            <Skeleton className="h-9 w-full max-w-md" />
+            <Skeleton className="h-64 w-full" />
+          </CardContent>
+        </Card>
+      ) : error ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-12">
+            <p className="text-muted-foreground text-sm">{error}</p>
+            <Button variant="outline" onClick={load}>
+              重试
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative w-full max-w-xs">
+                <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
+                <Input placeholder="搜索文件名 / 所有者" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
+              </div>
+              <Select value={typeFilter} onValueChange={setTypeFilter} items={typeItems}>
+                <SelectTrigger className="h-9 w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部类型</SelectItem>
+                  {Object.entries(typeMeta).map(([value, { label }]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter} items={typeItems}>
-              <SelectTrigger className="h-9 w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部类型</SelectItem>
-                {Object.entries(typeMeta).map(([value, { label }]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <DataTableViewOptions table={table} columnLabels={columnLabels} />
-          </div>
 
-          <DataTable table={table} emptyText="没有匹配的文件" />
-          <DataTablePagination table={table} />
-        </CardContent>
-      </Card>
+            <DataTable table={table} emptyText="没有匹配的文件" />
+            <DataTablePagination table={table} />
+          </CardContent>
+        </Card>
+      )}
 
       <ConfirmDeleteDialog
         open={!!deleting}

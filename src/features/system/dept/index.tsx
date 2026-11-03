@@ -1,14 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { DeptFormDialog, type DeptFormValues } from './components/dept-form-dialog'
-import { depts as mockDepts, type Dept } from './data/depts'
+import { fetchDepts, type Dept } from './api'
 
 const columnLabels: Record<string, string> = {
   id: 'ID',
@@ -18,10 +19,25 @@ const columnLabels: Record<string, string> = {
 }
 
 export function DeptPage() {
-  const [list, setList] = useState<Dept[]>(mockDepts)
+  const [list, setList] = useState<Dept[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Dept | null>(null)
   const [deleting, setDeleting] = useState<Dept | null>(null)
+
+  const load = () => {
+    setLoading(true)
+    setError(null)
+    fetchDepts()
+      .then(setList)
+      .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(load, [])
+
+  const depts = useMemo(() => list ?? [], [list])
 
   const openCreate = () => {
     setEditing(null)
@@ -74,14 +90,18 @@ export function DeptPage() {
     []
   )
 
-  const { table, keyword, setKeyword } = useDataTable({ data: list, columns })
+  const { table, keyword, setKeyword } = useDataTable({ data: depts, columns })
 
   const handleSubmit = (values: DeptFormValues) => {
     if (editing) {
-      setList(prev => prev.map(d => (d.id === editing.id ? { ...d, ...values } : d)))
+      setList(prev => (prev ?? []).map(d => (d.id === editing.id ? { ...d, ...values } : d)))
       toast.success('部门已更新')
     } else {
-      setList(prev => [{ ...values, id: prev.length ? Math.max(...prev.map(d => d.id)) + 1 : 1 }, ...prev])
+      setList(prev => {
+        const cur = prev ?? []
+        const id = cur.length ? Math.max(...cur.map(d => d.id)) + 1 : 1
+        return [{ ...values, id }, ...cur]
+      })
       toast.success('部门已创建')
     }
     setFormOpen(false)
@@ -94,14 +114,14 @@ export function DeptPage() {
     let changed = true
     while (changed) {
       changed = false
-      for (const d of list) {
+      for (const d of depts) {
         if (d.parentId != null && ids.has(d.parentId) && !ids.has(d.id)) {
           ids.add(d.id)
           changed = true
         }
       }
     }
-    setList(prev => prev.filter(d => !ids.has(d.id)))
+    setList(prev => (prev ?? []).filter(d => !ids.has(d.id)))
     toast.success(`已删除部门「${deleting.name}」${ids.size > 1 ? `及其 ${ids.size - 1} 个下级部门` : ''}`)
     setDeleting(null)
   }
@@ -111,27 +131,45 @@ export function DeptPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">部门管理</h1>
-          <p className="text-muted-foreground text-sm">共 {list.length} 个部门（mock 数据）</p>
+          <p className="text-muted-foreground text-sm">共 {depts.length} 个部门（mock 数据）</p>
         </div>
         <Button onClick={openCreate}>
           <Plus />
           新增部门
         </Button>
       </div>
-      <Card>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative w-full max-w-xs">
-              <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
-              <Input placeholder="搜索部门 / 负责人" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
+      {loading ? (
+        <Card>
+          <CardContent className="space-y-3 py-6">
+            <Skeleton className="h-9 w-full max-w-md" />
+            <Skeleton className="h-64 w-full" />
+          </CardContent>
+        </Card>
+      ) : error ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-12">
+            <p className="text-muted-foreground text-sm">{error}</p>
+            <Button variant="outline" onClick={load}>
+              重试
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative w-full max-w-xs">
+                <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
+                <Input placeholder="搜索部门 / 负责人" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
+              </div>
+              <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
-            <DataTableViewOptions table={table} columnLabels={columnLabels} />
-          </div>
 
-          <DataTable table={table} emptyText="没有匹配的部门" />
-          <DataTablePagination table={table} />
-        </CardContent>
-      </Card>
+            <DataTable table={table} emptyText="没有匹配的部门" />
+            <DataTablePagination table={table} />
+          </CardContent>
+        </Card>
+      )}
 
       <ConfirmDeleteDialog
         open={!!deleting}
@@ -146,7 +184,7 @@ export function DeptPage() {
           open={formOpen}
           onOpenChange={setFormOpen}
           dept={editing}
-          depts={list.filter(d => d.id !== editing?.id)}
+          depts={depts.filter(d => d.id !== editing?.id)}
           onSubmit={handleSubmit}
         />
       )}
