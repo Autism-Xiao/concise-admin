@@ -4,6 +4,8 @@ import {
   Bell,
   BookOpen,
   Bug,
+  CalendarDays,
+  FolderOpen,
   HelpCircle,
   LayoutDashboard,
   ListTodo,
@@ -29,15 +31,11 @@ import { UsersPage } from '@/features/users'
 import { MenuPage } from '@/features/system/menu'
 import { RolePage } from '@/features/system/role'
 import { DeptPage } from '@/features/system/dept'
+import { FilePage } from '@/features/system/file'
+import { CalendarPage } from '@/features/system/calendar'
 import { DictPage } from '@/features/system/dict'
 import { LogPage } from '@/features/system/log'
-import {
-  ForbiddenError,
-  InternalServerError,
-  MaintenanceError,
-  NotFoundError,
-  UnauthorizedError
-} from '@/features/errors'
+import { ForbiddenError, InternalServerError, MaintenanceError, NotFoundError, UnauthorizedError } from '@/features/errors'
 import { ProfilePage } from '@/features/settings/profile'
 import { AccountPage } from '@/features/settings/account'
 import { AppearancePage } from '@/features/settings/appearance'
@@ -69,6 +67,8 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
   '/system/menu': { component: MenuPage, titleKey: 'nav.system.menu', icon: ListTree },
   '/system/role': { component: RolePage, titleKey: 'nav.system.role', icon: ShieldCheck },
   '/system/dept': { component: DeptPage, titleKey: 'nav.system.dept', icon: Network },
+  '/system/file': { component: FilePage, titleKey: 'nav.system.file', icon: FolderOpen },
+  '/system/calendar': { component: CalendarPage, titleKey: 'nav.system.calendar', icon: CalendarDays },
   '/system/dict': { component: DictPage, titleKey: 'nav.system.dict', icon: BookOpen },
   '/system/log': { component: LogPage, titleKey: 'nav.system.log', icon: ScrollText },
   '/errors/401': { component: UnauthorizedError, titleKey: 'nav.errors.401', icon: Bug },

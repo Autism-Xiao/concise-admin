@@ -2,6 +2,8 @@ import type { LinkProps } from '@tanstack/react-router'
 import {
   BookOpen,
   Bug,
+  CalendarDays,
+  FolderOpen,
   HelpCircle,
   LayoutDashboard,
   ListTodo,
@@ -49,6 +51,8 @@ export const navGroups: NavGroup[] = [
       { titleKey: 'nav.system.menu', url: '/system/menu', icon: ListTree },
       { titleKey: 'nav.system.role', url: '/system/role', icon: ShieldCheck },
       { titleKey: 'nav.system.dept', url: '/system/dept', icon: Network },
+      { titleKey: 'nav.system.file', url: '/system/file', icon: FolderOpen },
+      { titleKey: 'nav.system.calendar', url: '/system/calendar', icon: CalendarDays },
       { titleKey: 'nav.system.dict', url: '/system/dict', icon: BookOpen },
       { titleKey: 'nav.system.log', url: '/system/log', icon: ScrollText }
     ]

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { DeptFormDialog, type DeptFormValues } from './components/dept-form-dialog'
-import { depts as mockDepts, getDepth, type Dept } from './data/depts'
+import { depts as mockDepts, type Dept } from './data/depts'
 
 const columnLabels: Record<string, string> = {
   id: 'ID',
@@ -42,15 +42,7 @@ export function DeptPage() {
       {
         accessorKey: 'name',
         header: ({ column }) => <DataTableColumnHeader column={column} title="部门名称" />,
-        cell: ({ row }) => {
-          const depth = getDepth(row.original, list)
-          return (
-            <span className="font-medium" style={{ paddingInlineStart: `${depth * 24}px` }}>
-              {depth > 0 && <span className="text-muted-foreground mr-1">└</span>}
-              {row.getValue('name')}
-            </span>
-          )
-        }
+        cell: ({ row }) => <span className="font-medium">{row.getValue('name')}</span>
       },
       {
         accessorKey: 'leader',
@@ -79,7 +71,7 @@ export function DeptPage() {
         )
       }
     ],
-    [list]
+    []
   )
 
   const { table, keyword, setKeyword } = useDataTable({ data: list, columns })
@@ -89,7 +81,7 @@ export function DeptPage() {
       setList(prev => prev.map(d => (d.id === editing.id ? { ...d, ...values } : d)))
       toast.success('部门已更新')
     } else {
-      setList(prev => [{ ...values, id: Math.max(...prev.map(d => d.id)) + 1 }, ...prev])
+      setList(prev => [{ ...values, id: prev.length ? Math.max(...prev.map(d => d.id)) + 1 : 1 }, ...prev])
       toast.success('部门已创建')
     }
     setFormOpen(false)
@@ -126,7 +118,6 @@ export function DeptPage() {
           新增部门
         </Button>
       </div>
-
       <Card>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -142,6 +133,13 @@ export function DeptPage() {
         </CardContent>
       </Card>
 
+      <ConfirmDeleteDialog
+        open={!!deleting}
+        onOpenChange={v => !v && setDeleting(null)}
+        description={<>即将删除部门「{deleting?.name}」及其所有下级部门，该操作不可恢复。</>}
+        onConfirm={handleDelete}
+      />
+
       {formOpen && (
         <DeptFormDialog
           key={editing?.id ?? 'new'}
@@ -152,13 +150,6 @@ export function DeptPage() {
           onSubmit={handleSubmit}
         />
       )}
-
-      <ConfirmDeleteDialog
-        open={!!deleting}
-        onOpenChange={v => !v && setDeleting(null)}
-        description={<>即将删除部门「{deleting?.name}」及其所有下级部门，该操作不可恢复。</>}
-        onConfirm={handleDelete}
-      />
     </div>
   )
 }

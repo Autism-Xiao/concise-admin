@@ -24,6 +24,8 @@ export const zh = {
   'nav.system.menu': '菜单管理',
   'nav.system.role': '角色权限',
   'nav.system.dept': '部门管理',
+  'nav.system.file': '文件管理',
+  'nav.system.calendar': '日历管理',
   'nav.system.dict': '字典管理',
   'nav.system.log': '日志管理',
   // 主题
@@ -118,6 +120,8 @@ export const en: Record<TranslationKey, string> = {
   'nav.system.menu': 'Menus',
   'nav.system.role': 'Roles',
   'nav.system.dept': 'Departments',
+  'nav.system.file': 'Files',
+  'nav.system.calendar': 'Calendar',
   'nav.system.dict': 'Dictionaries',
   'nav.system.log': 'Logs',
   'theme.light': 'Light',

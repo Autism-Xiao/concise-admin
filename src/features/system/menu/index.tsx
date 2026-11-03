@@ -1,16 +1,17 @@
-import { useMemo, useState } from 'react'
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { MenuFormDialog } from './components/menu-form-dialog'
-import { menus as mockMenus, type Menu } from './data/menus'
+import { fetchMenus, type Menu } from './api'
 
 const columnLabels: Record<string, string> = {
   id: 'ID',
@@ -21,11 +22,24 @@ const columnLabels: Record<string, string> = {
 }
 
 export function MenuPage() {
-  const [list, setList] = useState<Menu[]>(mockMenus)
+  const [list, setList] = useState<Menu[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [statusFilter, setStatusFilter] = useState('all')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Menu | null>(null)
   const [deleting, setDeleting] = useState<Menu | null>(null)
+
+  const load = useCallback(() => {
+    setLoading(true)
+    setLoadError(false)
+    fetchMenus()
+      .then(setList)
+      .catch(() => setLoadError(true))
+      .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(load, [load])
 
   const openCreate = () => {
     setEditing(null)
@@ -96,7 +110,7 @@ export function MenuPage() {
       setList(prev => prev.map(m => (m.id === editing.id ? { ...m, ...values } : m)))
       toast.success('菜单已更新')
     } else {
-      setList(prev => [{ ...values, id: Math.max(...prev.map(m => m.id)) + 1 }, ...prev])
+      setList(prev => [{ ...values, id: prev.length ? Math.max(...prev.map(m => m.id)) + 1 : 1 }, ...prev])
       toast.success('菜单已创建')
     }
     setFormOpen(false)
@@ -114,7 +128,7 @@ export function MenuPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">菜单管理</h1>
-          <p className="text-muted-foreground text-sm">共 {list.length} 个菜单（mock 数据）</p>
+          <p className="text-muted-foreground text-sm">{loading ? '加载中…' : `共 ${list.length} 个菜单`}</p>
         </div>
         <Button onClick={openCreate}>
           <Plus />
@@ -142,8 +156,26 @@ export function MenuPage() {
             <DataTableViewOptions table={table} columnLabels={columnLabels} />
           </div>
 
-          <DataTable table={table} emptyText="没有匹配的菜单" />
-          <DataTablePagination table={table} />
+          {loadError ? (
+            <div className="flex flex-col items-center gap-3 py-10">
+              <p className="text-muted-foreground text-sm">菜单数据加载失败</p>
+              <Button variant="outline" size="sm" onClick={load}>
+                <RefreshCw />
+                重新加载
+              </Button>
+            </div>
+          ) : loading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          ) : (
+            <>
+              <DataTable table={table} emptyText="没有匹配的菜单" />
+              <DataTablePagination table={table} />
+            </>
+          )}
         </CardContent>
       </Card>
 

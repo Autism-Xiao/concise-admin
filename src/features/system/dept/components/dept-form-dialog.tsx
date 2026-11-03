@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -34,6 +34,8 @@ export function DeptFormDialog({ open, onOpenChange, dept, depts, onSubmit }: De
 
   const set = <K extends keyof DeptFormValues>(key: K, value: DeptFormValues[K]) => setForm(prev => ({ ...prev, [key]: value }))
 
+  const deptItems = useMemo(() => ({ none: '无（顶级部门）', ...Object.fromEntries(depts.map(d => [String(d.id), d.name])) }), [depts])
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -53,7 +55,7 @@ export function DeptFormDialog({ open, onOpenChange, dept, depts, onSubmit }: De
             <Select
               value={form.parentId == null ? 'none' : String(form.parentId)}
               onValueChange={v => set('parentId', v === 'none' ? null : Number(v))}
-              items={{ none: '无（顶级部门）', ...Object.fromEntries(depts.map(d => [String(d.id), d.name])) }}
+              items={deptItems}
             >
               <SelectTrigger>
                 <SelectValue />

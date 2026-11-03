@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { Menu, MenuStatus } from '../data/menus'
+import type { Menu, MenuStatus } from '../api'
 
 interface MenuFormDialogProps {
   open: boolean

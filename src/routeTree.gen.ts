@@ -28,8 +28,10 @@ import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings/appearance'
 import { Route as AuthenticatedSettingsDisplayRouteImport } from './routes/_authenticated/settings/display'
 import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes/_authenticated/settings/notifications'
+import { Route as AuthenticatedSystemCalendarRouteImport } from './routes/_authenticated/system/calendar'
 import { Route as AuthenticatedSystemDeptRouteImport } from './routes/_authenticated/system/dept'
 import { Route as AuthenticatedSystemDictRouteImport } from './routes/_authenticated/system/dict'
+import { Route as AuthenticatedSystemFileRouteImport } from './routes/_authenticated/system/file'
 import { Route as AuthenticatedSystemLogRouteImport } from './routes/_authenticated/system/log'
 import { Route as AuthenticatedSystemMenuRouteImport } from './routes/_authenticated/system/menu'
 import { Route as AuthenticatedSystemRoleRouteImport } from './routes/_authenticated/system/role'
@@ -135,6 +137,12 @@ const AuthenticatedSettingsNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthenticatedSettingsRouteRoute,
   } as any)
+const AuthenticatedSystemCalendarRoute =
+  AuthenticatedSystemCalendarRouteImport.update({
+    id: '/system/calendar',
+    path: '/system/calendar',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedSystemDeptRoute = AuthenticatedSystemDeptRouteImport.update({
   id: '/system/dept',
   path: '/system/dept',
@@ -143,6 +151,11 @@ const AuthenticatedSystemDeptRoute = AuthenticatedSystemDeptRouteImport.update({
 const AuthenticatedSystemDictRoute = AuthenticatedSystemDictRouteImport.update({
   id: '/system/dict',
   path: '/system/dict',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSystemFileRoute = AuthenticatedSystemFileRouteImport.update({
+  id: '/system/file',
+  path: '/system/file',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedSystemLogRoute = AuthenticatedSystemLogRouteImport.update({
@@ -185,8 +198,10 @@ export interface FileRoutesByFullPath {
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
+  '/system/calendar': typeof AuthenticatedSystemCalendarRoute
   '/system/dept': typeof AuthenticatedSystemDeptRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
+  '/system/file': typeof AuthenticatedSystemFileRoute
   '/system/log': typeof AuthenticatedSystemLogRoute
   '/system/menu': typeof AuthenticatedSystemMenuRoute
   '/system/role': typeof AuthenticatedSystemRoleRoute
@@ -210,8 +225,10 @@ export interface FileRoutesByTo {
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
+  '/system/calendar': typeof AuthenticatedSystemCalendarRoute
   '/system/dept': typeof AuthenticatedSystemDeptRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
+  '/system/file': typeof AuthenticatedSystemFileRoute
   '/system/log': typeof AuthenticatedSystemLogRoute
   '/system/menu': typeof AuthenticatedSystemMenuRoute
   '/system/role': typeof AuthenticatedSystemRoleRoute
@@ -238,8 +255,10 @@ export interface FileRoutesById {
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/_authenticated/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
+  '/_authenticated/system/calendar': typeof AuthenticatedSystemCalendarRoute
   '/_authenticated/system/dept': typeof AuthenticatedSystemDeptRoute
   '/_authenticated/system/dict': typeof AuthenticatedSystemDictRoute
+  '/_authenticated/system/file': typeof AuthenticatedSystemFileRoute
   '/_authenticated/system/log': typeof AuthenticatedSystemLogRoute
   '/_authenticated/system/menu': typeof AuthenticatedSystemMenuRoute
   '/_authenticated/system/role': typeof AuthenticatedSystemRoleRoute
@@ -266,8 +285,10 @@ export interface FileRouteTypes {
     | '/settings/appearance'
     | '/settings/display'
     | '/settings/notifications'
+    | '/system/calendar'
     | '/system/dept'
     | '/system/dict'
+    | '/system/file'
     | '/system/log'
     | '/system/menu'
     | '/system/role'
@@ -291,8 +312,10 @@ export interface FileRouteTypes {
     | '/settings/appearance'
     | '/settings/display'
     | '/settings/notifications'
+    | '/system/calendar'
     | '/system/dept'
     | '/system/dict'
+    | '/system/file'
     | '/system/log'
     | '/system/menu'
     | '/system/role'
@@ -318,8 +341,10 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/appearance'
     | '/_authenticated/settings/display'
     | '/_authenticated/settings/notifications'
+    | '/_authenticated/system/calendar'
     | '/_authenticated/system/dept'
     | '/_authenticated/system/dict'
+    | '/_authenticated/system/file'
     | '/_authenticated/system/log'
     | '/_authenticated/system/menu'
     | '/_authenticated/system/role'
@@ -468,6 +493,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsNotificationsRouteImport
       parentRoute: typeof AuthenticatedSettingsRouteRoute
     }
+    '/_authenticated/system/calendar': {
+      id: '/_authenticated/system/calendar'
+      path: '/system/calendar'
+      fullPath: '/system/calendar'
+      preLoaderRoute: typeof AuthenticatedSystemCalendarRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/system/dept': {
       id: '/_authenticated/system/dept'
       path: '/system/dept'
@@ -480,6 +512,13 @@ declare module '@tanstack/react-router' {
       path: '/system/dict'
       fullPath: '/system/dict'
       preLoaderRoute: typeof AuthenticatedSystemDictRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/system/file': {
+      id: '/_authenticated/system/file'
+      path: '/system/file'
+      fullPath: '/system/file'
+      preLoaderRoute: typeof AuthenticatedSystemFileRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/system/log': {
@@ -548,8 +587,10 @@ interface AuthenticatedRouteChildren {
   AuthenticatedErrors404Route: typeof AuthenticatedErrors404Route
   AuthenticatedErrors500Route: typeof AuthenticatedErrors500Route
   AuthenticatedErrors503Route: typeof AuthenticatedErrors503Route
+  AuthenticatedSystemCalendarRoute: typeof AuthenticatedSystemCalendarRoute
   AuthenticatedSystemDeptRoute: typeof AuthenticatedSystemDeptRoute
   AuthenticatedSystemDictRoute: typeof AuthenticatedSystemDictRoute
+  AuthenticatedSystemFileRoute: typeof AuthenticatedSystemFileRoute
   AuthenticatedSystemLogRoute: typeof AuthenticatedSystemLogRoute
   AuthenticatedSystemMenuRoute: typeof AuthenticatedSystemMenuRoute
   AuthenticatedSystemRoleRoute: typeof AuthenticatedSystemRoleRoute
@@ -568,8 +609,10 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedErrors404Route: AuthenticatedErrors404Route,
   AuthenticatedErrors500Route: AuthenticatedErrors500Route,
   AuthenticatedErrors503Route: AuthenticatedErrors503Route,
+  AuthenticatedSystemCalendarRoute: AuthenticatedSystemCalendarRoute,
   AuthenticatedSystemDeptRoute: AuthenticatedSystemDeptRoute,
   AuthenticatedSystemDictRoute: AuthenticatedSystemDictRoute,
+  AuthenticatedSystemFileRoute: AuthenticatedSystemFileRoute,
   AuthenticatedSystemLogRoute: AuthenticatedSystemLogRoute,
   AuthenticatedSystemMenuRoute: AuthenticatedSystemMenuRoute,
   AuthenticatedSystemRoleRoute: AuthenticatedSystemRoleRoute,
