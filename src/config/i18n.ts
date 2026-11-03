@@ -93,8 +93,11 @@ export const zh = {
   'login.captchaPlaceholder': '请输入验证码',
   'login.captchaRefresh': '点击刷新验证码',
   'login.submit': '登录',
+  'login.submitting': '登录中…',
   'login.success': '登录成功',
-  'login.captchaError': '验证码错误，请重新输入'
+  'login.captchaError': '验证码错误，请重新输入',
+  'login.credentialsError': '账号或密码错误',
+  'login.demoHint': '演示账号：admin / admin123（超管），guest / guest123（访客）'
 } as const
 
 export type TranslationKey = keyof typeof zh
@@ -184,8 +187,11 @@ export const en: Record<TranslationKey, string> = {
   'login.captchaPlaceholder': 'Enter captcha',
   'login.captchaRefresh': 'Click to refresh captcha',
   'login.submit': 'Sign in',
+  'login.submitting': 'Signing in…',
   'login.success': 'Signed in successfully',
-  'login.captchaError': 'Wrong captcha, please try again'
+  'login.captchaError': 'Wrong captcha, please try again',
+  'login.credentialsError': 'Wrong username or password',
+  'login.demoHint': 'Demo accounts: admin / admin123 (super admin), guest / guest123 (guest)'
 }
 
 export const dictionaries = { zh, en }

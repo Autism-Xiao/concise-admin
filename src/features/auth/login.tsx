@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Logo } from '@/assets/logo'
 import { useLocale } from '@/context/locale-provider'
 import { login } from '@/lib/auth'
+import { fetchAccounts } from './api'
 import { CaptchaImage, randomCaptchaCode } from './components/captcha'
 
 export function LoginPage() {
@@ -19,22 +20,37 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [captchaInput, setCaptchaInput] = useState('')
   const [captchaCode, setCaptchaCode] = useState(randomCaptchaCode)
+  const [submitting, setSubmitting] = useState(false)
 
   const refreshCaptcha = () => {
     setCaptchaCode(randomCaptchaCode())
     setCaptchaInput('')
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (captchaInput.trim().toLowerCase() !== captchaCode.toLowerCase()) {
       toast.error(t('login.captchaError'))
       refreshCaptcha()
       return
     }
-    login(account)
-    toast.success(t('login.success'))
-    void navigate({ to: '/dashboard' })
+    setSubmitting(true)
+    try {
+      const accounts = await fetchAccounts()
+      const matched = accounts.find(a => a.username === account.trim() && a.password === password)
+      if (!matched) {
+        toast.error(t('login.credentialsError'))
+        refreshCaptcha()
+        return
+      }
+      login({ username: matched.username, name: matched.name, role: matched.role })
+      toast.success(t('login.success'))
+      void navigate({ to: '/dashboard' })
+    } catch {
+      toast.error(t('login.credentialsError'))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -91,9 +107,10 @@ export function LoginPage() {
                 <CaptchaImage code={captchaCode} onRefresh={refreshCaptcha} />
               </div>
             </div>
-            <Button type="submit" className="w-full">
-              {t('login.submit')}
+            <Button type="submit" className="w-full" disabled={submitting}>
+              {submitting ? t('login.submitting') : t('login.submit')}
             </Button>
+            <p className="text-muted-foreground text-center text-xs">{t('login.demoHint')}</p>
           </form>
         </CardContent>
       </Card>

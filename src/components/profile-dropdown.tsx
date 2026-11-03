@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { useLocale } from '@/context/locale-provider'
-import { getRoleCode, logout, setRoleCode } from '@/lib/auth'
+import { getName, getRoleCode, getUsername, logout, setRoleCode } from '@/lib/auth'
 import { notifyPermissionsChanged } from '@/lib/permissions'
 import type { Role } from '@/features/system/role/api'
 
@@ -45,15 +45,15 @@ export function ProfileDropdown() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative size-8 rounded-full">
           <Avatar className="size-8">
-            <AvatarFallback>张</AvatarFallback>
+            <AvatarFallback>{getName().slice(0, 1)}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" sideOffset={8}>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium">张三</p>
-            <p className="text-muted-foreground text-xs">zhangsan@example.com</p>
+            <p className="text-sm font-medium">{getName()}</p>
+            <p className="text-muted-foreground text-xs">@{getUsername()}</p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

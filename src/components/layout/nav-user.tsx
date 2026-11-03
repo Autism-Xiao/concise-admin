@@ -12,11 +12,13 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
 import { useLocale } from '@/context/locale-provider'
-import { logout } from '@/lib/auth'
+import { getName, getUsername, logout } from '@/lib/auth'
 
 export function NavUser() {
   const navigate = useNavigate()
   const { t } = useLocale()
+  const name = getName()
+  const username = getUsername()
 
   return (
     <SidebarMenu>
@@ -25,11 +27,11 @@ export function NavUser() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton size="lg">
               <Avatar className="size-8">
-                <AvatarFallback>张</AvatarFallback>
+                <AvatarFallback>{name.slice(0, 1)}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col gap-0.5 leading-none">
-                <span className="font-medium">张三</span>
-                <span className="text-muted-foreground text-xs">zhangsan@example.com</span>
+                <span className="font-medium">{name}</span>
+                <span className="text-muted-foreground text-xs">@{username}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -37,8 +39,8 @@ export function NavUser() {
           <DropdownMenuContent className="w-56" side="top" align="start" sideOffset={8}>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium">张三</p>
-                <p className="text-muted-foreground text-xs">zhangsan@example.com</p>
+                <p className="text-sm font-medium">{name}</p>
+                <p className="text-muted-foreground text-xs">@{username}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
