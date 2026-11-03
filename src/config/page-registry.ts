@@ -5,6 +5,7 @@ import {
   BookOpen,
   Bug,
   CalendarDays,
+  Database,
   FolderOpen,
   HelpCircle,
   LayoutDashboard,
@@ -17,7 +18,10 @@ import {
   Package,
   Palette,
   ScrollText,
+  Server,
   ShieldCheck,
+  Timer,
+  UserCheck,
   UserCog,
   Users,
   Wrench
@@ -37,6 +41,10 @@ import { CalendarPage } from '@/features/system/calendar'
 import { DictPage } from '@/features/system/dict'
 import { LoginLogPage } from '@/features/system/log/login'
 import { OperationLogPage } from '@/features/system/log/operation'
+import { JobPage } from '@/features/ops/job'
+import { OnlineUsersPage } from '@/features/ops/online'
+import { ServerMonitorPage } from '@/features/ops/server'
+import { CacheMonitorPage } from '@/features/ops/cache'
 import { ForbiddenError, InternalServerError, MaintenanceError, NotFoundError, UnauthorizedError } from '@/features/errors'
 import { ProfilePage } from '@/features/settings/profile'
 import { AccountPage } from '@/features/settings/account'
@@ -74,6 +82,10 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
   '/system/dict': { component: DictPage, titleKey: 'nav.system.dict', icon: BookOpen },
   '/system/log/login': { component: LoginLogPage, titleKey: 'nav.system.logLogin', icon: LogIn },
   '/system/log/operation': { component: OperationLogPage, titleKey: 'nav.system.logOperation', icon: ScrollText },
+  '/ops/job': { component: JobPage, titleKey: 'nav.ops.job', icon: Timer },
+  '/ops/online': { component: OnlineUsersPage, titleKey: 'nav.ops.online', icon: UserCheck },
+  '/ops/server': { component: ServerMonitorPage, titleKey: 'nav.ops.server', icon: Server },
+  '/ops/cache': { component: CacheMonitorPage, titleKey: 'nav.ops.cache', icon: Database },
   '/errors/401': { component: UnauthorizedError, titleKey: 'nav.errors.401', icon: Bug },
   '/errors/403': { component: ForbiddenError, titleKey: 'nav.errors.403', icon: Bug },
   '/errors/404': { component: NotFoundError, titleKey: 'nav.errors.404', icon: Bug },

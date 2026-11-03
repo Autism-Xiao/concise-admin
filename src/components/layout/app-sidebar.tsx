@@ -60,7 +60,8 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
     if (!permitted) return navGroups
     return navGroups
       .map(group => {
-        if (group.titleKey !== 'group.general' && group.titleKey !== 'group.system') return group
+        if (group.titleKey !== 'group.general' && group.titleKey !== 'group.system' && group.titleKey !== 'group.data' && group.titleKey !== 'group.ops')
+          return group
         const items = group.items
           .map(item => {
             if (!item.items) return item.url && permitted.has(item.url) ? item : null

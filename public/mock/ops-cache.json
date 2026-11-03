@@ -1,0 +1,16 @@
+{
+  "mode": "内存缓存（Map）",
+  "keyCount": 1286,
+  "memoryUsed": "38.6 MB",
+  "hitRate": 96.2,
+  "keys": [
+    { "name": "sys:dict", "count": 342, "ttl": "永不过期", "description": "字典数据缓存" },
+    { "name": "sys:config", "count": 58, "ttl": "永不过期", "description": "系统参数配置" },
+    { "name": "auth:token", "count": 126, "ttl": "2 小时", "description": "登录令牌" },
+    { "name": "auth:captcha", "count": 17, "ttl": "5 分钟", "description": "登录验证码" },
+    { "name": "user:profile", "count": 489, "ttl": "30 分钟", "description": "用户资料快照" },
+    { "name": "menu:tree", "count": 24, "ttl": "1 小时", "description": "角色菜单树" },
+    { "name": "dashboard:stats", "count": 36, "ttl": "10 分钟", "description": "仪表盘统计" },
+    { "name": "rate:limit", "count": 194, "ttl": "1 分钟", "description": "接口限流计数" }
+  ]
+}

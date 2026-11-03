@@ -110,5 +110,40 @@
     "path": "/system/log/operation",
     "sort": 16,
     "status": "正常"
+  },
+  {
+    "id": 17,
+    "name": "运维管理",
+    "path": "/ops",
+    "sort": 17,
+    "status": "正常"
+  },
+  {
+    "id": 18,
+    "name": "定时任务",
+    "path": "/ops/job",
+    "sort": 18,
+    "status": "正常"
+  },
+  {
+    "id": 19,
+    "name": "在线用户",
+    "path": "/ops/online",
+    "sort": 19,
+    "status": "正常"
+  },
+  {
+    "id": 20,
+    "name": "服务监控",
+    "path": "/ops/server",
+    "sort": 20,
+    "status": "正常"
+  },
+  {
+    "id": 21,
+    "name": "缓存监控",
+    "path": "/ops/cache",
+    "sort": 21,
+    "status": "正常"
   }
 ]

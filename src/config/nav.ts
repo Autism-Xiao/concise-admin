@@ -3,6 +3,7 @@ import {
   BookOpen,
   Bug,
   CalendarDays,
+  Database,
   FolderOpen,
   HelpCircle,
   LayoutDashboard,
@@ -12,8 +13,11 @@ import {
   Network,
   Package,
   ScrollText,
+  Server,
   Settings,
   ShieldCheck,
+  Timer,
+  UserCheck,
   Users,
   type LucideIcon
 } from 'lucide-react'
@@ -51,9 +55,7 @@ export const navGroups: NavGroup[] = [
       { titleKey: 'nav.system.menu', url: '/system/menu', icon: ListTree },
       { titleKey: 'nav.system.role', url: '/system/role', icon: ShieldCheck },
       { titleKey: 'nav.system.dept', url: '/system/dept', icon: Network },
-      { titleKey: 'nav.system.file', url: '/system/file', icon: FolderOpen },
       { titleKey: 'nav.system.calendar', url: '/system/calendar', icon: CalendarDays },
-      { titleKey: 'nav.system.dict', url: '/system/dict', icon: BookOpen },
       {
         titleKey: 'nav.system.log',
         icon: ScrollText,
@@ -62,6 +64,22 @@ export const navGroups: NavGroup[] = [
           { titleKey: 'nav.system.logOperation', url: '/system/log/operation' }
         ]
       }
+    ]
+  },
+  {
+    titleKey: 'group.data',
+    items: [
+      { titleKey: 'nav.system.file', url: '/system/file', icon: FolderOpen },
+      { titleKey: 'nav.system.dict', url: '/system/dict', icon: BookOpen }
+    ]
+  },
+  {
+    titleKey: 'group.ops',
+    items: [
+      { titleKey: 'nav.ops.job', url: '/ops/job', icon: Timer },
+      { titleKey: 'nav.ops.online', url: '/ops/online', icon: UserCheck },
+      { titleKey: 'nav.ops.server', url: '/ops/server', icon: Server },
+      { titleKey: 'nav.ops.cache', url: '/ops/cache', icon: Database }
     ]
   },
   {

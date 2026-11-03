@@ -23,6 +23,10 @@ import { Route as AuthenticatedErrors403RouteImport } from './routes/_authentica
 import { Route as AuthenticatedErrors404RouteImport } from './routes/_authenticated/errors/404'
 import { Route as AuthenticatedErrors500RouteImport } from './routes/_authenticated/errors/500'
 import { Route as AuthenticatedErrors503RouteImport } from './routes/_authenticated/errors/503'
+import { Route as AuthenticatedOpsCacheRouteImport } from './routes/_authenticated/ops/cache'
+import { Route as AuthenticatedOpsJobRouteImport } from './routes/_authenticated/ops/job'
+import { Route as AuthenticatedOpsOnlineRouteImport } from './routes/_authenticated/ops/online'
+import { Route as AuthenticatedOpsServerRouteImport } from './routes/_authenticated/ops/server'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings/account'
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings/appearance'
@@ -107,6 +111,26 @@ const AuthenticatedErrors500Route = AuthenticatedErrors500RouteImport.update({
 const AuthenticatedErrors503Route = AuthenticatedErrors503RouteImport.update({
   id: '/errors/503',
   path: '/errors/503',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedOpsCacheRoute = AuthenticatedOpsCacheRouteImport.update({
+  id: '/ops/cache',
+  path: '/ops/cache',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedOpsJobRoute = AuthenticatedOpsJobRouteImport.update({
+  id: '/ops/job',
+  path: '/ops/job',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedOpsOnlineRoute = AuthenticatedOpsOnlineRouteImport.update({
+  id: '/ops/online',
+  path: '/ops/online',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedOpsServerRoute = AuthenticatedOpsServerRouteImport.update({
+  id: '/ops/server',
+  path: '/ops/server',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedSettingsIndexRoute =
@@ -208,6 +232,10 @@ export interface FileRoutesByFullPath {
   '/errors/404': typeof AuthenticatedErrors404Route
   '/errors/500': typeof AuthenticatedErrors500Route
   '/errors/503': typeof AuthenticatedErrors503Route
+  '/ops/cache': typeof AuthenticatedOpsCacheRoute
+  '/ops/job': typeof AuthenticatedOpsJobRoute
+  '/ops/online': typeof AuthenticatedOpsOnlineRoute
+  '/ops/server': typeof AuthenticatedOpsServerRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/display': typeof AuthenticatedSettingsDisplayRoute
@@ -237,6 +265,10 @@ export interface FileRoutesByTo {
   '/errors/404': typeof AuthenticatedErrors404Route
   '/errors/500': typeof AuthenticatedErrors500Route
   '/errors/503': typeof AuthenticatedErrors503Route
+  '/ops/cache': typeof AuthenticatedOpsCacheRoute
+  '/ops/job': typeof AuthenticatedOpsJobRoute
+  '/ops/online': typeof AuthenticatedOpsOnlineRoute
+  '/ops/server': typeof AuthenticatedOpsServerRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/display': typeof AuthenticatedSettingsDisplayRoute
@@ -269,6 +301,10 @@ export interface FileRoutesById {
   '/_authenticated/errors/404': typeof AuthenticatedErrors404Route
   '/_authenticated/errors/500': typeof AuthenticatedErrors500Route
   '/_authenticated/errors/503': typeof AuthenticatedErrors503Route
+  '/_authenticated/ops/cache': typeof AuthenticatedOpsCacheRoute
+  '/_authenticated/ops/job': typeof AuthenticatedOpsJobRoute
+  '/_authenticated/ops/online': typeof AuthenticatedOpsOnlineRoute
+  '/_authenticated/ops/server': typeof AuthenticatedOpsServerRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/_authenticated/settings/display': typeof AuthenticatedSettingsDisplayRoute
@@ -301,6 +337,10 @@ export interface FileRouteTypes {
     | '/errors/404'
     | '/errors/500'
     | '/errors/503'
+    | '/ops/cache'
+    | '/ops/job'
+    | '/ops/online'
+    | '/ops/server'
     | '/settings/account'
     | '/settings/appearance'
     | '/settings/display'
@@ -330,6 +370,10 @@ export interface FileRouteTypes {
     | '/errors/404'
     | '/errors/500'
     | '/errors/503'
+    | '/ops/cache'
+    | '/ops/job'
+    | '/ops/online'
+    | '/ops/server'
     | '/settings/account'
     | '/settings/appearance'
     | '/settings/display'
@@ -361,6 +405,10 @@ export interface FileRouteTypes {
     | '/_authenticated/errors/404'
     | '/_authenticated/errors/500'
     | '/_authenticated/errors/503'
+    | '/_authenticated/ops/cache'
+    | '/_authenticated/ops/job'
+    | '/_authenticated/ops/online'
+    | '/_authenticated/ops/server'
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/appearance'
     | '/_authenticated/settings/display'
@@ -482,6 +530,34 @@ declare module '@tanstack/react-router' {
       path: '/errors/503'
       fullPath: '/errors/503'
       preLoaderRoute: typeof AuthenticatedErrors503RouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/ops/cache': {
+      id: '/_authenticated/ops/cache'
+      path: '/ops/cache'
+      fullPath: '/ops/cache'
+      preLoaderRoute: typeof AuthenticatedOpsCacheRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/ops/job': {
+      id: '/_authenticated/ops/job'
+      path: '/ops/job'
+      fullPath: '/ops/job'
+      preLoaderRoute: typeof AuthenticatedOpsJobRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/ops/online': {
+      id: '/_authenticated/ops/online'
+      path: '/ops/online'
+      fullPath: '/ops/online'
+      preLoaderRoute: typeof AuthenticatedOpsOnlineRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/ops/server': {
+      id: '/_authenticated/ops/server'
+      path: '/ops/server'
+      fullPath: '/ops/server'
+      preLoaderRoute: typeof AuthenticatedOpsServerRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/settings/': {
@@ -643,6 +719,10 @@ interface AuthenticatedRouteChildren {
   AuthenticatedErrors404Route: typeof AuthenticatedErrors404Route
   AuthenticatedErrors500Route: typeof AuthenticatedErrors500Route
   AuthenticatedErrors503Route: typeof AuthenticatedErrors503Route
+  AuthenticatedOpsCacheRoute: typeof AuthenticatedOpsCacheRoute
+  AuthenticatedOpsJobRoute: typeof AuthenticatedOpsJobRoute
+  AuthenticatedOpsOnlineRoute: typeof AuthenticatedOpsOnlineRoute
+  AuthenticatedOpsServerRoute: typeof AuthenticatedOpsServerRoute
   AuthenticatedSystemCalendarRoute: typeof AuthenticatedSystemCalendarRoute
   AuthenticatedSystemDeptRoute: typeof AuthenticatedSystemDeptRoute
   AuthenticatedSystemDictRoute: typeof AuthenticatedSystemDictRoute
@@ -665,6 +745,10 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedErrors404Route: AuthenticatedErrors404Route,
   AuthenticatedErrors500Route: AuthenticatedErrors500Route,
   AuthenticatedErrors503Route: AuthenticatedErrors503Route,
+  AuthenticatedOpsCacheRoute: AuthenticatedOpsCacheRoute,
+  AuthenticatedOpsJobRoute: AuthenticatedOpsJobRoute,
+  AuthenticatedOpsOnlineRoute: AuthenticatedOpsOnlineRoute,
+  AuthenticatedOpsServerRoute: AuthenticatedOpsServerRoute,
   AuthenticatedSystemCalendarRoute: AuthenticatedSystemCalendarRoute,
   AuthenticatedSystemDeptRoute: AuthenticatedSystemDeptRoute,
   AuthenticatedSystemDictRoute: AuthenticatedSystemDictRoute,

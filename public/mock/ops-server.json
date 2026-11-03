@@ -1,0 +1,28 @@
+{
+  "host": {
+    "hostname": "concise-prod-01",
+    "os": "Ubuntu 24.04.3 LTS",
+    "arch": "x86_64",
+    "ip": "10.20.8.16",
+    "uptime": "26 天 4 小时 32 分钟"
+  },
+  "cpu": {
+    "model": "Intel Xeon Platinum 8375C",
+    "cores": 8,
+    "usage": 37.5
+  },
+  "memory": {
+    "total": 32768,
+    "used": 18944,
+    "usage": 57.8
+  },
+  "node": {
+    "version": "v24.11.0",
+    "memoryUsage": 412,
+    "uptime": "4 天 11 小时 08 分钟"
+  },
+  "disks": [
+    { "name": "/ (系统盘)", "total": 100, "used": 46, "usage": 46.0 },
+    { "name": "/data (数据盘)", "total": 500, "used": 312, "usage": 62.4 }
+  ]
+}
