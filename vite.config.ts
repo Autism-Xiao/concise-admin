@@ -10,6 +10,7 @@ import { buildFilterCss, buildThemeColorCss } from './src/lib/theme-presets.ts'
 // 生产环境可替换为后端接口，前端代码不变）
 const SETTINGS_FILE = path.resolve(__dirname, 'settings.json')
 const MENUS_FILE = path.resolve(__dirname, 'public/mock/menus.json')
+const DEPTS_FILE = path.resolve(__dirname, 'public/mock/depts.json')
 const DEFAULT_SETTINGS = {
   fontSize: 'default',
   themeColor: 'default',
@@ -84,13 +85,13 @@ function settingsApi(): Plugin {
   }
 }
 
-// 菜单管理页保存时写回 public/mock/menus.json（仅开发环境；
-// 生产环境把前端的 saveMenus 换成真实接口即可）
-function menusApi(): Plugin {
+// 管理页保存时写回 public/mock/*.json（仅开发环境；
+// 生产环境把前端的 saveXxx 换成真实接口即可）
+function jsonWriteApi(name: string, route: string, file: string): Plugin {
   return {
-    name: 'concise-menus-api',
+    name,
     configureServer(server) {
-      server.middlewares.use('/api/menus', (req, res) => {
+      server.middlewares.use(route, (req, res) => {
         if (req.method === 'POST') {
           let body = ''
           req.on('data', chunk => (body += chunk))
@@ -99,9 +100,9 @@ function menusApi(): Plugin {
               const data = JSON.parse(body)
               if (!Array.isArray(data)) throw new Error('expect array')
               // 原子写：先写临时文件再重命名
-              const tmp = MENUS_FILE + '.tmp'
+              const tmp = file + '.tmp'
               fs.writeFileSync(tmp, JSON.stringify(data, null, 2))
-              fs.renameSync(tmp, MENUS_FILE)
+              fs.renameSync(tmp, file)
               res.setHeader('Content-Type', 'application/json')
               res.end(JSON.stringify({ ok: true, count: data.length }))
             } catch {
@@ -128,12 +129,13 @@ export default defineConfig({
     react(),
     tailwindcss(),
     settingsApi(),
-    menusApi()
+    jsonWriteApi('concise-menus-api', '/api/menus', MENUS_FILE),
+    jsonWriteApi('concise-depts-api', '/api/depts', DEPTS_FILE)
   ],
   server: {
     watch: {
-      // settings.json / menus.json 由接口写入，变化不应触发页面刷新
-      ignored: ['**/settings.json', '**/public/mock/menus.json']
+      // settings.json / mock 写回文件由接口写入，变化不应触发页面刷新
+      ignored: ['**/settings.json', '**/public/mock/menus.json', '**/public/mock/depts.json']
     }
   },
   resolve: {

@@ -13,3 +13,13 @@ export interface Dept {
 export function fetchDepts(): Promise<Dept[]> {
   return getJson<Dept[]>('/mock/depts.json')
 }
+
+// 开发环境由 vite 中间件写入 public/mock/depts.json；生产环境换成真实接口
+export async function saveDepts(depts: Dept[]): Promise<void> {
+  const res = await fetch('/api/depts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(depts)
+  })
+  if (!res.ok) throw new Error('保存失败')
+}

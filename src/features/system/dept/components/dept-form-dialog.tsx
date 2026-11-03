@@ -19,7 +19,9 @@ interface DeptFormDialogProps {
   onOpenChange: (open: boolean) => void
   /** null 表示新增 */
   dept: Dept | null
-  /** 可选上级部门列表（编辑时已排除自身） */
+  /** 新增时预选的上级部门 id，null 为顶级 */
+  parentId: number | null
+  /** 可选上级部门列表（编辑时已排除自身及后代） */
   depts: Dept[]
   onSubmit: (values: DeptFormValues) => void
 }
@@ -27,9 +29,9 @@ interface DeptFormDialogProps {
 const emptyForm: DeptFormValues = { name: '', leader: '', sort: 1, parentId: null }
 
 /** 由父组件按 key 控制重挂载，保证打开时表单初始化为对应部门 */
-export function DeptFormDialog({ open, onOpenChange, dept, depts, onSubmit }: DeptFormDialogProps) {
+export function DeptFormDialog({ open, onOpenChange, dept, parentId, depts, onSubmit }: DeptFormDialogProps) {
   const [form, setForm] = useState<DeptFormValues>(() =>
-    dept ? { name: dept.name, leader: dept.leader, sort: dept.sort, parentId: dept.parentId } : emptyForm
+    dept ? { name: dept.name, leader: dept.leader, sort: dept.sort, parentId: dept.parentId } : { ...emptyForm, parentId: parentId ?? null }
   )
 
   const set = <K extends keyof DeptFormValues>(key: K, value: DeptFormValues[K]) => setForm(prev => ({ ...prev, [key]: value }))
