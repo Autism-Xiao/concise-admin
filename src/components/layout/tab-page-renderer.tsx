@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, type CSSProperties } from 'react'
 import { useLocation } from '@tanstack/react-router'
 import { useTabs } from '@/context/tabs-provider'
 import { isRegisteredPage, PAGE_REGISTRY } from '@/config/page-registry'
@@ -15,8 +15,9 @@ const TabPage = memo(function TabPage({ path, active }: TabPageProps) {
   const entry = PAGE_REGISTRY[path]
   if (!entry) return null
   const Comp = entry.component
+  const style: CSSProperties = { display: active ? 'contents' : 'none' }
   return (
-    <div style={{ display: active ? 'contents' : 'none' }}>
+    <div style={style}>
       {entry.settings ? (
         <SettingsLayout>
           <Comp />

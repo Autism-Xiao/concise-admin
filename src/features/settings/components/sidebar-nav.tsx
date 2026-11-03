@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { buttonVariants } from '@/components/ui/button'
@@ -20,11 +20,14 @@ export function SidebarNav({ items, className }: { items: SettingsNavItem[]; cla
     void navigate({ to: href })
   }
 
+  // 稳定引用：避免每次渲染新对象
+  const selectItems = useMemo(() => Object.fromEntries(items.map(item => [item.href, item.title])), [items])
+
   return (
     <>
       {/* 移动端：下拉选择 */}
       <div className="p-1 md:hidden">
-        <Select value={val} onValueChange={handleSelect} items={Object.fromEntries(items.map(item => [item.href, item.title]))}>
+        <Select value={val} onValueChange={handleSelect} items={selectItems}>
           <SelectTrigger className="h-12 sm:w-48">
             <SelectValue />
           </SelectTrigger>

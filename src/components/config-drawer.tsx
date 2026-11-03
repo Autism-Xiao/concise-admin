@@ -323,10 +323,7 @@ export function ConfigDrawer() {
                 )}
                 style={{
                   backgroundColor: settings.themeColor === 'custom' ? settings.customColor : undefined,
-                  backgroundImage:
-                    settings.themeColor === 'custom'
-                      ? undefined
-                      : 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)'
+                  backgroundImage: settings.themeColor === 'custom' ? undefined : 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)'
                 }}
               >
                 {settings.themeColor === 'custom' && <Check className="size-4 text-white" />}

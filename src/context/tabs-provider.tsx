@@ -1,13 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode
-} from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import { HOME_PATH, isRegisteredPage } from '@/config/page-registry'
 
@@ -51,9 +42,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   const [tabs, setTabs] = useState<TabItem[]>(() => {
     const restored = loadPersistedTabs()
     const home: TabItem = { path: HOME_PATH, pinned: true }
-    return restored.some(t => t.path === HOME_PATH)
-      ? restored.map(t => (t.path === HOME_PATH ? { ...t, pinned: true } : t))
-      : [home, ...restored]
+    return restored.some(t => t.path === HOME_PATH) ? restored.map(t => (t.path === HOME_PATH ? { ...t, pinned: true } : t)) : [home, ...restored]
   })
   const [nonces, setNonces] = useState<Record<string, number>>({})
   // 供 navigate 副作用读取最新 tabs
@@ -123,13 +112,9 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       const current = tabsRef.current
       const idx = current.findIndex(t => t.path === path)
       if (idx === -1) return
-      setTabs(prev =>
-        prev.filter((t, i) => t.pinned || (side === 'left' ? i >= idx : i <= idx))
-      )
+      setTabs(prev => prev.filter((t, i) => t.pinned || (side === 'left' ? i >= idx : i <= idx)))
       // 当前页被关掉时回到操作的标签
-      const stillThere = current
-        .filter((t, i) => t.pinned || (side === 'left' ? i >= idx : i <= idx))
-        .some(t => t.path === pathname)
+      const stillThere = current.filter((t, i) => t.pinned || (side === 'left' ? i >= idx : i <= idx)).some(t => t.path === pathname)
       if (!stillThere) goto(path)
     },
     [pathname, goto]

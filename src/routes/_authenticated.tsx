@@ -51,9 +51,7 @@ function AuthenticatedLayout() {
           </main>
         </SidebarInset>
       </TabsProvider>
-      {settings.watermark && watermarkContent.length > 0 && (
-        <Watermark content={watermarkContent} tileSize={WATERMARK_TILE_SIZE[settings.watermarkDensity]} />
-      )}
+      {settings.watermark && watermarkContent.length > 0 && <Watermark content={watermarkContent} tileSize={WATERMARK_TILE_SIZE[settings.watermarkDensity]} />}
     </SidebarProvider>
   )
 }
