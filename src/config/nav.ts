@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   ListTodo,
   ListTree,
+  MapPin,
   Medal,
   Megaphone,
   MessagesSquare,
@@ -78,7 +79,8 @@ export const navGroups: NavGroup[] = [
     items: [
       { titleKey: 'nav.system.file', url: '/system/file', icon: FolderOpen },
       { titleKey: 'nav.system.dict', url: '/system/dict', icon: BookOpen },
-      { titleKey: 'nav.system.notice', url: '/system/notice', icon: Megaphone }
+      { titleKey: 'nav.system.notice', url: '/system/notice', icon: Megaphone },
+      { titleKey: 'nav.system.region', url: '/system/region', icon: MapPin }
     ]
   },
   {

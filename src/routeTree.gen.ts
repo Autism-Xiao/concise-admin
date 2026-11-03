@@ -41,6 +41,7 @@ import { Route as AuthenticatedSystemLogRouteImport } from './routes/_authentica
 import { Route as AuthenticatedSystemMenuRouteImport } from './routes/_authenticated/system/menu'
 import { Route as AuthenticatedSystemNoticeRouteImport } from './routes/_authenticated/system/notice'
 import { Route as AuthenticatedSystemPostRouteImport } from './routes/_authenticated/system/post'
+import { Route as AuthenticatedSystemRegionRouteImport } from './routes/_authenticated/system/region'
 import { Route as AuthenticatedSystemRoleRouteImport } from './routes/_authenticated/system/role'
 import { Route as AuthenticatedSystemTenantRouteImport } from './routes/_authenticated/system/tenant'
 import { Route as AuthenticatedSystemUsersRouteImport } from './routes/_authenticated/system/users'
@@ -215,6 +216,12 @@ const AuthenticatedSystemPostRoute = AuthenticatedSystemPostRouteImport.update({
   path: '/system/post',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSystemRegionRoute =
+  AuthenticatedSystemRegionRouteImport.update({
+    id: '/system/region',
+    path: '/system/region',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedSystemRoleRoute = AuthenticatedSystemRoleRouteImport.update({
   id: '/system/role',
   path: '/system/role',
@@ -276,6 +283,7 @@ export interface FileRoutesByFullPath {
   '/system/menu': typeof AuthenticatedSystemMenuRoute
   '/system/notice': typeof AuthenticatedSystemNoticeRoute
   '/system/post': typeof AuthenticatedSystemPostRoute
+  '/system/region': typeof AuthenticatedSystemRegionRoute
   '/system/role': typeof AuthenticatedSystemRoleRoute
   '/system/tenant': typeof AuthenticatedSystemTenantRoute
   '/system/users': typeof AuthenticatedSystemUsersRoute
@@ -313,6 +321,7 @@ export interface FileRoutesByTo {
   '/system/menu': typeof AuthenticatedSystemMenuRoute
   '/system/notice': typeof AuthenticatedSystemNoticeRoute
   '/system/post': typeof AuthenticatedSystemPostRoute
+  '/system/region': typeof AuthenticatedSystemRegionRoute
   '/system/role': typeof AuthenticatedSystemRoleRoute
   '/system/tenant': typeof AuthenticatedSystemTenantRoute
   '/system/users': typeof AuthenticatedSystemUsersRoute
@@ -353,6 +362,7 @@ export interface FileRoutesById {
   '/_authenticated/system/menu': typeof AuthenticatedSystemMenuRoute
   '/_authenticated/system/notice': typeof AuthenticatedSystemNoticeRoute
   '/_authenticated/system/post': typeof AuthenticatedSystemPostRoute
+  '/_authenticated/system/region': typeof AuthenticatedSystemRegionRoute
   '/_authenticated/system/role': typeof AuthenticatedSystemRoleRoute
   '/_authenticated/system/tenant': typeof AuthenticatedSystemTenantRoute
   '/_authenticated/system/users': typeof AuthenticatedSystemUsersRoute
@@ -393,6 +403,7 @@ export interface FileRouteTypes {
     | '/system/menu'
     | '/system/notice'
     | '/system/post'
+    | '/system/region'
     | '/system/role'
     | '/system/tenant'
     | '/system/users'
@@ -430,6 +441,7 @@ export interface FileRouteTypes {
     | '/system/menu'
     | '/system/notice'
     | '/system/post'
+    | '/system/region'
     | '/system/role'
     | '/system/tenant'
     | '/system/users'
@@ -469,6 +481,7 @@ export interface FileRouteTypes {
     | '/_authenticated/system/menu'
     | '/_authenticated/system/notice'
     | '/_authenticated/system/post'
+    | '/_authenticated/system/region'
     | '/_authenticated/system/role'
     | '/_authenticated/system/tenant'
     | '/_authenticated/system/users'
@@ -709,6 +722,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemPostRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/system/region': {
+      id: '/_authenticated/system/region'
+      path: '/system/region'
+      fullPath: '/system/region'
+      preLoaderRoute: typeof AuthenticatedSystemRegionRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/system/role': {
       id: '/_authenticated/system/role'
       path: '/system/role'
@@ -811,6 +831,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSystemMenuRoute: typeof AuthenticatedSystemMenuRoute
   AuthenticatedSystemNoticeRoute: typeof AuthenticatedSystemNoticeRoute
   AuthenticatedSystemPostRoute: typeof AuthenticatedSystemPostRoute
+  AuthenticatedSystemRegionRoute: typeof AuthenticatedSystemRegionRoute
   AuthenticatedSystemRoleRoute: typeof AuthenticatedSystemRoleRoute
   AuthenticatedSystemTenantRoute: typeof AuthenticatedSystemTenantRoute
   AuthenticatedSystemUsersRoute: typeof AuthenticatedSystemUsersRoute
@@ -841,6 +862,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSystemMenuRoute: AuthenticatedSystemMenuRoute,
   AuthenticatedSystemNoticeRoute: AuthenticatedSystemNoticeRoute,
   AuthenticatedSystemPostRoute: AuthenticatedSystemPostRoute,
+  AuthenticatedSystemRegionRoute: AuthenticatedSystemRegionRoute,
   AuthenticatedSystemRoleRoute: AuthenticatedSystemRoleRoute,
   AuthenticatedSystemTenantRoute: AuthenticatedSystemTenantRoute,
   AuthenticatedSystemUsersRoute: AuthenticatedSystemUsersRoute,

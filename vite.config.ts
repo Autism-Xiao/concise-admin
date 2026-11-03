@@ -20,6 +20,7 @@ const LEVELS_FILE = path.resolve(__dirname, 'public/mock/levels.json')
 const POSTS_FILE = path.resolve(__dirname, 'public/mock/posts.json')
 const TENANTS_FILE = path.resolve(__dirname, 'public/mock/tenants.json')
 const NOTICES_FILE = path.resolve(__dirname, 'public/mock/notices.json')
+const REGIONS_FILE = path.resolve(__dirname, 'public/mock/regions.json')
 const LOGIN_LOGS_FILE = path.resolve(__dirname, 'public/mock/logs-login.json')
 const OPERATION_LOGS_FILE = path.resolve(__dirname, 'public/mock/logs-operation.json')
 const DEFAULT_SETTINGS = {
@@ -191,6 +192,7 @@ export default defineConfig({
     jsonWriteApi('concise-posts-api', '/api/posts', POSTS_FILE),
     jsonWriteApi('concise-tenants-api', '/api/tenants', TENANTS_FILE),
     jsonWriteApi('concise-notices-api', '/api/notices', NOTICES_FILE),
+    jsonWriteApi('concise-regions-api', '/api/regions', REGIONS_FILE),
     jsonAppendApi('concise-login-logs-api', '/api/logs/login', LOGIN_LOGS_FILE),
     jsonAppendApi('concise-operation-logs-api', '/api/logs/operation', OPERATION_LOGS_FILE)
   ],
@@ -210,6 +212,7 @@ export default defineConfig({
         '**/public/mock/posts.json',
         '**/public/mock/tenants.json',
         '**/public/mock/notices.json',
+        '**/public/mock/regions.json',
         '**/public/mock/logs-login.json',
         '**/public/mock/logs-operation.json'
       ]

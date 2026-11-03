@@ -14,6 +14,7 @@ import {
   ListTodo,
   ListTree,
   LogIn,
+  MapPin,
   Medal,
   Megaphone,
   MessagesSquare,
@@ -49,6 +50,7 @@ import { LevelPage } from '@/features/system/level'
 import { PostPage } from '@/features/system/post'
 import { TenantPage } from '@/features/system/tenant'
 import { NoticePage } from '@/features/system/notice'
+import { RegionPage } from '@/features/system/region'
 import { JobPage } from '@/features/ops/job'
 import { OnlineUsersPage } from '@/features/ops/online'
 import { ServerMonitorPage } from '@/features/ops/server'
@@ -92,6 +94,7 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
   '/system/calendar': { component: CalendarPage, titleKey: 'nav.system.calendar', icon: CalendarDays },
   '/system/dict': { component: DictPage, titleKey: 'nav.system.dict', icon: BookOpen },
   '/system/notice': { component: NoticePage, titleKey: 'nav.system.notice', icon: Megaphone },
+  '/system/region': { component: RegionPage, titleKey: 'nav.system.region', icon: MapPin },
   '/system/log/login': { component: LoginLogPage, titleKey: 'nav.system.logLogin', icon: LogIn },
   '/system/log/operation': { component: OperationLogPage, titleKey: 'nav.system.logOperation', icon: ScrollText },
   '/ops/job': { component: JobPage, titleKey: 'nav.ops.job', icon: Timer },

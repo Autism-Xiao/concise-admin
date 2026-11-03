@@ -173,5 +173,12 @@
     "path": "/system/notice",
     "sort": 25,
     "status": "正常"
+  },
+  {
+    "id": 26,
+    "name": "行政区划",
+    "path": "/system/region",
+    "sort": 26,
+    "status": "正常"
   }
 ]
