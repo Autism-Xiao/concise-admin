@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ChevronRight, Search } from 'lucide-react'
 import { Collapsible } from '@base-ui/react/collapsible'
 import { Logo } from '@/assets/logo'
@@ -32,7 +32,8 @@ import {
   useSidebar
 } from '@/components/ui/sidebar'
 import { useLocale } from '@/context/locale-provider'
-import { navGroups, type NavItem } from '@/config/nav'
+import { navGroups, type NavGroup, type NavItem } from '@/config/nav'
+import { usePermittedPaths } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 
 import type { Direction, SidebarVariant } from '@/lib/settings'
@@ -52,6 +53,25 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
   const collapsed = state === 'collapsed' && !isMobile
 
   const isActive = (url?: string) => !!url && pathname === url
+
+  // 按当前角色的菜单权限过滤侧边栏（仅过滤业务分组，页面/其他分组始终显示）
+  const permitted = usePermittedPaths()
+  const visibleGroups = useMemo<NavGroup[]>(() => {
+    if (!permitted) return navGroups
+    return navGroups
+      .map(group => {
+        if (group.titleKey !== 'group.general' && group.titleKey !== 'group.system') return group
+        const items = group.items
+          .map(item => {
+            if (!item.items) return item.url && permitted.has(item.url) ? item : null
+            const subs = item.items.filter(sub => sub.url && permitted.has(sub.url))
+            return subs.length ? { ...item, items: subs } : null
+          })
+          .filter((item): item is NavItem => item != null)
+        return { ...group, items }
+      })
+      .filter(group => group.items.length > 0)
+  }, [permitted])
 
   return (
     <Sidebar collapsible={collapsible} variant={variant} side={direction === 'rtl' ? 'right' : 'left'}>
@@ -84,7 +104,7 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {navGroups.map(group => (
+        {visibleGroups.map(group => (
           <SidebarGroup key={group.titleKey}>
             <SidebarGroupLabel>{t(group.titleKey)}</SidebarGroupLabel>
             <SidebarGroupContent>

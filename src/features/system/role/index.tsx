@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Search, ShieldCheck, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -10,8 +10,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
+import { notifyPermissionsChanged } from '@/lib/permissions'
+import { fetchMenus, type Menu } from '../menu/api'
 import { RoleFormDialog } from './components/role-form-dialog'
-import { fetchRoles, type Role } from './api'
+import { RolePermissionDialog } from './components/role-permission-dialog'
+import { fetchRoles, saveRoles, type Role } from './api'
 
 const columnLabels: Record<string, string> = {
   id: 'ID',
@@ -24,18 +27,24 @@ const columnLabels: Record<string, string> = {
 
 export function RolePage() {
   const [list, setList] = useState<Role[] | null>(null)
+  const [menus, setMenus] = useState<Menu[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [statusFilter, setStatusFilter] = useState('all')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Role | null>(null)
   const [deleting, setDeleting] = useState<Role | null>(null)
+  const [permRole, setPermRole] = useState<Role | null>(null)
 
   const load = () => {
     setLoading(true)
     setError(null)
-    fetchRoles()
-      .then(setList)
+    Promise.all([fetchRoles(), fetchMenus()])
+      .then(([roleList, menuList]) => {
+        setList(roleList)
+        setMenus(menuList)
+      })
       .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
       .finally(() => setLoading(false))
   }
@@ -43,6 +52,23 @@ export function RolePage() {
   useEffect(load, [])
 
   const roles = useMemo(() => list ?? [], [list])
+
+  /** 乐观更新 + 写回 roles.json，失败回退重新加载 */
+  const persist = (next: Role[], successMsg: string) => {
+    setList(next)
+    setSaving(true)
+    saveRoles(next)
+      .then(() => {
+        toast.success(successMsg)
+        // 角色权限可能变化，通知侧边栏重新计算可见菜单
+        notifyPermissionsChanged()
+      })
+      .catch(() => {
+        toast.error('写入 roles.json 失败，已重新加载')
+        load()
+      })
+      .finally(() => setSaving(false))
+  }
 
   const openCreate = () => {
     setEditing(null)
@@ -94,6 +120,10 @@ export function RolePage() {
         enableHiding: false,
         cell: ({ row }) => (
           <div className="text-end">
+            <Button variant="ghost" size="icon" title="分配权限" onClick={() => setPermRole(row.original)}>
+              <ShieldCheck className="size-4" />
+              <span className="sr-only">分配权限</span>
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
               <Pencil className="size-4" />
               <span className="sr-only">编辑</span>
@@ -114,23 +144,31 @@ export function RolePage() {
 
   const handleSubmit = (values: Pick<Role, 'name' | 'code' | 'status'>) => {
     if (editing) {
-      setList(prev => (prev ?? []).map(r => (r.id === editing.id ? { ...r, ...values } : r)))
-      toast.success('角色已更新')
+      persist(
+        roles.map(r => (r.id === editing.id ? { ...r, ...values } : r)),
+        '角色已更新'
+      )
     } else {
-      setList(prev => {
-        const cur = prev ?? []
-        const id = cur.length ? Math.max(...cur.map(r => r.id)) + 1 : 1
-        return [{ ...values, id, userCount: 0, createdAt: new Date().toISOString().slice(0, 10) }, ...cur]
-      })
-      toast.success('角色已创建')
+      const id = roles.length ? Math.max(...roles.map(r => r.id)) + 1 : 1
+      persist([{ ...values, id, userCount: 0, createdAt: new Date().toISOString().slice(0, 10), menus: [] }, ...roles], '角色已创建')
     }
     setFormOpen(false)
   }
 
+  const handlePermissionSubmit = (menuIds: number[]) => {
+    if (!permRole) return
+    persist(
+      roles.map(r => (r.id === permRole.id ? { ...r, menus: menuIds } : r)),
+      `已更新角色「${permRole.name}」的菜单权限`
+    )
+  }
+
   const handleDelete = () => {
     if (!deleting) return
-    setList(prev => (prev ?? []).filter(r => r.id !== deleting.id))
-    toast.success(`已删除角色「${deleting.name}」`)
+    persist(
+      roles.filter(r => r.id !== deleting.id),
+      `已删除角色「${deleting.name}」`
+    )
     setDeleting(null)
   }
 
@@ -139,7 +177,9 @@ export function RolePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">角色权限</h1>
-          <p className="text-muted-foreground text-sm">共 {roles.length} 个角色（mock 数据）</p>
+          <p className="text-muted-foreground text-sm">
+            共 {roles.length} 个角色（mock 数据）{saving && '（保存中…）'}
+          </p>
         </div>
         <Button onClick={openCreate}>
           <Plus />
@@ -191,6 +231,17 @@ export function RolePage() {
       )}
 
       {formOpen && <RoleFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} role={editing} onSubmit={handleSubmit} />}
+
+      {permRole && (
+        <RolePermissionDialog
+          key={permRole.id}
+          open={!!permRole}
+          onOpenChange={v => !v && setPermRole(null)}
+          role={permRole}
+          menus={menus}
+          onSubmit={handlePermissionSubmit}
+        />
+      )}
 
       <ConfirmDeleteDialog
         open={!!deleting}
