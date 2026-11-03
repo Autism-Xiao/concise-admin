@@ -145,5 +145,26 @@
     "path": "/ops/cache",
     "sort": 21,
     "status": "正常"
+  },
+  {
+    "id": 22,
+    "name": "职级管理",
+    "path": "/system/level",
+    "sort": 22,
+    "status": "正常"
+  },
+  {
+    "id": 23,
+    "name": "岗位管理",
+    "path": "/system/post",
+    "sort": 23,
+    "status": "正常"
+  },
+  {
+    "id": 24,
+    "name": "租户管理",
+    "path": "/system/tenant",
+    "sort": 24,
+    "status": "正常"
   }
 ]

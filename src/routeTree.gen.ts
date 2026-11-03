@@ -36,9 +36,12 @@ import { Route as AuthenticatedSystemCalendarRouteImport } from './routes/_authe
 import { Route as AuthenticatedSystemDeptRouteImport } from './routes/_authenticated/system/dept'
 import { Route as AuthenticatedSystemDictRouteImport } from './routes/_authenticated/system/dict'
 import { Route as AuthenticatedSystemFileRouteImport } from './routes/_authenticated/system/file'
+import { Route as AuthenticatedSystemLevelRouteImport } from './routes/_authenticated/system/level'
 import { Route as AuthenticatedSystemLogRouteImport } from './routes/_authenticated/system/log'
 import { Route as AuthenticatedSystemMenuRouteImport } from './routes/_authenticated/system/menu'
+import { Route as AuthenticatedSystemPostRouteImport } from './routes/_authenticated/system/post'
 import { Route as AuthenticatedSystemRoleRouteImport } from './routes/_authenticated/system/role'
+import { Route as AuthenticatedSystemTenantRouteImport } from './routes/_authenticated/system/tenant'
 import { Route as AuthenticatedSystemUsersRouteImport } from './routes/_authenticated/system/users'
 import { Route as AuthenticatedSystemLogLoginRouteImport } from './routes/_authenticated/system/log/login'
 import { Route as AuthenticatedSystemLogOperationRouteImport } from './routes/_authenticated/system/log/operation'
@@ -184,6 +187,12 @@ const AuthenticatedSystemFileRoute = AuthenticatedSystemFileRouteImport.update({
   path: '/system/file',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSystemLevelRoute =
+  AuthenticatedSystemLevelRouteImport.update({
+    id: '/system/level',
+    path: '/system/level',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedSystemLogRoute = AuthenticatedSystemLogRouteImport.update({
   id: '/system/log',
   path: '/system/log',
@@ -194,11 +203,22 @@ const AuthenticatedSystemMenuRoute = AuthenticatedSystemMenuRouteImport.update({
   path: '/system/menu',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSystemPostRoute = AuthenticatedSystemPostRouteImport.update({
+  id: '/system/post',
+  path: '/system/post',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedSystemRoleRoute = AuthenticatedSystemRoleRouteImport.update({
   id: '/system/role',
   path: '/system/role',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSystemTenantRoute =
+  AuthenticatedSystemTenantRouteImport.update({
+    id: '/system/tenant',
+    path: '/system/tenant',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedSystemUsersRoute =
   AuthenticatedSystemUsersRouteImport.update({
     id: '/system/users',
@@ -244,9 +264,12 @@ export interface FileRoutesByFullPath {
   '/system/dept': typeof AuthenticatedSystemDeptRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
   '/system/file': typeof AuthenticatedSystemFileRoute
+  '/system/level': typeof AuthenticatedSystemLevelRoute
   '/system/log': typeof AuthenticatedSystemLogRouteWithChildren
   '/system/menu': typeof AuthenticatedSystemMenuRoute
+  '/system/post': typeof AuthenticatedSystemPostRoute
   '/system/role': typeof AuthenticatedSystemRoleRoute
+  '/system/tenant': typeof AuthenticatedSystemTenantRoute
   '/system/users': typeof AuthenticatedSystemUsersRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/system/log/login': typeof AuthenticatedSystemLogLoginRoute
@@ -277,9 +300,12 @@ export interface FileRoutesByTo {
   '/system/dept': typeof AuthenticatedSystemDeptRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
   '/system/file': typeof AuthenticatedSystemFileRoute
+  '/system/level': typeof AuthenticatedSystemLevelRoute
   '/system/log': typeof AuthenticatedSystemLogRouteWithChildren
   '/system/menu': typeof AuthenticatedSystemMenuRoute
+  '/system/post': typeof AuthenticatedSystemPostRoute
   '/system/role': typeof AuthenticatedSystemRoleRoute
+  '/system/tenant': typeof AuthenticatedSystemTenantRoute
   '/system/users': typeof AuthenticatedSystemUsersRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/system/log/login': typeof AuthenticatedSystemLogLoginRoute
@@ -313,9 +339,12 @@ export interface FileRoutesById {
   '/_authenticated/system/dept': typeof AuthenticatedSystemDeptRoute
   '/_authenticated/system/dict': typeof AuthenticatedSystemDictRoute
   '/_authenticated/system/file': typeof AuthenticatedSystemFileRoute
+  '/_authenticated/system/level': typeof AuthenticatedSystemLevelRoute
   '/_authenticated/system/log': typeof AuthenticatedSystemLogRouteWithChildren
   '/_authenticated/system/menu': typeof AuthenticatedSystemMenuRoute
+  '/_authenticated/system/post': typeof AuthenticatedSystemPostRoute
   '/_authenticated/system/role': typeof AuthenticatedSystemRoleRoute
+  '/_authenticated/system/tenant': typeof AuthenticatedSystemTenantRoute
   '/_authenticated/system/users': typeof AuthenticatedSystemUsersRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/system/log/login': typeof AuthenticatedSystemLogLoginRoute
@@ -349,9 +378,12 @@ export interface FileRouteTypes {
     | '/system/dept'
     | '/system/dict'
     | '/system/file'
+    | '/system/level'
     | '/system/log'
     | '/system/menu'
+    | '/system/post'
     | '/system/role'
+    | '/system/tenant'
     | '/system/users'
     | '/settings/'
     | '/system/log/login'
@@ -382,9 +414,12 @@ export interface FileRouteTypes {
     | '/system/dept'
     | '/system/dict'
     | '/system/file'
+    | '/system/level'
     | '/system/log'
     | '/system/menu'
+    | '/system/post'
     | '/system/role'
+    | '/system/tenant'
     | '/system/users'
     | '/settings'
     | '/system/log/login'
@@ -417,9 +452,12 @@ export interface FileRouteTypes {
     | '/_authenticated/system/dept'
     | '/_authenticated/system/dict'
     | '/_authenticated/system/file'
+    | '/_authenticated/system/level'
     | '/_authenticated/system/log'
     | '/_authenticated/system/menu'
+    | '/_authenticated/system/post'
     | '/_authenticated/system/role'
+    | '/_authenticated/system/tenant'
     | '/_authenticated/system/users'
     | '/_authenticated/settings/'
     | '/_authenticated/system/log/login'
@@ -623,6 +661,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemFileRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/system/level': {
+      id: '/_authenticated/system/level'
+      path: '/system/level'
+      fullPath: '/system/level'
+      preLoaderRoute: typeof AuthenticatedSystemLevelRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/system/log': {
       id: '/_authenticated/system/log'
       path: '/system/log'
@@ -637,11 +682,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemMenuRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/system/post': {
+      id: '/_authenticated/system/post'
+      path: '/system/post'
+      fullPath: '/system/post'
+      preLoaderRoute: typeof AuthenticatedSystemPostRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/system/role': {
       id: '/_authenticated/system/role'
       path: '/system/role'
       fullPath: '/system/role'
       preLoaderRoute: typeof AuthenticatedSystemRoleRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/system/tenant': {
+      id: '/_authenticated/system/tenant'
+      path: '/system/tenant'
+      fullPath: '/system/tenant'
+      preLoaderRoute: typeof AuthenticatedSystemTenantRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/system/users': {
@@ -727,9 +786,12 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSystemDeptRoute: typeof AuthenticatedSystemDeptRoute
   AuthenticatedSystemDictRoute: typeof AuthenticatedSystemDictRoute
   AuthenticatedSystemFileRoute: typeof AuthenticatedSystemFileRoute
+  AuthenticatedSystemLevelRoute: typeof AuthenticatedSystemLevelRoute
   AuthenticatedSystemLogRoute: typeof AuthenticatedSystemLogRouteWithChildren
   AuthenticatedSystemMenuRoute: typeof AuthenticatedSystemMenuRoute
+  AuthenticatedSystemPostRoute: typeof AuthenticatedSystemPostRoute
   AuthenticatedSystemRoleRoute: typeof AuthenticatedSystemRoleRoute
+  AuthenticatedSystemTenantRoute: typeof AuthenticatedSystemTenantRoute
   AuthenticatedSystemUsersRoute: typeof AuthenticatedSystemUsersRoute
 }
 
@@ -753,9 +815,12 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSystemDeptRoute: AuthenticatedSystemDeptRoute,
   AuthenticatedSystemDictRoute: AuthenticatedSystemDictRoute,
   AuthenticatedSystemFileRoute: AuthenticatedSystemFileRoute,
+  AuthenticatedSystemLevelRoute: AuthenticatedSystemLevelRoute,
   AuthenticatedSystemLogRoute: AuthenticatedSystemLogRouteWithChildren,
   AuthenticatedSystemMenuRoute: AuthenticatedSystemMenuRoute,
+  AuthenticatedSystemPostRoute: AuthenticatedSystemPostRoute,
   AuthenticatedSystemRoleRoute: AuthenticatedSystemRoleRoute,
+  AuthenticatedSystemTenantRoute: AuthenticatedSystemTenantRoute,
   AuthenticatedSystemUsersRoute: AuthenticatedSystemUsersRoute,
 }
 

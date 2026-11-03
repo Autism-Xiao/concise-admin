@@ -3,7 +3,9 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Bell,
   BookOpen,
+  Briefcase,
   Bug,
+  Building2,
   CalendarDays,
   Database,
   FolderOpen,
@@ -12,6 +14,7 @@ import {
   ListTodo,
   ListTree,
   LogIn,
+  Medal,
   MessagesSquare,
   Monitor,
   Network,
@@ -41,6 +44,9 @@ import { CalendarPage } from '@/features/system/calendar'
 import { DictPage } from '@/features/system/dict'
 import { LoginLogPage } from '@/features/system/log/login'
 import { OperationLogPage } from '@/features/system/log/operation'
+import { LevelPage } from '@/features/system/level'
+import { PostPage } from '@/features/system/post'
+import { TenantPage } from '@/features/system/tenant'
 import { JobPage } from '@/features/ops/job'
 import { OnlineUsersPage } from '@/features/ops/online'
 import { ServerMonitorPage } from '@/features/ops/server'
@@ -77,6 +83,9 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
   '/system/menu': { component: MenuPage, titleKey: 'nav.system.menu', icon: ListTree },
   '/system/role': { component: RolePage, titleKey: 'nav.system.role', icon: ShieldCheck },
   '/system/dept': { component: DeptPage, titleKey: 'nav.system.dept', icon: Network },
+  '/system/level': { component: LevelPage, titleKey: 'nav.system.level', icon: Medal },
+  '/system/post': { component: PostPage, titleKey: 'nav.system.post', icon: Briefcase },
+  '/system/tenant': { component: TenantPage, titleKey: 'nav.system.tenant', icon: Building2 },
   '/system/file': { component: FilePage, titleKey: 'nav.system.file', icon: FolderOpen },
   '/system/calendar': { component: CalendarPage, titleKey: 'nav.system.calendar', icon: CalendarDays },
   '/system/dict': { component: DictPage, titleKey: 'nav.system.dict', icon: BookOpen },

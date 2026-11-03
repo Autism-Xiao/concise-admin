@@ -1,7 +1,9 @@
 import type { LinkProps } from '@tanstack/react-router'
 import {
   BookOpen,
+  Briefcase,
   Bug,
+  Building2,
   CalendarDays,
   Database,
   FolderOpen,
@@ -9,6 +11,7 @@ import {
   LayoutDashboard,
   ListTodo,
   ListTree,
+  Medal,
   MessagesSquare,
   Network,
   Package,
@@ -55,6 +58,9 @@ export const navGroups: NavGroup[] = [
       { titleKey: 'nav.system.menu', url: '/system/menu', icon: ListTree },
       { titleKey: 'nav.system.role', url: '/system/role', icon: ShieldCheck },
       { titleKey: 'nav.system.dept', url: '/system/dept', icon: Network },
+      { titleKey: 'nav.system.level', url: '/system/level', icon: Medal },
+      { titleKey: 'nav.system.post', url: '/system/post', icon: Briefcase },
+      { titleKey: 'nav.system.tenant', url: '/system/tenant', icon: Building2 },
       { titleKey: 'nav.system.calendar', url: '/system/calendar', icon: CalendarDays },
       {
         titleKey: 'nav.system.log',

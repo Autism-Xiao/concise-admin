@@ -1,0 +1,122 @@
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import type { Tenant, TenantPlan, TenantStatus } from '../api'
+
+interface TenantFormDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  /** null 表示新增 */
+  tenant: Tenant | null
+  onSubmit: (values: Omit<Tenant, 'id'>) => void
+}
+
+const emptyForm = {
+  name: '',
+  code: '',
+  contact: '',
+  phone: '',
+  plan: '试用版' as TenantPlan,
+  expireAt: '',
+  status: '正常' as TenantStatus,
+  remark: ''
+}
+
+/** 由父组件按 key 控制重挂载，保证打开时表单初始化为对应租户 */
+export function TenantFormDialog({ open, onOpenChange, tenant, onSubmit }: TenantFormDialogProps) {
+  const [form, setForm] = useState(() =>
+    tenant
+      ? {
+          name: tenant.name,
+          code: tenant.code,
+          contact: tenant.contact,
+          phone: tenant.phone,
+          plan: tenant.plan,
+          expireAt: tenant.expireAt,
+          status: tenant.status,
+          remark: tenant.remark
+        }
+      : emptyForm
+  )
+
+  const set = <K extends keyof typeof emptyForm>(key: K, value: (typeof emptyForm)[K]) => setForm(prev => ({ ...prev, [key]: value }))
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{tenant ? '编辑租户' : '新增租户'}</DialogTitle>
+          <DialogDescription>{tenant ? '修改租户信息后保存' : '填写信息创建新租户'}</DialogDescription>
+        </DialogHeader>
+        <form
+          className="space-y-4"
+          onSubmit={e => {
+            e.preventDefault()
+            onSubmit(form)
+          }}
+        >
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="tenant-name">租户名称</Label>
+              <Input id="tenant-name" value={form.name} onChange={e => set('name', e.target.value)} placeholder="如 云启科技" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tenant-code">租户编码</Label>
+              <Input id="tenant-code" value={form.code} onChange={e => set('code', e.target.value)} placeholder="如 YUNQI" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tenant-contact">联系人</Label>
+              <Input id="tenant-contact" value={form.contact} onChange={e => set('contact', e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tenant-phone">联系电话</Label>
+              <Input id="tenant-phone" value={form.phone} onChange={e => set('phone', e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label>套餐</Label>
+              <Select value={form.plan} onValueChange={v => set('plan', v as TenantPlan)} items={{ 试用版: '试用版', 标准版: '标准版', 企业版: '企业版' }}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="试用版">试用版</SelectItem>
+                  <SelectItem value="标准版">标准版</SelectItem>
+                  <SelectItem value="企业版">企业版</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tenant-expire">到期日期</Label>
+              <Input id="tenant-expire" type="date" value={form.expireAt} onChange={e => set('expireAt', e.target.value)} required />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>状态</Label>
+            <Select value={form.status} onValueChange={v => set('status', v as TenantStatus)} items={{ 正常: '正常', 停用: '停用' }}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="正常">正常</SelectItem>
+                <SelectItem value="停用">停用</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="tenant-remark">备注</Label>
+            <Input id="tenant-remark" value={form.remark} onChange={e => set('remark', e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              取消
+            </Button>
+            <Button type="submit">保存</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}

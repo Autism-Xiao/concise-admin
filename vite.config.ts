@@ -16,6 +16,9 @@ const ACCOUNTS_FILE = path.resolve(__dirname, 'public/mock/accounts.json')
 const USERS_FILE = path.resolve(__dirname, 'public/mock/users.json')
 const DICTS_FILE = path.resolve(__dirname, 'public/mock/dicts.json')
 const FILES_FILE = path.resolve(__dirname, 'public/mock/files.json')
+const LEVELS_FILE = path.resolve(__dirname, 'public/mock/levels.json')
+const POSTS_FILE = path.resolve(__dirname, 'public/mock/posts.json')
+const TENANTS_FILE = path.resolve(__dirname, 'public/mock/tenants.json')
 const LOGIN_LOGS_FILE = path.resolve(__dirname, 'public/mock/logs-login.json')
 const OPERATION_LOGS_FILE = path.resolve(__dirname, 'public/mock/logs-operation.json')
 const DEFAULT_SETTINGS = {
@@ -183,6 +186,9 @@ export default defineConfig({
     jsonWriteApi('concise-users-api', '/api/users', USERS_FILE),
     jsonWriteApi('concise-dicts-api', '/api/dicts', DICTS_FILE),
     jsonWriteApi('concise-files-api', '/api/files', FILES_FILE),
+    jsonWriteApi('concise-levels-api', '/api/levels', LEVELS_FILE),
+    jsonWriteApi('concise-posts-api', '/api/posts', POSTS_FILE),
+    jsonWriteApi('concise-tenants-api', '/api/tenants', TENANTS_FILE),
     jsonAppendApi('concise-login-logs-api', '/api/logs/login', LOGIN_LOGS_FILE),
     jsonAppendApi('concise-operation-logs-api', '/api/logs/operation', OPERATION_LOGS_FILE)
   ],
@@ -198,6 +204,9 @@ export default defineConfig({
         '**/public/mock/users.json',
         '**/public/mock/dicts.json',
         '**/public/mock/files.json',
+        '**/public/mock/levels.json',
+        '**/public/mock/posts.json',
+        '**/public/mock/tenants.json',
         '**/public/mock/logs-login.json',
         '**/public/mock/logs-operation.json'
       ]
