@@ -14,3 +14,13 @@ export interface Menu {
 export function fetchMenus(): Promise<Menu[]> {
   return getJson<Menu[]>('/mock/menus.json')
 }
+
+// 开发环境由 vite 中间件写入 public/mock/menus.json；生产环境换成真实接口
+export async function saveMenus(menus: Menu[]): Promise<void> {
+  const res = await fetch('/api/menus', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(menus)
+  })
+  if (!res.ok) throw new Error('保存失败')
+}

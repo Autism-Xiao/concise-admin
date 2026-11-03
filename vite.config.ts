@@ -9,6 +9,7 @@ import { buildFilterCss, buildThemeColorCss } from './src/lib/theme-presets.ts'
 // 应用设置持久化到项目根目录 settings.json（开发环境由 dev server 读写，
 // 生产环境可替换为后端接口，前端代码不变）
 const SETTINGS_FILE = path.resolve(__dirname, 'settings.json')
+const MENUS_FILE = path.resolve(__dirname, 'public/mock/menus.json')
 const DEFAULT_SETTINGS = {
   fontSize: 'default',
   themeColor: 'default',
@@ -83,6 +84,40 @@ function settingsApi(): Plugin {
   }
 }
 
+// 菜单管理页保存时写回 public/mock/menus.json（仅开发环境；
+// 生产环境把前端的 saveMenus 换成真实接口即可）
+function menusApi(): Plugin {
+  return {
+    name: 'concise-menus-api',
+    configureServer(server) {
+      server.middlewares.use('/api/menus', (req, res) => {
+        if (req.method === 'POST') {
+          let body = ''
+          req.on('data', chunk => (body += chunk))
+          req.on('end', () => {
+            try {
+              const data = JSON.parse(body)
+              if (!Array.isArray(data)) throw new Error('expect array')
+              // 原子写：先写临时文件再重命名
+              const tmp = MENUS_FILE + '.tmp'
+              fs.writeFileSync(tmp, JSON.stringify(data, null, 2))
+              fs.renameSync(tmp, MENUS_FILE)
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ ok: true, count: data.length }))
+            } catch {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: 'invalid json' }))
+            }
+          })
+          return
+        }
+        res.statusCode = 405
+        res.end()
+      })
+    }
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -92,12 +127,13 @@ export default defineConfig({
     }),
     react(),
     tailwindcss(),
-    settingsApi()
+    settingsApi(),
+    menusApi()
   ],
   server: {
     watch: {
-      // settings.json 由 /api/settings 接口写入，变化不应触发页面刷新
-      ignored: ['**/settings.json']
+      // settings.json / menus.json 由接口写入，变化不应触发页面刷新
+      ignored: ['**/settings.json', '**/public/mock/menus.json']
     }
   },
   resolve: {

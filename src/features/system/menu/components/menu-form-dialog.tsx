@@ -11,16 +11,44 @@ interface MenuFormDialogProps {
   onOpenChange: (open: boolean) => void
   /** null 表示新增 */
   menu: Menu | null
+  /** 新增时预选的上级菜单 id，null 为顶级 */
+  parentId: number | null
+  /** 全部菜单，用于选择上级 */
+  menus: Menu[]
   onSubmit: (values: Omit<Menu, 'id'>) => void
 }
 
-const emptyForm = { name: '', path: '', sort: 1, status: '正常' as MenuStatus }
+/** 由路径推导上级菜单 id：/system/users 的上级是 path 为 /system 的菜单 */
+function findParentId(menu: Menu, menus: Menu[]): number {
+  const parentPath = menu.path.slice(0, menu.path.lastIndexOf('/'))
+  return menus.find(m => m.path === parentPath)?.id ?? 0
+}
 
 /** 由父组件按 key 控制重挂载，保证打开时表单初始化为对应菜单 */
-export function MenuFormDialog({ open, onOpenChange, menu, onSubmit }: MenuFormDialogProps) {
-  const [form, setForm] = useState(() => (menu ? { name: menu.name, path: menu.path, sort: menu.sort, status: menu.status } : emptyForm))
+export function MenuFormDialog({ open, onOpenChange, menu, parentId, menus, onSubmit }: MenuFormDialogProps) {
+  const [form, setForm] = useState(() => {
+    if (menu) {
+      return { name: menu.name, path: menu.path, sort: menu.sort, status: menu.status, parentId: findParentId(menu, menus) }
+    }
+    const parent = menus.find(m => m.id === parentId)
+    return { name: '', path: parent ? `${parent.path}/` : '/', sort: 1, status: '正常' as MenuStatus, parentId: parentId ?? 0 }
+  })
 
-  const set = <K extends keyof typeof emptyForm>(key: K, value: (typeof emptyForm)[K]) => setForm(prev => ({ ...prev, [key]: value }))
+  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm(prev => ({ ...prev, [key]: value }))
+
+  // 可选上级：编辑时排除自身及后代，避免形成环
+  const parentOptions = menus.filter(m => !menu || (m.id !== menu.id && !m.path.startsWith(menu.path + '/')))
+  const parentItems = { '0': '顶级菜单', ...Object.fromEntries(parentOptions.map(m => [String(m.id), `${m.name}（${m.path}）`])) }
+
+  /** 切换上级时保留路径最后一段，拼到新父级路径下 */
+  const changeParent = (value: string) => {
+    const pid = Number(value)
+    const parent = menus.find(m => m.id === pid)
+    setForm(prev => {
+      const seg = prev.path.replace(/\/+$/, '').split('/').pop() ?? ''
+      return { ...prev, parentId: pid, path: parent ? `${parent.path}/${seg}` : `/${seg}` }
+    })
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -33,16 +61,40 @@ export function MenuFormDialog({ open, onOpenChange, menu, onSubmit }: MenuFormD
           className="space-y-4"
           onSubmit={e => {
             e.preventDefault()
-            onSubmit(form)
+            onSubmit({ name: form.name.trim(), path: form.path.trim(), sort: form.sort, status: form.status })
           }}
         >
+          <div className="space-y-2">
+            <Label>上级菜单</Label>
+            <Select value={String(form.parentId)} onValueChange={changeParent} items={parentItems}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">顶级菜单</SelectItem>
+                {parentOptions.map(m => (
+                  <SelectItem key={m.id} value={String(m.id)}>
+                    {m.name}（{m.path}）
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="menu-name">菜单名称</Label>
             <Input id="menu-name" value={form.name} onChange={e => set('name', e.target.value)} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="menu-path">路由地址</Label>
-            <Input id="menu-path" value={form.path} onChange={e => set('path', e.target.value)} placeholder="/system/example" required />
+            <Input
+              id="menu-path"
+              value={form.path}
+              onChange={e => set('path', e.target.value)}
+              placeholder="/system/example"
+              required
+              pattern="/.*"
+              title="以 / 开头"
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

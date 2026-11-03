@@ -1,33 +1,56 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { ChevronRight, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { StatusBadge } from '@/components/status-badge'
-import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { MenuFormDialog } from './components/menu-form-dialog'
-import { fetchMenus, type Menu } from './api'
+import { fetchMenus, saveMenus, type Menu } from './api'
 
-const columnLabels: Record<string, string> = {
-  id: 'ID',
-  name: '菜单名称',
-  path: '路由地址',
-  sort: '排序',
-  status: '状态'
+interface MenuNode extends Menu {
+  children: MenuNode[]
+}
+
+/** 按路径推导树形结构：/system/users 挂在 path 为 /system 的菜单下 */
+function buildTree(menus: Menu[]): MenuNode[] {
+  const byPath = new Map(menus.map(m => [m.path, m]))
+  const nodes = new Map<number, MenuNode>(menus.map(m => [m.id, { ...m, children: [] }]))
+  const roots: MenuNode[] = []
+  for (const m of menus) {
+    const node = nodes.get(m.id)
+    if (!node) continue
+    const parentPath = m.path.slice(0, m.path.lastIndexOf('/'))
+    const parent = parentPath ? byPath.get(parentPath) : undefined
+    if (parent && parent.id !== m.id) {
+      nodes.get(parent.id)?.children.push(node)
+    } else {
+      roots.push(node)
+    }
+  }
+  const sortRecursive = (list: MenuNode[]) => {
+    list.sort((a, b) => a.sort - b.sort)
+    list.forEach(n => sortRecursive(n.children))
+  }
+  sortRecursive(roots)
+  return roots
 }
 
 export function MenuPage() {
   const [list, setList] = useState<Menu[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [keyword, setKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Menu | null>(null)
+  const [createParentId, setCreateParentId] = useState<number | null>(null)
   const [deleting, setDeleting] = useState<Menu | null>(null)
 
   const load = useCallback(() => {
@@ -41,8 +64,22 @@ export function MenuPage() {
 
   useEffect(load, [load])
 
-  const openCreate = () => {
+  /** 乐观更新 + 写回 menus.json，失败回退重新加载 */
+  const persist = (next: Menu[], successMsg: string) => {
+    setList(next)
+    setSaving(true)
+    saveMenus(next)
+      .then(() => toast.success(successMsg))
+      .catch(() => {
+        toast.error('写入 menus.json 失败，已重新加载')
+        load()
+      })
+      .finally(() => setSaving(false))
+  }
+
+  const openCreate = (parentId: number | null) => {
     setEditing(null)
+    setCreateParentId(parentId)
     setFormOpen(true)
   }
 
@@ -51,86 +88,107 @@ export function MenuPage() {
     setFormOpen(true)
   }
 
-  const columns = useMemo<ColumnDef<Menu>[]>(
-    () => [
-      {
-        accessorKey: 'id',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />
-      },
-      {
-        accessorKey: 'name',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="菜单名称" />,
-        cell: ({ row }) => <span className="font-medium">{row.getValue('name')}</span>
-      },
-      {
-        accessorKey: 'path',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="路由地址" />,
-        cell: ({ row }) => <span className="font-mono text-xs">{row.getValue('path')}</span>
-      },
-      {
-        accessorKey: 'sort',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="排序" />
-      },
-      {
-        accessorKey: 'status',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="状态" />,
-        cell: ({ row }) => {
-          const status = row.getValue<Menu['status']>('status')
-          return <StatusBadge ok={status === '正常'} label={status} />
-        },
-        filterFn: (row, id, value) => row.getValue(id) === value
-      },
-      {
-        id: 'actions',
-        header: () => <div className="text-end">操作</div>,
-        enableSorting: false,
-        enableHiding: false,
-        cell: ({ row }) => (
-          <div className="text-end">
-            <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
-              <Pencil className="size-4" />
-              <span className="sr-only">编辑</span>
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setDeleting(row.original)}>
-              <Trash2 className="text-destructive size-4" />
-              <span className="sr-only">删除</span>
-            </Button>
-          </div>
-        )
-      }
-    ],
-    []
-  )
-
-  const columnFilters = useMemo(() => (statusFilter === 'all' ? [] : [{ id: 'status', value: statusFilter }]), [statusFilter])
-  const { table, keyword, setKeyword } = useDataTable({ data: list, columns, columnFilters })
-
   const handleSubmit = (values: Omit<Menu, 'id'>) => {
     if (editing) {
-      setList(prev => prev.map(m => (m.id === editing.id ? { ...m, ...values } : m)))
-      toast.success('菜单已更新')
+      persist(
+        list.map(m => (m.id === editing.id ? { ...m, ...values } : m)),
+        '菜单已更新'
+      )
     } else {
-      setList(prev => [{ ...values, id: prev.length ? Math.max(...prev.map(m => m.id)) + 1 : 1 }, ...prev])
-      toast.success('菜单已创建')
+      const id = list.length ? Math.max(...list.map(m => m.id)) + 1 : 1
+      persist([...list, { ...values, id }], '菜单已创建')
     }
     setFormOpen(false)
   }
 
   const handleDelete = () => {
     if (!deleting) return
-    setList(prev => prev.filter(m => m.id !== deleting.id))
-    toast.success(`已删除菜单「${deleting.name}」`)
+    // 级联删除所有路径前缀匹配的子菜单
+    const prefix = deleting.path + '/'
+    const removed = list.filter(m => m.id === deleting.id || m.path.startsWith(prefix)).length
+    persist(
+      list.filter(m => m.id !== deleting.id && !m.path.startsWith(prefix)),
+      removed > 1 ? `已删除「${deleting.name}」及其 ${removed - 1} 个子菜单` : `已删除菜单「${deleting.name}」`
+    )
     setDeleting(null)
   }
+
+  const filtering = keyword.trim() !== '' || statusFilter !== 'all'
+  const tree = useMemo(() => buildTree(list), [list])
+  const flatList = useMemo(() => {
+    const kw = keyword.trim().toLowerCase()
+    return list
+      .filter(m => (statusFilter === 'all' || m.status === statusFilter) && (!kw || m.name.toLowerCase().includes(kw) || m.path.toLowerCase().includes(kw)))
+      .sort((a, b) => a.sort - b.sort)
+  }, [list, keyword, statusFilter])
+
+  const toggle = (id: number) =>
+    setCollapsed(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+
+  const renderRows = (nodes: MenuNode[], depth: number): ReactNode[] =>
+    nodes.flatMap(node => {
+      const hasChildren = node.children.length > 0
+      const isCollapsed = collapsed.has(node.id)
+      const row = (
+        <TableRow key={node.id}>
+          <TableCell>
+            <div className="flex items-center gap-1" style={{ paddingInlineStart: depth * 20 }}>
+              {hasChildren ? (
+                <Button variant="ghost" size="icon" className="size-6" onClick={() => toggle(node.id)}>
+                  <ChevronRight className={`size-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`} />
+                  <span className="sr-only">展开 / 收起</span>
+                </Button>
+              ) : (
+                <span className="size-6" />
+              )}
+              <span className="font-medium">{node.name}</span>
+            </div>
+          </TableCell>
+          <TableCell>
+            <span className="font-mono text-xs">{node.path}</span>
+          </TableCell>
+          <TableCell>{node.sort}</TableCell>
+          <TableCell>
+            <StatusBadge ok={node.status === '正常'} label={node.status} />
+          </TableCell>
+          <TableCell className="text-end">
+            <Button variant="ghost" size="icon" title="新增子菜单" onClick={() => openCreate(node.id)}>
+              <Plus className="size-4" />
+              <span className="sr-only">新增子菜单</span>
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => openEdit(node)}>
+              <Pencil className="size-4" />
+              <span className="sr-only">编辑</span>
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setDeleting(node)}>
+              <Trash2 className="text-destructive size-4" />
+              <span className="sr-only">删除</span>
+            </Button>
+          </TableCell>
+        </TableRow>
+      )
+      return isCollapsed ? [row] : [row, ...renderRows(node.children, depth + 1)]
+    })
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">菜单管理</h1>
-          <p className="text-muted-foreground text-sm">{loading ? '加载中…' : `共 ${list.length} 个菜单`}</p>
+          <p className="text-muted-foreground text-sm">
+            {loading ? '加载中…' : `共 ${list.length} 个菜单`}
+            {saving && '（保存中…）'}
+          </p>
         </div>
-        <Button onClick={openCreate}>
+        <Button onClick={() => openCreate(null)}>
           <Plus />
           新增菜单
         </Button>
@@ -153,7 +211,6 @@ export function MenuPage() {
                 <SelectItem value="停用">停用</SelectItem>
               </SelectContent>
             </Select>
-            <DataTableViewOptions table={table} columnLabels={columnLabels} />
           </div>
 
           {loadError ? (
@@ -171,20 +228,55 @@ export function MenuPage() {
               ))}
             </div>
           ) : (
-            <>
-              <DataTable table={table} emptyText="没有匹配的菜单" />
-              <DataTablePagination table={table} />
-            </>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>菜单名称</TableHead>
+                  <TableHead>路由地址</TableHead>
+                  <TableHead className="w-20">排序</TableHead>
+                  <TableHead className="w-24">状态</TableHead>
+                  <TableHead className="w-36 text-end">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtering ? (
+                  flatList.length ? (
+                    renderRows(
+                      flatList.map(m => ({ ...m, children: [] })),
+                      0
+                    )
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
+                        没有匹配的菜单
+                      </TableCell>
+                    </TableRow>
+                  )
+                ) : (
+                  renderRows(tree, 0)
+                )}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
 
-      {formOpen && <MenuFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} menu={editing} onSubmit={handleSubmit} />}
+      {formOpen && (
+        <MenuFormDialog
+          key={editing?.id ?? `new-${createParentId ?? 0}`}
+          open={formOpen}
+          onOpenChange={setFormOpen}
+          menu={editing}
+          parentId={createParentId}
+          menus={list}
+          onSubmit={handleSubmit}
+        />
+      )}
 
       <ConfirmDeleteDialog
         open={!!deleting}
         onOpenChange={v => !v && setDeleting(null)}
-        description={<>即将删除菜单「{deleting?.name}」，该操作不可恢复。</>}
+        description={<>即将删除菜单「{deleting?.name}」及其所有子菜单，该操作不可恢复。</>}
         onConfirm={handleDelete}
       />
     </div>
