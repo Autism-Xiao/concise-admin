@@ -31,16 +31,27 @@ export function Watermark({ content, rotate = -22, fontSize = 14, tileSize = [25
 
     // 高分屏下放大画布，避免文字发虚
     const ratio = window.devicePixelRatio || 1
-    canvas.width = tileW * ratio
-    canvas.height = tileH * ratio
-
     const lineHeight = fontSize * 1.6
+    ctx.font = `${fontSize * ratio}px ui-sans-serif, system-ui, sans-serif`
+
+    // 量出文字实际尺寸，取旋转后的外接矩形，保证区块完整容纳文字：
+    // 长内容（用户名 + IP）在任意密度 / 分辨率下都不会被区块边界裁掉
+    const rad = (Math.abs(rotate) * Math.PI) / 180
+    const textW = Math.max(...lines.map(line => ctx.measureText(line).width)) / ratio
+    const textH = lines.length * lineHeight
+    const rotW = textW * Math.cos(rad) + textH * Math.sin(rad)
+    const rotH = textW * Math.sin(rad) + textH * Math.cos(rad)
+    const effW = Math.max(tileW, Math.ceil(rotW) + 48)
+    const effH = Math.max(tileH, Math.ceil(rotH) + 48)
+
+    // 注意：设置 canvas 宽高会重置上下文状态，之后需重新设置 font 等属性
+    canvas.width = effW * ratio
+    canvas.height = effH * ratio
     ctx.font = `${fontSize * ratio}px ui-sans-serif, system-ui, sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillStyle = resolvedTheme === 'dark' ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.08)'
 
-    // 每个区块在中心和左上角各画一次，平铺后形成交错网格，密度翻倍
     const drawMark = (x: number, y: number) => {
       ctx.save()
       ctx.translate(x, y)
@@ -50,8 +61,13 @@ export function Watermark({ content, rotate = -22, fontSize = 14, tileSize = [25
       })
       ctx.restore()
     }
-    drawMark((tileW / 2) * ratio, (tileH / 2) * ratio)
+    // 中心一枚 + 四角各一枚：四角的水印跨区块拼接成完整文字，
+    // 平铺后形成交错网格，且任何一枚都不会被画布边缘裁断
+    drawMark((effW / 2) * ratio, (effH / 2) * ratio)
     drawMark(0, 0)
+    drawMark(effW * ratio, 0)
+    drawMark(0, effH * ratio)
+    drawMark(effW * ratio, effH * ratio)
     const url = `url("${canvas.toDataURL('image/png')}")`
 
     const apply = () => {
