@@ -166,5 +166,12 @@
     "path": "/system/tenant",
     "sort": 24,
     "status": "正常"
+  },
+  {
+    "id": 25,
+    "name": "通知公告",
+    "path": "/system/notice",
+    "sort": 25,
+    "status": "正常"
   }
 ]

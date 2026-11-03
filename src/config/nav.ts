@@ -12,6 +12,7 @@ import {
   ListTodo,
   ListTree,
   Medal,
+  Megaphone,
   MessagesSquare,
   Network,
   Package,
@@ -76,7 +77,8 @@ export const navGroups: NavGroup[] = [
     titleKey: 'group.data',
     items: [
       { titleKey: 'nav.system.file', url: '/system/file', icon: FolderOpen },
-      { titleKey: 'nav.system.dict', url: '/system/dict', icon: BookOpen }
+      { titleKey: 'nav.system.dict', url: '/system/dict', icon: BookOpen },
+      { titleKey: 'nav.system.notice', url: '/system/notice', icon: Megaphone }
     ]
   },
   {

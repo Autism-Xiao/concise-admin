@@ -15,6 +15,7 @@ import {
   ListTree,
   LogIn,
   Medal,
+  Megaphone,
   MessagesSquare,
   Monitor,
   Network,
@@ -47,6 +48,7 @@ import { OperationLogPage } from '@/features/system/log/operation'
 import { LevelPage } from '@/features/system/level'
 import { PostPage } from '@/features/system/post'
 import { TenantPage } from '@/features/system/tenant'
+import { NoticePage } from '@/features/system/notice'
 import { JobPage } from '@/features/ops/job'
 import { OnlineUsersPage } from '@/features/ops/online'
 import { ServerMonitorPage } from '@/features/ops/server'
@@ -89,6 +91,7 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
   '/system/file': { component: FilePage, titleKey: 'nav.system.file', icon: FolderOpen },
   '/system/calendar': { component: CalendarPage, titleKey: 'nav.system.calendar', icon: CalendarDays },
   '/system/dict': { component: DictPage, titleKey: 'nav.system.dict', icon: BookOpen },
+  '/system/notice': { component: NoticePage, titleKey: 'nav.system.notice', icon: Megaphone },
   '/system/log/login': { component: LoginLogPage, titleKey: 'nav.system.logLogin', icon: LogIn },
   '/system/log/operation': { component: OperationLogPage, titleKey: 'nav.system.logOperation', icon: ScrollText },
   '/ops/job': { component: JobPage, titleKey: 'nav.ops.job', icon: Timer },
