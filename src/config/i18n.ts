@@ -97,6 +97,7 @@ export const zh = {
   'login.success': '登录成功',
   'login.captchaError': '验证码错误，请重新输入',
   'login.credentialsError': '账号或密码错误',
+  'login.accountDisabled': '账号已停用，请联系管理员',
   'login.demoHint': '演示账号：admin / admin123（超管），guest / guest123（访客）'
 } as const
 
@@ -191,6 +192,7 @@ export const en: Record<TranslationKey, string> = {
   'login.success': 'Signed in successfully',
   'login.captchaError': 'Wrong captcha, please try again',
   'login.credentialsError': 'Wrong username or password',
+  'login.accountDisabled': 'Account disabled, please contact admin',
   'login.demoHint': 'Demo accounts: admin / admin123 (super admin), guest / guest123 (guest)'
 }
 

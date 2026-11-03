@@ -12,6 +12,8 @@ const SETTINGS_FILE = path.resolve(__dirname, 'settings.json')
 const MENUS_FILE = path.resolve(__dirname, 'public/mock/menus.json')
 const DEPTS_FILE = path.resolve(__dirname, 'public/mock/depts.json')
 const ROLES_FILE = path.resolve(__dirname, 'public/mock/roles.json')
+const ACCOUNTS_FILE = path.resolve(__dirname, 'public/mock/accounts.json')
+const USERS_FILE = path.resolve(__dirname, 'public/mock/users.json')
 const DEFAULT_SETTINGS = {
   fontSize: 'default',
   themeColor: 'default',
@@ -132,12 +134,21 @@ export default defineConfig({
     settingsApi(),
     jsonWriteApi('concise-menus-api', '/api/menus', MENUS_FILE),
     jsonWriteApi('concise-depts-api', '/api/depts', DEPTS_FILE),
-    jsonWriteApi('concise-roles-api', '/api/roles', ROLES_FILE)
+    jsonWriteApi('concise-roles-api', '/api/roles', ROLES_FILE),
+    jsonWriteApi('concise-accounts-api', '/api/accounts', ACCOUNTS_FILE),
+    jsonWriteApi('concise-users-api', '/api/users', USERS_FILE)
   ],
   server: {
     watch: {
       // settings.json / mock 写回文件由接口写入，变化不应触发页面刷新
-      ignored: ['**/settings.json', '**/public/mock/menus.json', '**/public/mock/depts.json', '**/public/mock/roles.json']
+      ignored: [
+        '**/settings.json',
+        '**/public/mock/menus.json',
+        '**/public/mock/depts.json',
+        '**/public/mock/roles.json',
+        '**/public/mock/accounts.json',
+        '**/public/mock/users.json'
+      ]
     }
   },
   resolve: {

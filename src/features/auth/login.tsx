@@ -43,6 +43,11 @@ export function LoginPage() {
         refreshCaptcha()
         return
       }
+      if (matched.status === 'disabled') {
+        toast.error(t('login.accountDisabled'))
+        refreshCaptcha()
+        return
+      }
       login({ username: matched.username, name: matched.name, role: matched.role })
       toast.success(t('login.success'))
       void navigate({ to: '/dashboard' })
