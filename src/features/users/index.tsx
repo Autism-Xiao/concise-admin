@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { UserFormDialog } from './components/user-form-dialog'
-import { users as mockUsers, type User, type UserStatus } from './data/users'
+import { fetchUsers, type User, type UserStatus } from './api'
 
 const statusMap: Record<UserStatus, { label: string; className: string }> = {
   active: { label: '活跃', className: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' },
@@ -30,11 +31,26 @@ const columnLabels: Record<string, string> = {
 }
 
 export function UsersPage() {
-  const [list, setList] = useState<User[]>(mockUsers)
+  const [list, setList] = useState<User[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<User | null>(null)
   const [deleting, setDeleting] = useState<User | null>(null)
+
+  const load = () => {
+    setLoading(true)
+    setError(null)
+    fetchUsers()
+      .then(setList)
+      .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(load, [])
+
+  const users = useMemo(() => list ?? [], [list])
 
   const openCreate = () => {
     setEditing(null)
@@ -112,14 +128,18 @@ export function UsersPage() {
 
   const columnFilters = useMemo(() => (statusFilter === 'all' ? [] : [{ id: 'status', value: statusFilter }]), [statusFilter])
   const statusItems = useMemo(() => ({ all: '全部状态', ...Object.fromEntries(Object.entries(statusMap).map(([value, { label }]) => [value, label])) }), [])
-  const { table, keyword, setKeyword } = useDataTable({ data: list, columns, columnFilters })
+  const { table, keyword, setKeyword } = useDataTable({ data: users, columns, columnFilters })
 
   const handleSubmit = (values: Omit<User, 'id' | 'createdAt'>) => {
     if (editing) {
-      setList(prev => prev.map(u => (u.id === editing.id ? { ...u, ...values } : u)))
+      setList(prev => (prev ?? []).map(u => (u.id === editing.id ? { ...u, ...values } : u)))
       toast.success('用户已更新')
     } else {
-      setList(prev => [{ ...values, id: Math.max(...prev.map(u => u.id)) + 1, createdAt: new Date().toISOString().slice(0, 10) }, ...prev])
+      setList(prev => {
+        const cur = prev ?? []
+        const id = cur.length ? Math.max(...cur.map(u => u.id)) + 1 : 1
+        return [{ ...values, id, createdAt: new Date().toISOString().slice(0, 10) }, ...cur]
+      })
       toast.success('用户已创建')
     }
     setFormOpen(false)
@@ -127,7 +147,7 @@ export function UsersPage() {
 
   const handleDelete = () => {
     if (!deleting) return
-    setList(prev => prev.filter(u => u.id !== deleting.id))
+    setList(prev => (prev ?? []).filter(u => u.id !== deleting.id))
     toast.success(`已删除用户「${deleting.name}」`)
     setDeleting(null)
   }
@@ -137,7 +157,7 @@ export function UsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">用户管理</h1>
-          <p className="text-muted-foreground text-sm">共 {list.length} 个用户（mock 数据）</p>
+          <p className="text-muted-foreground text-sm">共 {users.length} 个用户（mock 数据）</p>
         </div>
         <Button onClick={openCreate}>
           <Plus />
@@ -145,33 +165,51 @@ export function UsersPage() {
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative w-full max-w-xs">
-              <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
-              <Input placeholder="搜索姓名 / 用户名 / 邮箱" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
+      {loading ? (
+        <Card>
+          <CardContent className="space-y-3 py-6">
+            <Skeleton className="h-9 w-full max-w-md" />
+            <Skeleton className="h-64 w-full" />
+          </CardContent>
+        </Card>
+      ) : error ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-12">
+            <p className="text-muted-foreground text-sm">{error}</p>
+            <Button variant="outline" onClick={load}>
+              重试
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative w-full max-w-xs">
+                <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
+                <Input placeholder="搜索姓名 / 用户名 / 邮箱" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter} items={statusItems}>
+                <SelectTrigger className="h-9 w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部状态</SelectItem>
+                  {Object.entries(statusMap).map(([value, { label }]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter} items={statusItems}>
-              <SelectTrigger className="h-9 w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部状态</SelectItem>
-                {Object.entries(statusMap).map(([value, { label }]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <DataTableViewOptions table={table} columnLabels={columnLabels} />
-          </div>
 
-          <DataTable table={table} emptyText="没有匹配的用户" />
-          <DataTablePagination table={table} />
-        </CardContent>
-      </Card>
+            <DataTable table={table} emptyText="没有匹配的用户" />
+            <DataTablePagination table={table} />
+          </CardContent>
+        </Card>
+      )}
 
       {formOpen && <UserFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} user={editing} onSubmit={handleSubmit} />}
 

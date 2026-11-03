@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -6,7 +6,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { events as mockEvents, type CalendarEvent } from './data/events'
+import { Skeleton } from '@/components/ui/skeleton'
+import { fetchCalendarEvents, type CalendarEvent } from './api'
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
 
@@ -38,10 +39,23 @@ function buildMonth(year: number, month: number): DayCell[] {
 export function CalendarPage() {
   const now = new Date()
   const [cursor, setCursor] = useState({ year: now.getFullYear(), month: now.getMonth() })
-  const [events, setEvents] = useState<CalendarEvent[]>(mockEvents)
+  const [events, setEvents] = useState<CalendarEvent[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [time, setTime] = useState('')
+
+  const load = () => {
+    setLoading(true)
+    setError(null)
+    fetchCalendarEvents()
+      .then(setEvents)
+      .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(load, [])
 
   const cells = useMemo(() => buildMonth(cursor.year, cursor.month), [cursor])
   const eventsByDay = useMemo(() => {
@@ -104,46 +118,63 @@ export function CalendarPage() {
         </div>
       </div>
 
-      <Card>
-        <CardContent>
-          <div className="bg-border grid grid-cols-7 gap-px overflow-hidden rounded-md border">
-            {WEEKDAYS.map(w => (
-              <div key={w} className="bg-muted py-2 text-center text-sm font-medium">
-                周{w}
-              </div>
-            ))}
-            {cells.map(cell => {
-              const dayEvents = eventsByDay.get(cell.key) ?? []
-              return (
-                <button
-                  key={cell.key}
-                  type="button"
-                  onClick={() => openAdd(cell.key)}
-                  className={`group bg-background hover:bg-accent/50 flex min-h-24 flex-col items-stretch gap-1 p-1.5 text-left transition-colors ${cell.inMonth ? '' : 'opacity-40'}`}
-                >
-                  <span
-                    className={`flex size-6 items-center justify-center rounded-full text-sm ${
-                      cell.isToday ? 'bg-primary text-primary-foreground font-semibold' : ''
-                    }`}
+      {loading ? (
+        <Card>
+          <CardContent className="py-6">
+            <Skeleton className="h-96 w-full" />
+          </CardContent>
+        </Card>
+      ) : error ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-12">
+            <p className="text-muted-foreground text-sm">{error}</p>
+            <Button variant="outline" onClick={load}>
+              重试
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent>
+            <div className="bg-border grid grid-cols-7 gap-px overflow-hidden rounded-md border">
+              {WEEKDAYS.map(w => (
+                <div key={w} className="bg-muted py-2 text-center text-sm font-medium">
+                  周{w}
+                </div>
+              ))}
+              {cells.map(cell => {
+                const dayEvents = eventsByDay.get(cell.key) ?? []
+                return (
+                  <button
+                    key={cell.key}
+                    type="button"
+                    onClick={() => openAdd(cell.key)}
+                    className={`group bg-background hover:bg-accent/50 flex min-h-24 flex-col items-stretch gap-1 p-1.5 text-left transition-colors ${cell.inMonth ? '' : 'opacity-40'}`}
                   >
-                    {cell.day}
-                  </span>
-                  {dayEvents.slice(0, 2).map(ev => (
-                    <span key={ev.id} className="bg-primary/10 text-primary truncate rounded px-1.5 py-0.5 text-xs">
-                      {ev.time ? `${ev.time} ` : ''}
-                      {ev.title}
+                    <span
+                      className={`flex size-6 items-center justify-center rounded-full text-sm ${
+                        cell.isToday ? 'bg-primary text-primary-foreground font-semibold' : ''
+                      }`}
+                    >
+                      {cell.day}
                     </span>
-                  ))}
-                  {dayEvents.length > 2 && <span className="text-muted-foreground px-1 text-xs">还有 {dayEvents.length - 2} 项…</span>}
-                  <span className="text-muted-foreground mt-auto hidden justify-end group-hover:flex">
-                    <Plus className="size-4" />
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                    {dayEvents.slice(0, 2).map(ev => (
+                      <span key={ev.id} className="bg-primary/10 text-primary truncate rounded px-1.5 py-0.5 text-xs">
+                        {ev.time ? `${ev.time} ` : ''}
+                        {ev.title}
+                      </span>
+                    ))}
+                    {dayEvents.length > 2 && <span className="text-muted-foreground px-1 text-xs">还有 {dayEvents.length - 2} 项…</span>}
+                    <span className="text-muted-foreground mt-auto hidden justify-end group-hover:flex">
+                      <Plus className="size-4" />
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog open={!!adding} onOpenChange={v => !v && setAdding(null)}>
         <DialogContent className="sm:max-w-md">
