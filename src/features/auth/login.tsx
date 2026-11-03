@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Logo } from '@/assets/logo'
 import { useLocale } from '@/context/locale-provider'
 import { login } from '@/lib/auth'
+import { reportLogin } from '@/features/system/log/api'
 import { fetchAccounts } from './api'
 import { CaptchaImage, randomCaptchaCode } from './components/captcha'
 
@@ -39,15 +40,25 @@ export function LoginPage() {
       const accounts = await fetchAccounts()
       const matched = accounts.find(a => a.username === account.trim() && a.password === password)
       if (!matched) {
+        // 失败也记录登录日志（用输入的账号名）
+        reportLogin(account.trim() || '未知', '失败').catch(() => {
+          // 日志写入失败不影响登录流程
+        })
         toast.error(t('login.credentialsError'))
         refreshCaptcha()
         return
       }
       if (matched.status === 'disabled') {
+        reportLogin(matched.username, '失败').catch(() => {
+          // 日志写入失败不影响登录流程
+        })
         toast.error(t('login.accountDisabled'))
         refreshCaptcha()
         return
       }
+      reportLogin(matched.username, '成功').catch(() => {
+        // 日志写入失败不影响登录流程
+      })
       login({ username: matched.username, name: matched.name, role: matched.role })
       toast.success(t('login.success'))
       void navigate({ to: '/dashboard' })

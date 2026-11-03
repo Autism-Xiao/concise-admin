@@ -5,9 +5,9 @@ import { useEffect, useState } from 'react'
 let cachedIp: string | null = null
 let pending: Promise<string> | null = null
 
-function fetchPublicIp(): Promise<string> {
+export function fetchPublicIp(): Promise<string> {
   if (cachedIp) return Promise.resolve(cachedIp)
-  pending ??= fetch('https://api.ipify.org?format=text')
+  pending ??= fetch('https://api.ipify.org?format=text', { signal: AbortSignal.timeout(3000) })
     .then(res => {
       if (!res.ok) throw new Error(String(res.status))
       return res.text()

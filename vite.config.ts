@@ -14,6 +14,7 @@ const DEPTS_FILE = path.resolve(__dirname, 'public/mock/depts.json')
 const ROLES_FILE = path.resolve(__dirname, 'public/mock/roles.json')
 const ACCOUNTS_FILE = path.resolve(__dirname, 'public/mock/accounts.json')
 const USERS_FILE = path.resolve(__dirname, 'public/mock/users.json')
+const LOGIN_LOGS_FILE = path.resolve(__dirname, 'public/mock/logs-login.json')
 const DEFAULT_SETTINGS = {
   fontSize: 'default',
   themeColor: 'default',
@@ -122,6 +123,46 @@ function jsonWriteApi(name: string, route: string, file: string): Plugin {
   }
 }
 
+// 日志追加接口：POST 单条对象，服务端分配自增 id 并插到最前
+function jsonAppendApi(name: string, route: string, file: string): Plugin {
+  return {
+    name,
+    configureServer(server) {
+      server.middlewares.use(route, (req, res) => {
+        if (req.method === 'POST') {
+          let body = ''
+          req.on('data', chunk => (body += chunk))
+          req.on('end', () => {
+            try {
+              const entry = JSON.parse(body)
+              if (Array.isArray(entry) || entry == null || typeof entry !== 'object') throw new Error('expect object')
+              let list: { id?: number }[] = []
+              try {
+                list = JSON.parse(fs.readFileSync(file, 'utf-8'))
+              } catch {
+                // 文件不存在或损坏时从空数组开始
+              }
+              const id = list.reduce((max, item) => Math.max(max, item.id ?? 0), 0) + 1
+              const record = { id, ...entry }
+              const tmp = file + '.tmp'
+              fs.writeFileSync(tmp, JSON.stringify([record, ...list], null, 2))
+              fs.renameSync(tmp, file)
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify(record))
+            } catch {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: 'invalid json' }))
+            }
+          })
+          return
+        }
+        res.statusCode = 405
+        res.end()
+      })
+    }
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -136,7 +177,8 @@ export default defineConfig({
     jsonWriteApi('concise-depts-api', '/api/depts', DEPTS_FILE),
     jsonWriteApi('concise-roles-api', '/api/roles', ROLES_FILE),
     jsonWriteApi('concise-accounts-api', '/api/accounts', ACCOUNTS_FILE),
-    jsonWriteApi('concise-users-api', '/api/users', USERS_FILE)
+    jsonWriteApi('concise-users-api', '/api/users', USERS_FILE),
+    jsonAppendApi('concise-login-logs-api', '/api/logs/login', LOGIN_LOGS_FILE)
   ],
   server: {
     watch: {
@@ -147,7 +189,8 @@ export default defineConfig({
         '**/public/mock/depts.json',
         '**/public/mock/roles.json',
         '**/public/mock/accounts.json',
-        '**/public/mock/users.json'
+        '**/public/mock/users.json',
+        '**/public/mock/logs-login.json'
       ]
     }
   },
