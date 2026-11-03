@@ -1,0 +1,614 @@
+{
+  "stats": [
+    {
+      "key": "revenue",
+      "title": "总收入",
+      "value": "¥12,500.00",
+      "change": "+12.5%",
+      "trend": "up",
+      "hint": "本月呈上升趋势",
+      "footnote": "过去 6 个月的访问量"
+    },
+    {
+      "key": "customers",
+      "title": "新客户",
+      "value": "1,234",
+      "change": "-20%",
+      "trend": "down",
+      "hint": "本期下降 20%",
+      "footnote": "客户获取需要关注"
+    },
+    {
+      "key": "active",
+      "title": "活跃账户",
+      "value": "45,678",
+      "change": "+12.5%",
+      "trend": "up",
+      "hint": "用户留存率高",
+      "footnote": "参与数据超预期"
+    },
+    {
+      "key": "growth",
+      "title": "增长率",
+      "value": "4.5%",
+      "change": "+4.5%",
+      "trend": "up",
+      "hint": "业绩稳步增长",
+      "footnote": "符合增长预期"
+    }
+  ],
+  "visitors": [
+    {
+      "date": "2026-04-02",
+      "mobile": 363,
+      "desktop": 333
+    },
+    {
+      "date": "2026-04-03",
+      "mobile": 312,
+      "desktop": 285
+    },
+    {
+      "date": "2026-04-04",
+      "mobile": 218,
+      "desktop": 262
+    },
+    {
+      "date": "2026-04-05",
+      "mobile": 345,
+      "desktop": 232
+    },
+    {
+      "date": "2026-04-06",
+      "mobile": 376,
+      "desktop": 332
+    },
+    {
+      "date": "2026-04-07",
+      "mobile": 278,
+      "desktop": 215
+    },
+    {
+      "date": "2026-04-08",
+      "mobile": 339,
+      "desktop": 193
+    },
+    {
+      "date": "2026-04-09",
+      "mobile": 229,
+      "desktop": 210
+    },
+    {
+      "date": "2026-04-10",
+      "mobile": 218,
+      "desktop": 242
+    },
+    {
+      "date": "2026-04-11",
+      "mobile": 279,
+      "desktop": 274
+    },
+    {
+      "date": "2026-04-12",
+      "mobile": 216,
+      "desktop": 147
+    },
+    {
+      "date": "2026-04-13",
+      "mobile": 211,
+      "desktop": 120
+    },
+    {
+      "date": "2026-04-14",
+      "mobile": 217,
+      "desktop": 139
+    },
+    {
+      "date": "2026-04-15",
+      "mobile": 164,
+      "desktop": 89
+    },
+    {
+      "date": "2026-04-16",
+      "mobile": 267,
+      "desktop": 161
+    },
+    {
+      "date": "2026-04-17",
+      "mobile": 161,
+      "desktop": 126
+    },
+    {
+      "date": "2026-04-18",
+      "mobile": 179,
+      "desktop": 160
+    },
+    {
+      "date": "2026-04-19",
+      "mobile": 139,
+      "desktop": 93
+    },
+    {
+      "date": "2026-04-20",
+      "mobile": 231,
+      "desktop": 163
+    },
+    {
+      "date": "2026-04-21",
+      "mobile": 152,
+      "desktop": 144
+    },
+    {
+      "date": "2026-04-22",
+      "mobile": 165,
+      "desktop": 157
+    },
+    {
+      "date": "2026-04-23",
+      "mobile": 132,
+      "desktop": 92
+    },
+    {
+      "date": "2026-04-24",
+      "mobile": 153,
+      "desktop": 100
+    },
+    {
+      "date": "2026-04-25",
+      "mobile": 95,
+      "desktop": 75
+    },
+    {
+      "date": "2026-04-26",
+      "mobile": 113,
+      "desktop": 87
+    },
+    {
+      "date": "2026-04-27",
+      "mobile": 157,
+      "desktop": 149
+    },
+    {
+      "date": "2026-04-28",
+      "mobile": 118,
+      "desktop": 103
+    },
+    {
+      "date": "2026-04-29",
+      "mobile": 74,
+      "desktop": 76
+    },
+    {
+      "date": "2026-04-30",
+      "mobile": 170,
+      "desktop": 151
+    },
+    {
+      "date": "2026-05-01",
+      "mobile": 160,
+      "desktop": 163
+    },
+    {
+      "date": "2026-05-02",
+      "mobile": 180,
+      "desktop": 152
+    },
+    {
+      "date": "2026-05-03",
+      "mobile": 147,
+      "desktop": 143
+    },
+    {
+      "date": "2026-05-04",
+      "mobile": 112,
+      "desktop": 85
+    },
+    {
+      "date": "2026-05-05",
+      "mobile": 256,
+      "desktop": 221
+    },
+    {
+      "date": "2026-05-06",
+      "mobile": 319,
+      "desktop": 230
+    },
+    {
+      "date": "2026-05-07",
+      "mobile": 260,
+      "desktop": 193
+    },
+    {
+      "date": "2026-05-08",
+      "mobile": 215,
+      "desktop": 209
+    },
+    {
+      "date": "2026-05-09",
+      "mobile": 296,
+      "desktop": 163
+    },
+    {
+      "date": "2026-05-10",
+      "mobile": 335,
+      "desktop": 253
+    },
+    {
+      "date": "2026-05-11",
+      "mobile": 282,
+      "desktop": 210
+    },
+    {
+      "date": "2026-05-12",
+      "mobile": 301,
+      "desktop": 278
+    },
+    {
+      "date": "2026-05-13",
+      "mobile": 196,
+      "desktop": 166
+    },
+    {
+      "date": "2026-05-14",
+      "mobile": 228,
+      "desktop": 246
+    },
+    {
+      "date": "2026-05-15",
+      "mobile": 238,
+      "desktop": 236
+    },
+    {
+      "date": "2026-05-16",
+      "mobile": 210,
+      "desktop": 248
+    },
+    {
+      "date": "2026-05-17",
+      "mobile": 242,
+      "desktop": 259
+    },
+    {
+      "date": "2026-05-18",
+      "mobile": 334,
+      "desktop": 247
+    },
+    {
+      "date": "2026-05-19",
+      "mobile": 168,
+      "desktop": 178
+    },
+    {
+      "date": "2026-05-20",
+      "mobile": 281,
+      "desktop": 191
+    },
+    {
+      "date": "2026-05-21",
+      "mobile": 237,
+      "desktop": 238
+    },
+    {
+      "date": "2026-05-22",
+      "mobile": 285,
+      "desktop": 173
+    },
+    {
+      "date": "2026-05-23",
+      "mobile": 137,
+      "desktop": 120
+    },
+    {
+      "date": "2026-05-24",
+      "mobile": 162,
+      "desktop": 153
+    },
+    {
+      "date": "2026-05-25",
+      "mobile": 218,
+      "desktop": 158
+    },
+    {
+      "date": "2026-05-26",
+      "mobile": 263,
+      "desktop": 211
+    },
+    {
+      "date": "2026-05-27",
+      "mobile": 187,
+      "desktop": 190
+    },
+    {
+      "date": "2026-05-28",
+      "mobile": 135,
+      "desktop": 81
+    },
+    {
+      "date": "2026-05-29",
+      "mobile": 130,
+      "desktop": 91
+    },
+    {
+      "date": "2026-05-30",
+      "mobile": 84,
+      "desktop": 60
+    },
+    {
+      "date": "2026-05-31",
+      "mobile": 116,
+      "desktop": 106
+    },
+    {
+      "date": "2026-06-01",
+      "mobile": 152,
+      "desktop": 126
+    },
+    {
+      "date": "2026-06-02",
+      "mobile": 148,
+      "desktop": 153
+    },
+    {
+      "date": "2026-06-03",
+      "mobile": 119,
+      "desktop": 110
+    },
+    {
+      "date": "2026-06-04",
+      "mobile": 151,
+      "desktop": 167
+    },
+    {
+      "date": "2026-06-05",
+      "mobile": 208,
+      "desktop": 112
+    },
+    {
+      "date": "2026-06-06",
+      "mobile": 205,
+      "desktop": 225
+    },
+    {
+      "date": "2026-06-07",
+      "mobile": 183,
+      "desktop": 173
+    },
+    {
+      "date": "2026-06-08",
+      "mobile": 151,
+      "desktop": 158
+    },
+    {
+      "date": "2026-06-09",
+      "mobile": 205,
+      "desktop": 175
+    },
+    {
+      "date": "2026-06-10",
+      "mobile": 201,
+      "desktop": 183
+    },
+    {
+      "date": "2026-06-11",
+      "mobile": 206,
+      "desktop": 161
+    },
+    {
+      "date": "2026-06-12",
+      "mobile": 171,
+      "desktop": 126
+    },
+    {
+      "date": "2026-06-13",
+      "mobile": 237,
+      "desktop": 247
+    },
+    {
+      "date": "2026-06-14",
+      "mobile": 161,
+      "desktop": 171
+    },
+    {
+      "date": "2026-06-15",
+      "mobile": 301,
+      "desktop": 236
+    },
+    {
+      "date": "2026-06-16",
+      "mobile": 207,
+      "desktop": 168
+    },
+    {
+      "date": "2026-06-17",
+      "mobile": 374,
+      "desktop": 220
+    },
+    {
+      "date": "2026-06-18",
+      "mobile": 235,
+      "desktop": 219
+    },
+    {
+      "date": "2026-06-19",
+      "mobile": 250,
+      "desktop": 160
+    },
+    {
+      "date": "2026-06-20",
+      "mobile": 223,
+      "desktop": 139
+    },
+    {
+      "date": "2026-06-21",
+      "mobile": 190,
+      "desktop": 134
+    },
+    {
+      "date": "2026-06-22",
+      "mobile": 362,
+      "desktop": 232
+    },
+    {
+      "date": "2026-06-23",
+      "mobile": 259,
+      "desktop": 207
+    },
+    {
+      "date": "2026-06-24",
+      "mobile": 213,
+      "desktop": 141
+    },
+    {
+      "date": "2026-06-25",
+      "mobile": 178,
+      "desktop": 129
+    },
+    {
+      "date": "2026-06-26",
+      "mobile": 255,
+      "desktop": 274
+    },
+    {
+      "date": "2026-06-27",
+      "mobile": 146,
+      "desktop": 171
+    },
+    {
+      "date": "2026-06-28",
+      "mobile": 245,
+      "desktop": 236
+    },
+    {
+      "date": "2026-06-29",
+      "mobile": 237,
+      "desktop": 137
+    },
+    {
+      "date": "2026-06-30",
+      "mobile": 148,
+      "desktop": 117
+    }
+  ],
+  "documents": [
+    {
+      "id": 1,
+      "section": "outline",
+      "title": "封面",
+      "type": "封面",
+      "status": "进行中",
+      "target": 18,
+      "limit": 5,
+      "reviewer": "李明"
+    },
+    {
+      "id": 2,
+      "section": "outline",
+      "title": "目录",
+      "type": "目录",
+      "status": "已完成",
+      "target": 29,
+      "limit": 24,
+      "reviewer": "李明"
+    },
+    {
+      "id": 3,
+      "section": "outline",
+      "title": "执行摘要",
+      "type": "叙事",
+      "status": "已完成",
+      "target": 10,
+      "limit": 13,
+      "reviewer": "李明"
+    },
+    {
+      "id": 4,
+      "section": "outline",
+      "title": "技术方案",
+      "type": "叙事",
+      "status": "已完成",
+      "target": 27,
+      "limit": 23,
+      "reviewer": "张伟"
+    },
+    {
+      "id": 5,
+      "section": "outline",
+      "title": "设计",
+      "type": "叙事",
+      "status": "进行中",
+      "target": 2,
+      "limit": 16,
+      "reviewer": "张伟"
+    },
+    {
+      "id": 6,
+      "section": "outline",
+      "title": "能力说明",
+      "type": "叙事",
+      "status": "进行中",
+      "target": 20,
+      "limit": 8,
+      "reviewer": "张伟"
+    },
+    {
+      "id": 7,
+      "section": "performance",
+      "title": "2025 年度回顾",
+      "type": "报告",
+      "status": "已完成",
+      "target": 32,
+      "limit": 28,
+      "reviewer": "王芳"
+    },
+    {
+      "id": 8,
+      "section": "performance",
+      "title": "Q1 业绩分析",
+      "type": "报告",
+      "status": "已完成",
+      "target": 15,
+      "limit": 12,
+      "reviewer": "王芳"
+    },
+    {
+      "id": 9,
+      "section": "performance",
+      "title": "Q2 增长复盘",
+      "type": "报告",
+      "status": "进行中",
+      "target": 22,
+      "limit": 18,
+      "reviewer": "李明"
+    },
+    {
+      "id": 10,
+      "section": "personnel",
+      "title": "核心团队介绍",
+      "type": "人员",
+      "status": "进行中",
+      "target": 8,
+      "limit": 4,
+      "reviewer": "张伟"
+    },
+    {
+      "id": 11,
+      "section": "personnel",
+      "title": "顾问委员会",
+      "type": "人员",
+      "status": "已完成",
+      "target": 6,
+      "limit": 3,
+      "reviewer": "王芳"
+    },
+    {
+      "id": 12,
+      "section": "docs",
+      "title": "产品白皮书",
+      "type": "文档",
+      "status": "进行中",
+      "target": 45,
+      "limit": 30,
+      "reviewer": "李明"
+    }
+  ]
+}
