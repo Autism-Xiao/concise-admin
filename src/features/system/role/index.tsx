@@ -15,6 +15,7 @@ import { fetchMenus, type Menu } from '../menu/api'
 import { RoleFormDialog } from './components/role-form-dialog'
 import { RolePermissionDialog } from './components/role-permission-dialog'
 import { fetchRoles, saveRoles, type Role } from './api'
+import { withOperationLog } from '@/features/system/log/api'
 
 const columnLabels: Record<string, string> = {
   id: 'ID',
@@ -53,11 +54,11 @@ export function RolePage() {
 
   const roles = useMemo(() => list ?? [], [list])
 
-  /** 乐观更新 + 写回 roles.json，失败回退重新加载 */
+  /** 乐观更新 + 写回 roles.json，失败回退重新加载；操作记入操作日志 */
   const persist = (next: Role[], successMsg: string) => {
     setList(next)
     setSaving(true)
-    saveRoles(next)
+    withOperationLog(successMsg, () => saveRoles(next))
       .then(() => {
         toast.success(successMsg)
         // 角色权限可能变化，通知侧边栏重新计算可见菜单

@@ -14,7 +14,10 @@ const DEPTS_FILE = path.resolve(__dirname, 'public/mock/depts.json')
 const ROLES_FILE = path.resolve(__dirname, 'public/mock/roles.json')
 const ACCOUNTS_FILE = path.resolve(__dirname, 'public/mock/accounts.json')
 const USERS_FILE = path.resolve(__dirname, 'public/mock/users.json')
+const DICTS_FILE = path.resolve(__dirname, 'public/mock/dicts.json')
+const FILES_FILE = path.resolve(__dirname, 'public/mock/files.json')
 const LOGIN_LOGS_FILE = path.resolve(__dirname, 'public/mock/logs-login.json')
+const OPERATION_LOGS_FILE = path.resolve(__dirname, 'public/mock/logs-operation.json')
 const DEFAULT_SETTINGS = {
   fontSize: 'default',
   themeColor: 'default',
@@ -178,7 +181,10 @@ export default defineConfig({
     jsonWriteApi('concise-roles-api', '/api/roles', ROLES_FILE),
     jsonWriteApi('concise-accounts-api', '/api/accounts', ACCOUNTS_FILE),
     jsonWriteApi('concise-users-api', '/api/users', USERS_FILE),
-    jsonAppendApi('concise-login-logs-api', '/api/logs/login', LOGIN_LOGS_FILE)
+    jsonWriteApi('concise-dicts-api', '/api/dicts', DICTS_FILE),
+    jsonWriteApi('concise-files-api', '/api/files', FILES_FILE),
+    jsonAppendApi('concise-login-logs-api', '/api/logs/login', LOGIN_LOGS_FILE),
+    jsonAppendApi('concise-operation-logs-api', '/api/logs/operation', OPERATION_LOGS_FILE)
   ],
   server: {
     watch: {
@@ -190,7 +196,10 @@ export default defineConfig({
         '**/public/mock/roles.json',
         '**/public/mock/accounts.json',
         '**/public/mock/users.json',
-        '**/public/mock/logs-login.json'
+        '**/public/mock/dicts.json',
+        '**/public/mock/files.json',
+        '**/public/mock/logs-login.json',
+        '**/public/mock/logs-operation.json'
       ]
     }
   },

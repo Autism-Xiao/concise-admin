@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DeptFormDialog, type DeptFormValues } from './components/dept-form-dialog'
 import { fetchDepts, saveDepts, type Dept } from './api'
+import { withOperationLog } from '@/features/system/log/api'
 
 interface DeptNode extends Dept {
   children: DeptNode[]
@@ -81,11 +82,11 @@ export function DeptPage() {
 
   const depts = useMemo(() => list ?? [], [list])
 
-  /** 乐观更新 + 写回 depts.json，失败回退重新加载 */
+  /** 乐观更新 + 写回 depts.json，失败回退重新加载；操作记入操作日志 */
   const persist = (next: Dept[], successMsg: string) => {
     setList(next)
     setSaving(true)
-    saveDepts(next)
+    withOperationLog(successMsg, () => saveDepts(next))
       .then(() => toast.success(successMsg))
       .catch(() => {
         toast.error('写入 depts.json 失败，已重新加载')

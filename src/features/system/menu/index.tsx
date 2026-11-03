@@ -11,6 +11,7 @@ import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { MenuFormDialog } from './components/menu-form-dialog'
 import { fetchMenus, saveMenus, type Menu } from './api'
+import { withOperationLog } from '@/features/system/log/api'
 
 interface MenuNode extends Menu {
   children: MenuNode[]
@@ -64,11 +65,11 @@ export function MenuPage() {
 
   useEffect(load, [load])
 
-  /** 乐观更新 + 写回 menus.json，失败回退重新加载 */
+  /** 乐观更新 + 写回 menus.json，失败回退重新加载；操作记入操作日志 */
   const persist = (next: Menu[], successMsg: string) => {
     setList(next)
     setSaving(true)
-    saveMenus(next)
+    withOperationLog(successMsg, () => saveMenus(next))
       .then(() => toast.success(successMsg))
       .catch(() => {
         toast.error('写入 menus.json 失败，已重新加载')

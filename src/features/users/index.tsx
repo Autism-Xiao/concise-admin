@@ -11,6 +11,7 @@ import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { UserFormDialog } from './components/user-form-dialog'
 import { createAccountFor, deleteAccountFor, fetchUsers, saveUsers, updateAccountFor, type User, type UserStatus } from './api'
+import { withOperationLog } from '@/features/system/log/api'
 
 const statusMap: Record<UserStatus, { label: string; className: string }> = {
   active: { label: '活跃', className: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' },
@@ -136,8 +137,7 @@ export function UsersPage() {
       const nextUser: User = { ...editing, ...values }
       const next = users.map(u => (u.id === editing.id ? nextUser : u))
       setList(next)
-      saveUsers(next)
-        .then(() => updateAccountFor(editing, nextUser))
+      withOperationLog('更新用户', () => saveUsers(next).then(() => updateAccountFor(editing, nextUser)))
         .then(() => toast.success('用户已更新'))
         .catch(() => {
           toast.error('保存失败，已重新加载')
@@ -148,8 +148,7 @@ export function UsersPage() {
       const nextUser: User = { ...values, id, createdAt: new Date().toISOString().slice(0, 10) }
       const next = [nextUser, ...users]
       setList(next)
-      saveUsers(next)
-        .then(() => createAccountFor(nextUser))
+      withOperationLog('新增用户', () => saveUsers(next).then(() => createAccountFor(nextUser)))
         .then(() => toast.success('用户已创建，登录初始密码 123456'))
         .catch(() => {
           toast.error('保存失败，已重新加载')
@@ -163,8 +162,7 @@ export function UsersPage() {
     if (!deleting) return
     const next = users.filter(u => u.id !== deleting.id)
     setList(next)
-    saveUsers(next)
-      .then(() => deleteAccountFor(deleting))
+    withOperationLog(`删除用户「${deleting.name}」`, () => saveUsers(next).then(() => deleteAccountFor(deleting)))
       .then(() => toast.success(`已删除用户「${deleting.name}」`))
       .catch(() => {
         toast.error('保存失败，已重新加载')

@@ -24,3 +24,13 @@ export function formatSize(size: number | null): string {
 export function fetchFiles(): Promise<FileItem[]> {
   return getJson<FileItem[]>('/mock/files.json')
 }
+
+// 开发环境由 vite 中间件写入 public/mock/files.json；生产环境换成真实接口
+export async function saveFiles(files: FileItem[]): Promise<void> {
+  const res = await fetch('/api/files', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(files)
+  })
+  if (!res.ok) throw new Error('保存失败')
+}

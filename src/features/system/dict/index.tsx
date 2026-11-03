@@ -11,7 +11,8 @@ import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { DictFormDialog } from './components/dict-form-dialog'
-import { fetchDicts, type Dict } from './api'
+import { fetchDicts, saveDicts, type Dict } from './api'
+import { withOperationLog } from '@/features/system/log/api'
 
 const columnLabels: Record<string, string> = {
   id: 'ID',
@@ -111,24 +112,35 @@ export function DictPage() {
 
   const handleSubmit = (values: Omit<Dict, 'id'>) => {
     if (editing) {
-      setList(prev => (prev ?? []).map(d => (d.id === editing.id ? { ...d, ...values } : d)))
-      toast.success('字典已更新')
+      persist(
+        dicts.map(d => (d.id === editing.id ? { ...d, ...values } : d)),
+        '字典已更新'
+      )
     } else {
-      setList(prev => {
-        const cur = prev ?? []
-        const id = cur.length ? Math.max(...cur.map(d => d.id)) + 1 : 1
-        return [{ ...values, id }, ...cur]
-      })
-      toast.success('字典已创建')
+      const id = dicts.length ? Math.max(...dicts.map(d => d.id)) + 1 : 1
+      persist([{ ...values, id }, ...dicts], '字典已创建')
     }
     setFormOpen(false)
   }
 
   const handleDelete = () => {
     if (!deleting) return
-    setList(prev => (prev ?? []).filter(d => d.id !== deleting.id))
-    toast.success(`已删除字典「${deleting.name}」`)
+    persist(
+      dicts.filter(d => d.id !== deleting.id),
+      `已删除字典「${deleting.name}」`
+    )
     setDeleting(null)
+  }
+
+  /** 乐观更新 + 写回 dicts.json，失败回退重新加载；操作记入操作日志 */
+  const persist = (next: Dict[], successMsg: string) => {
+    setList(next)
+    withOperationLog(successMsg, () => saveDicts(next))
+      .then(() => toast.success(successMsg))
+      .catch(() => {
+        toast.error('写入 dicts.json 失败，已重新加载')
+        load()
+      })
   }
 
   return (

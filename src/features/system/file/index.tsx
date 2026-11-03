@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
-import { fetchFiles, formatSize, type FileItem, type FileType } from './api'
+import { fetchFiles, formatSize, saveFiles, type FileItem, type FileType } from './api'
+import { withOperationLog } from '@/features/system/log/api'
 
 const typeMeta: Record<FileType, { label: string; icon: typeof Folder }> = {
   folder: { label: '文件夹', icon: Folder },
@@ -119,12 +120,22 @@ export function FilePage() {
   const typeItems = useMemo(() => ({ all: '全部类型', ...Object.fromEntries(Object.entries(typeMeta).map(([value, { label }]) => [value, label])) }), [])
   const { table, keyword, setKeyword } = useDataTable({ data: files, columns, columnFilters })
 
+  /** 乐观更新 + 写回 files.json，失败回退重新加载；操作记入操作日志 */
+  const persist = (next: FileItem[], successMsg: string) => {
+    setList(next)
+    withOperationLog(successMsg, () => saveFiles(next))
+      .then(() => toast.success(successMsg))
+      .catch(() => {
+        toast.error('写入 files.json 失败，已重新加载')
+        load()
+      })
+  }
+
   const handleUpload = () => {
     const name = `未命名文件 ${files.length + 1}.txt`
-    setList(prev => {
-      const cur = prev ?? []
-      const id = cur.length ? Math.max(...cur.map(f => f.id)) + 1 : 1
-      return [
+    const id = files.length ? Math.max(...files.map(f => f.id)) + 1 : 1
+    persist(
+      [
         {
           id,
           name,
@@ -133,16 +144,18 @@ export function FilePage() {
           owner: '我',
           modifiedAt: new Date().toISOString().slice(0, 16).replace('T', ' ')
         },
-        ...cur
-      ]
-    })
-    toast.success(`已上传「${name}」（mock）`)
+        ...files
+      ],
+      `已上传「${name}」（mock）`
+    )
   }
 
   const handleDelete = () => {
     if (!deleting) return
-    setList(prev => (prev ?? []).filter(f => f.id !== deleting.id))
-    toast.success(`已删除「${deleting.name}」`)
+    persist(
+      files.filter(f => f.id !== deleting.id),
+      `已删除「${deleting.name}」`
+    )
     setDeleting(null)
   }
 

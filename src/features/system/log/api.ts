@@ -1,4 +1,5 @@
 import { getJson } from '@/lib/http'
+import { getUsername } from '@/lib/auth'
 import { fetchPublicIp } from '@/lib/use-public-ip'
 
 export type LogStatus = '成功' | '失败'
@@ -71,6 +72,46 @@ export async function reportLogin(user: string, status: LogStatus): Promise<void
       status
     })
   })
+}
+
+/**
+ * 追加一条操作日志。开发环境写入 logs-operation.json；
+ * 生产环境换成真实日志接口。调用方 fire-and-forget，失败静默忽略。
+ */
+export async function reportOperation(action: string, cost: number, status: LogStatus): Promise<void> {
+  const ip = await fetchPublicIp()
+  await fetch('/api/logs/operation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user: getUsername(),
+      action,
+      ip,
+      cost,
+      time: formatTime(new Date()),
+      status
+    })
+  })
+}
+
+/**
+ * 包装一个增删改操作：自动计时并按结果写操作日志（成功/失败），
+ * 日志写入失败不影响操作本身，操作失败会照常抛出交给调用方回退。
+ */
+export async function withOperationLog<T>(action: string, fn: () => Promise<T>): Promise<T> {
+  const start = performance.now()
+  try {
+    const result = await fn()
+    reportOperation(action, Math.round(performance.now() - start), '成功').catch(() => {
+      // 日志写入失败不影响操作
+    })
+    return result
+  } catch (e) {
+    reportOperation(action, Math.round(performance.now() - start), '失败').catch(() => {
+      // 日志写入失败不影响操作
+    })
+    throw e
+  }
 }
 export function fetchOperationLogs(): Promise<OperationLog[]> {
   return getJson<OperationLog[]>('/mock/logs-operation.json')
