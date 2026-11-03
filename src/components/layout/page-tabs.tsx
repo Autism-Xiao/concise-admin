@@ -19,6 +19,12 @@ export function PageTabs() {
   const { t } = useLocale()
   const [menu, setMenu] = useState<MenuState | null>(null)
   const dragFrom = useRef<number | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+
+  // 路由变化时把激活页签滚动到可视区域（窄屏 / 页签多时）
+  useEffect(() => {
+    containerRef.current?.querySelector('[data-active-tab="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [pathname, tabs.length])
 
   // 右键菜单打开时，点击其他位置 / 按 Esc / 滚动都会关闭
   useEffect(() => {
@@ -62,7 +68,15 @@ export function PageTabs() {
     : []
 
   return (
-    <div data-scroll="tabs" className="bg-muted/40 relative hidden h-10 shrink-0 items-center gap-1 overflow-x-auto border-b px-2 md:flex">
+    <div
+      ref={containerRef}
+      data-scroll="tabs"
+      className="bg-muted/40 relative flex h-10 shrink-0 [scrollbar-width:none] items-center gap-1 overflow-x-auto border-b px-2 [&::-webkit-scrollbar]:hidden"
+      onWheel={e => {
+        // 桌面滚轮纵向滚动转为页签横向滚动（触屏横滑原生支持）
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY
+      }}
+    >
       {tabs.map((tab, i) => {
         const entry = PAGE_REGISTRY[tab.path]
         if (!entry) return null
@@ -74,6 +88,7 @@ export function PageTabs() {
             role="button"
             tabIndex={0}
             draggable
+            data-active-tab={active || undefined}
             onDragStart={() => {
               dragFrom.current = i
             }}
@@ -113,6 +128,8 @@ export function PageTabs() {
                 }}
                 className={cn(
                   'hover:bg-muted -mr-1 flex size-4 items-center justify-center rounded-sm transition-opacity',
+                  // 触屏无 hover，窄屏下关闭按钮常显
+                  'max-md:opacity-100',
                   active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                 )}
               >
