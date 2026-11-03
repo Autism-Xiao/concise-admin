@@ -47,12 +47,17 @@ interface AppSidebarProps {
 export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', direction = 'ltr' }: AppSidebarProps) {
   const { setOpen } = useSearch()
   const { t } = useLocale()
-  const { state, isMobile } = useSidebar()
+  const { state, isMobile, setOpenMobile } = useSidebar()
   const pathname = useLocation({ select: location => location.pathname })
   // 折叠成图标栏时，带二级菜单的项改为点击弹出浮层（移动端仍保持手风琴展开）
   const collapsed = state === 'collapsed' && !isMobile
 
   const isActive = (url?: string) => !!url && pathname === url
+
+  // 移动端（抽屉形态）点击导航后自动收起抽屉，桌面端无影响
+  const closeMobileSidebar = () => {
+    if (isMobile) setOpenMobile(false)
+  }
 
   // 按当前角色的菜单权限过滤侧边栏（仅过滤业务分组，页面/其他分组始终显示）
   const permitted = usePermittedPaths()
@@ -80,7 +85,7 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="/dashboard" className="group-data-[collapsible=icon]:justify-center">
+              <a href="/dashboard" className="group-data-[collapsible=icon]:justify-center" onClick={closeMobileSidebar}>
                 <Logo className="text-sidebar-primary size-8! shrink-0" />
                 <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
                   <span className="font-medium">{import.meta.env.VITE_APP_NAME}</span>
@@ -96,7 +101,13 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip={t('nav.search')} onClick={() => setOpen(true)}>
+                <SidebarMenuButton
+                  tooltip={t('nav.search')}
+                  onClick={() => {
+                    closeMobileSidebar()
+                    setOpen(true)
+                  }}
+                >
                   <Search />
                   <span>{t('nav.search')}</span>
                   <SidebarMenuBadge>⌘J</SidebarMenuBadge>
@@ -115,7 +126,7 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
                     return (
                       <SidebarMenuItem key={item.url}>
                         <SidebarMenuButton asChild tooltip={t(item.titleKey)}>
-                          <Link to={item.url!} activeProps={{ 'data-active': true }}>
+                          <Link to={item.url!} activeProps={{ 'data-active': true }} onClick={closeMobileSidebar}>
                             <item.icon />
                             <span>{t(item.titleKey)}</span>
                             {item.badge && <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>}
@@ -154,7 +165,7 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
                             {item.items.map(sub => (
                               <SidebarMenuSubItem key={sub.url}>
                                 <SidebarMenuSubButton asChild>
-                                  <Link to={sub.url} activeProps={{ 'data-active': true }}>
+                                  <Link to={sub.url} activeProps={{ 'data-active': true }} onClick={closeMobileSidebar}>
                                     {t(sub.titleKey)}
                                   </Link>
                                 </SidebarMenuSubButton>

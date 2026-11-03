@@ -10,15 +10,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useLocale } from '@/context/locale-provider'
 import { getName, getUsername, logout } from '@/lib/auth'
 
 export function NavUser() {
   const navigate = useNavigate()
   const { t } = useLocale()
+  const { isMobile, setOpenMobile } = useSidebar()
   const name = getName()
   const username = getUsername()
+
+  // 移动端抽屉形态下，点击下拉项跳转后收起抽屉
+  const closeMobileSidebar = () => {
+    if (isMobile) setOpenMobile(false)
+  }
 
   return (
     <SidebarMenu>
@@ -45,11 +51,21 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => void navigate({ to: '/settings' })}>
+              <DropdownMenuItem
+                onClick={() => {
+                  closeMobileSidebar()
+                  void navigate({ to: '/settings' })
+                }}
+              >
                 <User />
                 {t('profile.profile')}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void navigate({ to: '/settings' })}>
+              <DropdownMenuItem
+                onClick={() => {
+                  closeMobileSidebar()
+                  void navigate({ to: '/settings' })
+                }}
+              >
                 <Settings />
                 {t('profile.settings')}
               </DropdownMenuItem>
@@ -58,6 +74,7 @@ export function NavUser() {
             <DropdownMenuItem
               variant="destructive"
               onClick={() => {
+                closeMobileSidebar()
                 logout()
                 void navigate({ to: '/login' })
               }}
