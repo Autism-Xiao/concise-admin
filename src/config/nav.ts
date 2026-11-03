@@ -54,7 +54,14 @@ export const navGroups: NavGroup[] = [
       { titleKey: 'nav.system.file', url: '/system/file', icon: FolderOpen },
       { titleKey: 'nav.system.calendar', url: '/system/calendar', icon: CalendarDays },
       { titleKey: 'nav.system.dict', url: '/system/dict', icon: BookOpen },
-      { titleKey: 'nav.system.log', url: '/system/log', icon: ScrollText }
+      {
+        titleKey: 'nav.system.log',
+        icon: ScrollText,
+        items: [
+          { titleKey: 'nav.system.logLogin', url: '/system/log/login' },
+          { titleKey: 'nav.system.logOperation', url: '/system/log/operation' }
+        ]
+      }
     ]
   },
   {

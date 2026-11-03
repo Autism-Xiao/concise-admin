@@ -12,5 +12,7 @@
   { "id": 13, "name": "文件管理", "path": "/system/file", "sort": 13, "status": "正常" },
   { "id": 14, "name": "日历管理", "path": "/system/calendar", "sort": 14, "status": "正常" },
   { "id": 11, "name": "字典管理", "path": "/system/dict", "sort": 11, "status": "停用" },
-  { "id": 12, "name": "日志管理", "path": "/system/log", "sort": 12, "status": "正常" }
+  { "id": 12, "name": "日志管理", "path": "/system/log", "sort": 12, "status": "正常" },
+  { "id": 15, "name": "登录日志", "path": "/system/log/login", "sort": 15, "status": "正常" },
+  { "id": 16, "name": "操作日志", "path": "/system/log/operation", "sort": 16, "status": "正常" }
 ]

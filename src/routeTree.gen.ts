@@ -36,6 +36,8 @@ import { Route as AuthenticatedSystemLogRouteImport } from './routes/_authentica
 import { Route as AuthenticatedSystemMenuRouteImport } from './routes/_authenticated/system/menu'
 import { Route as AuthenticatedSystemRoleRouteImport } from './routes/_authenticated/system/role'
 import { Route as AuthenticatedSystemUsersRouteImport } from './routes/_authenticated/system/users'
+import { Route as AuthenticatedSystemLogLoginRouteImport } from './routes/_authenticated/system/log/login'
+import { Route as AuthenticatedSystemLogOperationRouteImport } from './routes/_authenticated/system/log/operation'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -179,6 +181,18 @@ const AuthenticatedSystemUsersRoute =
     path: '/system/users',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedSystemLogLoginRoute =
+  AuthenticatedSystemLogLoginRouteImport.update({
+    id: '/login',
+    path: '/login',
+    getParentRoute: () => AuthenticatedSystemLogRoute,
+  } as any)
+const AuthenticatedSystemLogOperationRoute =
+  AuthenticatedSystemLogOperationRouteImport.update({
+    id: '/operation',
+    path: '/operation',
+    getParentRoute: () => AuthenticatedSystemLogRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -202,11 +216,13 @@ export interface FileRoutesByFullPath {
   '/system/dept': typeof AuthenticatedSystemDeptRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
   '/system/file': typeof AuthenticatedSystemFileRoute
-  '/system/log': typeof AuthenticatedSystemLogRoute
+  '/system/log': typeof AuthenticatedSystemLogRouteWithChildren
   '/system/menu': typeof AuthenticatedSystemMenuRoute
   '/system/role': typeof AuthenticatedSystemRoleRoute
   '/system/users': typeof AuthenticatedSystemUsersRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/system/log/login': typeof AuthenticatedSystemLogLoginRoute
+  '/system/log/operation': typeof AuthenticatedSystemLogOperationRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -229,11 +245,13 @@ export interface FileRoutesByTo {
   '/system/dept': typeof AuthenticatedSystemDeptRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
   '/system/file': typeof AuthenticatedSystemFileRoute
-  '/system/log': typeof AuthenticatedSystemLogRoute
+  '/system/log': typeof AuthenticatedSystemLogRouteWithChildren
   '/system/menu': typeof AuthenticatedSystemMenuRoute
   '/system/role': typeof AuthenticatedSystemRoleRoute
   '/system/users': typeof AuthenticatedSystemUsersRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
+  '/system/log/login': typeof AuthenticatedSystemLogLoginRoute
+  '/system/log/operation': typeof AuthenticatedSystemLogOperationRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -259,11 +277,13 @@ export interface FileRoutesById {
   '/_authenticated/system/dept': typeof AuthenticatedSystemDeptRoute
   '/_authenticated/system/dict': typeof AuthenticatedSystemDictRoute
   '/_authenticated/system/file': typeof AuthenticatedSystemFileRoute
-  '/_authenticated/system/log': typeof AuthenticatedSystemLogRoute
+  '/_authenticated/system/log': typeof AuthenticatedSystemLogRouteWithChildren
   '/_authenticated/system/menu': typeof AuthenticatedSystemMenuRoute
   '/_authenticated/system/role': typeof AuthenticatedSystemRoleRoute
   '/_authenticated/system/users': typeof AuthenticatedSystemUsersRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/_authenticated/system/log/login': typeof AuthenticatedSystemLogLoginRoute
+  '/_authenticated/system/log/operation': typeof AuthenticatedSystemLogOperationRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -294,6 +314,8 @@ export interface FileRouteTypes {
     | '/system/role'
     | '/system/users'
     | '/settings/'
+    | '/system/log/login'
+    | '/system/log/operation'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -321,6 +343,8 @@ export interface FileRouteTypes {
     | '/system/role'
     | '/system/users'
     | '/settings'
+    | '/system/log/login'
+    | '/system/log/operation'
   id:
     | '__root__'
     | '/'
@@ -350,6 +374,8 @@ export interface FileRouteTypes {
     | '/_authenticated/system/role'
     | '/_authenticated/system/users'
     | '/_authenticated/settings/'
+    | '/_authenticated/system/log/login'
+    | '/_authenticated/system/log/operation'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -549,6 +575,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemUsersRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/system/log/login': {
+      id: '/_authenticated/system/log/login'
+      path: '/login'
+      fullPath: '/system/log/login'
+      preLoaderRoute: typeof AuthenticatedSystemLogLoginRouteImport
+      parentRoute: typeof AuthenticatedSystemLogRoute
+    }
+    '/_authenticated/system/log/operation': {
+      id: '/_authenticated/system/log/operation'
+      path: '/operation'
+      fullPath: '/system/log/operation'
+      preLoaderRoute: typeof AuthenticatedSystemLogOperationRouteImport
+      parentRoute: typeof AuthenticatedSystemLogRoute
+    }
   }
 }
 
@@ -575,6 +615,22 @@ const AuthenticatedSettingsRouteRouteWithChildren =
     AuthenticatedSettingsRouteRouteChildren,
   )
 
+interface AuthenticatedSystemLogRouteChildren {
+  AuthenticatedSystemLogLoginRoute: typeof AuthenticatedSystemLogLoginRoute
+  AuthenticatedSystemLogOperationRoute: typeof AuthenticatedSystemLogOperationRoute
+}
+
+const AuthenticatedSystemLogRouteChildren: AuthenticatedSystemLogRouteChildren =
+  {
+    AuthenticatedSystemLogLoginRoute: AuthenticatedSystemLogLoginRoute,
+    AuthenticatedSystemLogOperationRoute: AuthenticatedSystemLogOperationRoute,
+  }
+
+const AuthenticatedSystemLogRouteWithChildren =
+  AuthenticatedSystemLogRoute._addFileChildren(
+    AuthenticatedSystemLogRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
   AuthenticatedSettingsRouteRoute: typeof AuthenticatedSettingsRouteRouteWithChildren
   AuthenticatedAppsRoute: typeof AuthenticatedAppsRoute
@@ -591,7 +647,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSystemDeptRoute: typeof AuthenticatedSystemDeptRoute
   AuthenticatedSystemDictRoute: typeof AuthenticatedSystemDictRoute
   AuthenticatedSystemFileRoute: typeof AuthenticatedSystemFileRoute
-  AuthenticatedSystemLogRoute: typeof AuthenticatedSystemLogRoute
+  AuthenticatedSystemLogRoute: typeof AuthenticatedSystemLogRouteWithChildren
   AuthenticatedSystemMenuRoute: typeof AuthenticatedSystemMenuRoute
   AuthenticatedSystemRoleRoute: typeof AuthenticatedSystemRoleRoute
   AuthenticatedSystemUsersRoute: typeof AuthenticatedSystemUsersRoute
@@ -613,7 +669,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSystemDeptRoute: AuthenticatedSystemDeptRoute,
   AuthenticatedSystemDictRoute: AuthenticatedSystemDictRoute,
   AuthenticatedSystemFileRoute: AuthenticatedSystemFileRoute,
-  AuthenticatedSystemLogRoute: AuthenticatedSystemLogRoute,
+  AuthenticatedSystemLogRoute: AuthenticatedSystemLogRouteWithChildren,
   AuthenticatedSystemMenuRoute: AuthenticatedSystemMenuRoute,
   AuthenticatedSystemRoleRoute: AuthenticatedSystemRoleRoute,
   AuthenticatedSystemUsersRoute: AuthenticatedSystemUsersRoute,

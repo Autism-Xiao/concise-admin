@@ -28,6 +28,8 @@ export const zh = {
   'nav.system.calendar': '日历管理',
   'nav.system.dict': '字典管理',
   'nav.system.log': '日志管理',
+  'nav.system.logLogin': '登录日志',
+  'nav.system.logOperation': '操作日志',
   // 主题
   'theme.light': '浅色',
   'theme.dark': '深色',
@@ -124,6 +126,8 @@ export const en: Record<TranslationKey, string> = {
   'nav.system.calendar': 'Calendar',
   'nav.system.dict': 'Dictionaries',
   'nav.system.log': 'Logs',
+  'nav.system.logLogin': 'Login Logs',
+  'nav.system.logOperation': 'Operation Logs',
   'theme.light': 'Light',
   'theme.dark': 'Dark',
   'theme.system': 'System',

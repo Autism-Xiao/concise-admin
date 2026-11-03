@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   ListTodo,
   ListTree,
+  LogIn,
   MessagesSquare,
   Monitor,
   Network,
@@ -34,7 +35,8 @@ import { DeptPage } from '@/features/system/dept'
 import { FilePage } from '@/features/system/file'
 import { CalendarPage } from '@/features/system/calendar'
 import { DictPage } from '@/features/system/dict'
-import { LogPage } from '@/features/system/log'
+import { LoginLogPage } from '@/features/system/log/login'
+import { OperationLogPage } from '@/features/system/log/operation'
 import { ForbiddenError, InternalServerError, MaintenanceError, NotFoundError, UnauthorizedError } from '@/features/errors'
 import { ProfilePage } from '@/features/settings/profile'
 import { AccountPage } from '@/features/settings/account'
@@ -70,7 +72,8 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
   '/system/file': { component: FilePage, titleKey: 'nav.system.file', icon: FolderOpen },
   '/system/calendar': { component: CalendarPage, titleKey: 'nav.system.calendar', icon: CalendarDays },
   '/system/dict': { component: DictPage, titleKey: 'nav.system.dict', icon: BookOpen },
-  '/system/log': { component: LogPage, titleKey: 'nav.system.log', icon: ScrollText },
+  '/system/log/login': { component: LoginLogPage, titleKey: 'nav.system.logLogin', icon: LogIn },
+  '/system/log/operation': { component: OperationLogPage, titleKey: 'nav.system.logOperation', icon: ScrollText },
   '/errors/401': { component: UnauthorizedError, titleKey: 'nav.errors.401', icon: Bug },
   '/errors/403': { component: ForbiddenError, titleKey: 'nav.errors.403', icon: Bug },
   '/errors/404': { component: NotFoundError, titleKey: 'nav.errors.404', icon: Bug },
