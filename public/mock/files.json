@@ -1,98 +1,134 @@
 [
   {
     "id": 1,
-    "name": "产品文档",
+    "name": "项目文档",
     "type": "folder",
+    "ext": null,
     "size": null,
-    "owner": "张伟",
-    "modifiedAt": "2026-10-28 14:32"
+    "owner": "",
+    "starred": true,
+    "shared": false,
+    "modifiedAt": "2026-11-03T17:10:00"
   },
   {
     "id": 2,
-    "name": "设计稿备份",
+    "name": "设计素材",
     "type": "folder",
+    "ext": null,
     "size": null,
-    "owner": "李娜",
-    "modifiedAt": "2026-10-25 09:12"
+    "owner": "",
+    "starred": false,
+    "shared": true,
+    "modifiedAt": "2026-11-02T19:00:00"
   },
   {
     "id": 3,
-    "name": "需求说明书 v2.3.docx",
-    "type": "document",
-    "size": 1842000,
-    "owner": "张伟",
-    "modifiedAt": "2026-10-30 17:45"
+    "name": "会议记录",
+    "type": "folder",
+    "ext": null,
+    "size": null,
+    "owner": "",
+    "starred": false,
+    "shared": false,
+    "modifiedAt": "2026-11-01T15:00:00"
   },
   {
     "id": 4,
-    "name": "首页改版.psd",
-    "type": "image",
-    "size": 58720000,
-    "owner": "李娜",
-    "modifiedAt": "2026-10-29 11:03"
+    "name": "产品图片",
+    "type": "folder",
+    "ext": null,
+    "size": null,
+    "owner": "",
+    "starred": false,
+    "shared": false,
+    "modifiedAt": "2026-10-31T10:00:00"
   },
   {
     "id": 5,
-    "name": "三季度销售数据.xlsx",
-    "type": "spreadsheet",
-    "size": 936000,
-    "owner": "王强",
-    "modifiedAt": "2026-10-27 16:20"
+    "name": "年度报告.pdf",
+    "type": "file",
+    "ext": "pdf",
+    "size": 2621440,
+    "owner": "张伟",
+    "starred": true,
+    "shared": false,
+    "modifiedAt": "2026-11-03T18:45:00"
   },
   {
     "id": 6,
-    "name": "发布会议录屏.mp4",
-    "type": "video",
-    "size": 482300000,
-    "owner": "陈静",
-    "modifiedAt": "2026-10-26 10:08"
+    "name": "产品演示.pptx",
+    "type": "file",
+    "ext": "pptx",
+    "size": 16777216,
+    "owner": "李娜",
+    "starred": false,
+    "shared": true,
+    "modifiedAt": "2026-11-03T16:00:00"
   },
   {
     "id": 7,
-    "name": "接口文档.md",
-    "type": "document",
-    "size": 84500,
+    "name": "销售数据.xlsx",
+    "type": "file",
+    "ext": "xlsx",
+    "size": 1258291,
     "owner": "王强",
-    "modifiedAt": "2026-10-31 09:56"
+    "starred": false,
+    "shared": false,
+    "modifiedAt": "2026-11-03T13:00:00"
   },
   {
     "id": 8,
-    "name": "图标资源包.zip",
-    "type": "archive",
-    "size": 12400000,
-    "owner": "李娜",
-    "modifiedAt": "2026-10-24 15:37"
+    "name": "项目截图.png",
+    "type": "file",
+    "ext": "png",
+    "size": 876544,
+    "owner": "刘洋",
+    "starred": false,
+    "shared": false,
+    "modifiedAt": "2026-11-03T07:00:00"
   },
   {
     "id": 9,
-    "name": "用户调研报告.docx",
-    "type": "document",
-    "size": 2310000,
-    "owner": "周杰",
-    "modifiedAt": "2026-10-22 13:19"
+    "name": "需求文档.docx",
+    "type": "file",
+    "ext": "docx",
+    "size": 536576,
+    "owner": "陈静",
+    "starred": true,
+    "shared": false,
+    "modifiedAt": "2026-11-02T18:30:00"
   },
   {
     "id": 10,
-    "name": "团建照片合集.zip",
-    "type": "archive",
-    "size": 1204600000,
-    "owner": "孙丽",
-    "modifiedAt": "2026-10-20 18:44"
+    "name": "演示视频.mp4",
+    "type": "file",
+    "ext": "mp4",
+    "size": 131072000,
+    "owner": "赵明",
+    "starred": false,
+    "shared": true,
+    "modifiedAt": "2026-11-02T14:00:00"
   },
   {
     "id": 11,
-    "name": "品牌 Logo 源文件.ai",
-    "type": "image",
-    "size": 24800000,
-    "owner": "李娜",
-    "modifiedAt": "2026-10-18 10:27"
+    "name": "源代码.zip",
+    "type": "file",
+    "ext": "zip",
+    "size": 48234496,
+    "owner": "张伟",
+    "starred": false,
+    "shared": false,
+    "modifiedAt": "2026-11-01T11:00:00"
   },
   {
     "id": 12,
-    "name": "预算表 2027.xlsx",
-    "type": "spreadsheet",
-    "size": 512000,
-    "owner": "赵敏",
-    "modifiedAt": "2026-11-01 09:02"
+    "name": "配置文件.json",
+    "type": "file",
+    "ext": "json",
+    "size": 12288,
+    "owner": "李娜",
+    "starred": false,
+    "shared": false,
+    "modifiedAt": "2026-10-31T09:00:00"
   }
 ]
