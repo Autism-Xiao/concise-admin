@@ -1,4 +1,4 @@
-import { getJson } from '@/lib/http'
+import { getApiResult } from '@/lib/http'
 
 export interface ServerInfo {
   host: {
@@ -11,6 +11,7 @@ export interface ServerInfo {
   cpu: {
     model: string
     cores: number
+    /** 采样瞬时使用率（%） */
     usage: number
   }
   memory: {
@@ -29,7 +30,7 @@ export interface ServerInfo {
   disks: { name: string; total: number; used: number; usage: number }[]
 }
 
-// 开发环境走 public/mock 下的静态 JSON；接真实后端时改这里即可
+/** 服务监控（后端实时采集 os 指标，JeecgBoot 也没有对应表） */
 export function fetchServerInfo(): Promise<ServerInfo> {
-  return getJson<ServerInfo>('/mock/ops-server.json')
+  return getApiResult<ServerInfo>('/backend-api/v1/monitor/server')
 }

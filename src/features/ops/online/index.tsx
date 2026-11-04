@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import { RefreshCw, Search } from 'lucide-react'
+import { LogOut, RefreshCw, Search } from 'lucide-react'
+import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
-import { fetchOnlineUsers, type OnlineUser } from './api'
+import { hasPermission } from '@/lib/auth'
+import { fetchOnlineUsers, formatDateTime, kickUser, type OnlineUser } from './api'
 
 const columnLabels: Record<string, string> = {
   sessionId: '会话编号',
@@ -16,33 +19,42 @@ const columnLabels: Record<string, string> = {
   location: '登录地点',
   browser: '浏览器',
   os: '操作系统',
-  loginTime: '登录时间'
+  loginTime: '登录时间',
+  expiresAt: '过期时间'
 }
 
 export function OnlineUsersPage() {
-  const [list, setList] = useState<OnlineUser[] | null>(null)
+  const [list, setList] = useState<OnlineUser[]>([])
+  const [total, setTotal] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [kicking, setKicking] = useState<OnlineUser | null>(null)
 
   const load = () => {
     setLoading(true)
     setError(null)
     fetchOnlineUsers()
-      .then(setList)
+      .then(res => {
+        setList(res.items ?? [])
+        setTotal(res.total ?? 0)
+      })
       .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
       .finally(() => setLoading(false))
   }
 
   useEffect(load, [])
 
-  const users = useMemo(() => list ?? [], [list])
-
   const columns = useMemo<ColumnDef<OnlineUser>[]>(
     () => [
       {
         accessorKey: 'sessionId',
         header: '会话编号',
-        cell: ({ row }) => <code className="text-muted-foreground text-xs">{row.getValue('sessionId')}</code>
+        enableSorting: false,
+        cell: ({ row }) => (
+          <code className="text-muted-foreground text-xs" title={row.original.sessionId}>
+            {row.original.sessionId.slice(0, 8)}…
+          </code>
+        )
       },
       {
         accessorKey: 'username',
@@ -50,18 +62,19 @@ export function OnlineUsersPage() {
         cell: ({ row }) => (
           <span className="flex items-center gap-2 font-medium">
             <span className="size-1.5 rounded-full bg-emerald-500" />
-            {row.getValue('username')}
+            {row.original.username}
           </span>
         )
       },
       {
         accessorKey: 'dept',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="所属部门" />
+        header: ({ column }) => <DataTableColumnHeader column={column} title="所属部门" />,
+        cell: ({ row }) => row.original.dept || '-'
       },
       {
         accessorKey: 'ip',
         header: 'IP 地址',
-        cell: ({ row }) => <span className="tabular-nums">{row.getValue('ip')}</span>
+        cell: ({ row }) => <span className="tabular-nums">{row.original.ip || '-'}</span>
       },
       {
         accessorKey: 'location',
@@ -70,30 +83,64 @@ export function OnlineUsersPage() {
       {
         accessorKey: 'browser',
         header: '浏览器',
-        cell: ({ row }) => <span className="text-muted-foreground">{row.getValue('browser')}</span>
+        cell: ({ row }) => <span className="text-muted-foreground">{row.original.browser}</span>
       },
       {
         accessorKey: 'os',
         header: '操作系统',
-        cell: ({ row }) => <span className="text-muted-foreground">{row.getValue('os')}</span>
+        cell: ({ row }) => <span className="text-muted-foreground">{row.original.os}</span>
       },
       {
         accessorKey: 'loginTime',
         header: ({ column }) => <DataTableColumnHeader column={column} title="登录时间" />,
-        cell: ({ row }) => <span className="text-muted-foreground tabular-nums">{row.getValue('loginTime')}</span>
+        cell: ({ row }) => <span className="text-muted-foreground tabular-nums">{formatDateTime(row.original.loginTime)}</span>
+      },
+      {
+        accessorKey: 'expiresAt',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="过期时间" />,
+        cell: ({ row }) => <span className="text-muted-foreground tabular-nums">{formatDateTime(row.original.expiresAt)}</span>
+      },
+      {
+        id: 'actions',
+        header: () => <div className="text-end">操作</div>,
+        enableSorting: false,
+        enableHiding: false,
+        cell: ({ row }) =>
+          hasPermission('system:online:kick') ? (
+            <div className="flex items-center justify-end">
+              <Button variant="ghost" size="icon" onClick={() => setKicking(row.original)}>
+                <LogOut className="text-destructive size-4" />
+                <span className="sr-only">强制下线</span>
+              </Button>
+            </div>
+          ) : null
       }
     ],
     []
   )
 
-  const { table, keyword, setKeyword } = useDataTable({ data: users, columns })
+  const { table, keyword, setKeyword } = useDataTable({ data: list, columns })
+
+  const handleKick = async () => {
+    if (!kicking) return
+    try {
+      await kickUser(kicking.sessionId)
+      toast.success(`已将「${kicking.username}」强制下线`)
+      setKicking(null)
+      load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '操作失败')
+    }
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">在线用户</h1>
-          <p className="text-muted-foreground text-sm">当前共 {users.length} 人在线（mock 数据）</p>
+          <p className="text-muted-foreground text-sm">
+            当前共 {total} 人在线（来自 Redis 实时会话{total > list.length ? `，展示最近登录的 ${list.length} 个` : ''}）
+          </p>
         </div>
         <Button variant="outline" onClick={load}>
           <RefreshCw />
@@ -133,6 +180,14 @@ export function OnlineUsersPage() {
           </CardContent>
         </Card>
       )}
+
+      <ConfirmDeleteDialog
+        open={!!kicking}
+        onOpenChange={v => !v && setKicking(null)}
+        title="强制下线"
+        description={<>即将把「{kicking?.username}」踢下线，其令牌立即失效并需重新登录。</>}
+        onConfirm={handleKick}
+      />
     </div>
   )
 }

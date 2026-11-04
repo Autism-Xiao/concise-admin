@@ -45,7 +45,7 @@ export function ServerMonitorPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">服务监控</h1>
-          <p className="text-muted-foreground text-sm">服务器与运行时状态（mock 数据）</p>
+          <p className="text-muted-foreground text-sm">服务器与运行时状态（后端实时采集）</p>
         </div>
         <Button variant="outline" onClick={load}>
           <RefreshCw />
