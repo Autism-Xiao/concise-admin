@@ -16,7 +16,7 @@ import type { MenuTreeNode } from './components/role-permission-dialog'
 import { RoleFormDialog, type RoleFormValues } from './components/role-form-dialog'
 import { RoleImportDialog } from './components/role-import-dialog'
 import { RolePermissionDialog } from './components/role-permission-dialog'
-import { createRole, deleteRole, exportRoles, fetchRoleMenuIds, fetchRoles, saveRoleMenus, updateRole, type Role } from './api'
+import { createRole, deleteRole, deleteRoles, exportRoles, fetchRoleMenuIds, fetchRoles, saveRoleMenus, updateRole, type Role } from './api'
 
 const columnLabels: Record<string, string> = {
   roleCode: '权限字符',
@@ -80,6 +80,33 @@ export function RolePage() {
   const columns = useMemo<ColumnDef<Role>[]>(
     () => [
       {
+        id: 'select',
+        header: ({ table }) => (
+          <input
+            type="checkbox"
+            className="accent-primary size-4 cursor-pointer align-middle"
+            aria-label="全选本页"
+            checked={table.getIsAllPageRowsSelected()}
+            ref={el => {
+              if (el) el.indeterminate = table.getIsSomePageRowsSelected()
+            }}
+            onChange={table.getToggleAllPageRowsSelectedHandler()}
+          />
+        ),
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            className="accent-primary size-4 cursor-pointer align-middle"
+            aria-label={`选择「${row.original.roleName ?? row.original.roleCode}」`}
+            checked={row.getIsSelected()}
+            disabled={!row.getCanSelect()}
+            onChange={row.getToggleSelectedHandler()}
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false
+      },
+      {
         accessorKey: 'roleCode',
         header: ({ column }) => <DataTableColumnHeader column={column} title="权限字符" />,
         cell: ({ row }) => <span className="font-mono text-xs">{row.getValue('roleCode')}</span>
@@ -136,7 +163,28 @@ export function RolePage() {
     []
   )
 
-  const { table, keyword, setKeyword } = useDataTable({ data: roles, columns })
+  const { table, keyword, setKeyword, rowSelection, setRowSelection } = useDataTable({ data: roles, columns, getRowId: role => role.id })
+  const selectedCount = Object.keys(rowSelection).filter(key => rowSelection[key]).length
+  const [batchDeleting, setBatchDeleting] = useState(false)
+  const [batchBusy, setBatchBusy] = useState(false)
+
+  const handleBatchDelete = async () => {
+    const targets = table.getSelectedRowModel().rows.map(row => row.original)
+    if (!targets.length || batchBusy) return
+    setBatchBusy(true)
+    try {
+      const results = await deleteRoles(targets.map(role => role.id))
+      const succeeded = results.filter(result => result.status === 'fulfilled').length
+      const failed = results.length - succeeded
+      if (succeeded) toast.success(`已删除 ${succeeded} 个角色`)
+      if (failed) toast.error(`${failed} 个角色删除失败，请检查角色是否仍被用户使用`)
+      setBatchDeleting(false)
+      setRowSelection({})
+      load()
+    } finally {
+      setBatchBusy(false)
+    }
+  }
 
   const handleSubmit = (values: RoleFormValues) => {
     const req = editing ? updateRole(editing.id, values) : createRole(values)
@@ -200,6 +248,12 @@ export function RolePage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {hasPermission('system:role:delete') && selectedCount > 0 && (
+            <Button variant="outline" onClick={() => setBatchDeleting(true)} disabled={batchBusy}>
+              <Trash2 />
+              批量删除（{selectedCount}）
+            </Button>
+          )}
           {hasPermission('system:role:export') && (
             <Button variant="outline" onClick={handleExport} disabled={exporting || roles.length === 0}>
               <Download />
@@ -272,6 +326,18 @@ export function RolePage() {
         onOpenChange={v => !v && setDeleting(null)}
         description={<>即将删除角色「{deleting?.roleName ?? deleting?.roleCode}」，该操作不可恢复。</>}
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDeleteDialog
+        open={batchDeleting}
+        onOpenChange={v => !batchBusy && setBatchDeleting(v)}
+        title="批量删除角色"
+        description={
+          <>
+            即将删除勾选的 {selectedCount} 个角色，该操作不可恢复。{batchBusy ? '正在删除，请稍候…' : ''}
+          </>
+        }
+        onConfirm={handleBatchDelete}
       />
 
       {importOpen && <RoleImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={load} />}

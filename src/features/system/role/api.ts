@@ -50,6 +50,11 @@ export function deleteRole(id: string): Promise<void> {
   return getApiResult<null>(`/backend-api/v1/roles/${id}`, { method: 'DELETE' }).then(() => undefined)
 }
 
+/** 批量删除逐条结算，单个角色删除失败不阻断其他请求 */
+export function deleteRoles(ids: string[]): Promise<PromiseSettledResult<void>[]> {
+  return Promise.allSettled(ids.map(id => deleteRole(id)))
+}
+
 /* ---------- 角色授权（v1） ---------- */
 
 /** 查角色已授权的菜单/按钮 id 列表（授权弹窗回显） */
