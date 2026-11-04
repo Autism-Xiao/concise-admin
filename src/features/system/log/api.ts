@@ -51,9 +51,9 @@ function formatDateTime(iso: string): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
 }
 
-/** 登录日志（GET /api/v1/logs/login，取前 200 条倒序） */
+/** 登录日志（GET /api/v1/logs/login，取最近 100 条倒序；后端 pageSize 上限 100） */
 export async function fetchLoginLogs(): Promise<LoginLog[]> {
-  const page = await getApiResult<{ items: BackendSysLog[] }>('/backend-api/v1/logs/login?page=1&pageSize=200')
+  const page = await getApiResult<{ items: BackendSysLog[] }>('/backend-api/v1/logs/login?page=1&pageSize=100')
   return (page.items ?? []).map(row => ({
     id: row.id,
     user: row.operateUserName,
@@ -67,9 +67,9 @@ export async function fetchLoginLogs(): Promise<LoginLog[]> {
   }))
 }
 
-/** 操作日志（GET /api/v1/logs/oper，取前 200 条倒序） */
+/** 操作日志（GET /api/v1/logs/oper，取最近 100 条倒序；后端 pageSize 上限 100） */
 export async function fetchOperationLogs(): Promise<OperationLog[]> {
-  const page = await getApiResult<{ items: BackendSysLog[] }>('/backend-api/v1/logs/oper?page=1&pageSize=200')
+  const page = await getApiResult<{ items: BackendSysLog[] }>('/backend-api/v1/logs/oper?page=1&pageSize=100')
   return (page.items ?? []).map(row => ({
     id: row.id,
     user: row.operateUserName,
@@ -90,10 +90,22 @@ export async function deleteLogs(kind: 'login' | 'oper', ids: string[]): Promise
   })
 }
 
+/** 导出日志 CSV（GET /api/v1/logs/login|oper/export，不分页，上限 5 万行） */
+export async function exportLogs(kind: 'login' | 'oper'): Promise<{ filename: string; blob: Blob }> {
+  const token = localStorage.getItem('concise-token') ?? ''
+  const res = await fetch(`/backend-api/v1/logs/${kind}/export`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  })
+  if (!res.ok) throw new Error(`导出失败: ${res.status}`)
+  const disposition = res.headers.get('content-disposition') ?? ''
+  const filename = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? `${kind}-logs.csv`
+  return { filename, blob: await res.blob() }
+}
+
 /**
  * 操作日志由后端 OperLogInterceptor 对写操作统一记录（sys_log），前端无需上报；
  * 此函数保留为纯透传以兼容既有调用点（包装请求、透传成功/失败）。
  */
-export async function withOperationLog<T>(action: string, fn: () => Promise<T>): Promise<T> {
+export async function withOperationLog<T>(_action: string, fn: () => Promise<T>): Promise<T> {
   return fn()
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Eraser, Search, Trash2 } from 'lucide-react'
+import { Download, Eraser, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,7 @@ import { hasPermission } from '@/lib/auth'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
-import { deleteLogs, type LogStatus } from '../api'
+import { deleteLogs, exportLogs, type LogStatus } from '../api'
 
 interface BaseLog {
   id: string
@@ -50,6 +50,7 @@ export function LogTablePage<T extends BaseLog>({ title, searchPlaceholder, fetc
   const [statusFilter, setStatusFilter] = useState('all')
   const [deleting, setDeleting] = useState<T | null>(null)
   const [clearing, setClearing] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -136,19 +137,46 @@ export function LogTablePage<T extends BaseLog>({ title, searchPlaceholder, fetc
     setClearing(false)
   }
 
+  /** 导出 CSV：后端按当前过滤条件全量导出（上限 5 万行），浏览器触发下载 */
+  const handleExport = () => {
+    setExporting(true)
+    exportLogs(deleteKind)
+      .then(({ filename, blob }) => {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        a.click()
+        URL.revokeObjectURL(url)
+        toast.success('日志已导出')
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '导出失败'))
+      .finally(() => setExporting(false))
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{title}</h1>
-          <p className="text-muted-foreground text-sm">共 {logs.length} 条日志（已加载最近 {logs.length} 条）</p>
+          <p className="text-muted-foreground text-sm">
+            共 {logs.length} 条日志（已加载最近 {logs.length} 条）
+          </p>
         </div>
-        {hasPermission('system:log:delete') && (
-          <Button variant="outline" onClick={() => setClearing(true)} disabled={logs.length === 0}>
-            <Eraser />
-            清空日志
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {hasPermission('system:log:export') && (
+            <Button variant="outline" onClick={handleExport} disabled={exporting || logs.length === 0}>
+              <Download />
+              {exporting ? '导出中…' : '导出 CSV'}
+            </Button>
+          )}
+          {hasPermission('system:log:delete') && (
+            <Button variant="outline" onClick={() => setClearing(true)} disabled={logs.length === 0}>
+              <Eraser />
+              清空日志
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading ? (
