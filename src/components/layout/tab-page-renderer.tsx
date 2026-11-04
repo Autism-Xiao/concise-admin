@@ -1,4 +1,4 @@
-import { memo, type CSSProperties } from 'react'
+import { memo, useEffect, useState, type CSSProperties } from 'react'
 import { useLocation } from '@tanstack/react-router'
 import { useTabs } from '@/context/tabs-provider'
 import { isRegisteredPage, PAGE_REGISTRY } from '@/config/page-registry'
@@ -29,20 +29,32 @@ const TabPage = memo(function TabPage({ path, active }: TabPageProps) {
   )
 })
 
-// 多标签页渲染器：所有打开的标签页保持挂载（keep-alive），
-// 非活动标签用 display:none 隐藏，切换时保留滚动位置、表单和筛选状态；
-// 活动标签用 display:contents 保持原有布局表现
+// 多标签页渲染器：首次只挂载当前页，访问过的标签再保持挂载（keep-alive）。
+// 避免刷新时恢复的所有标签同时执行请求；非活动标签用 display:none 隐藏，
+// 切换时保留滚动位置、表单和筛选状态；活动标签用 display:contents 保持原有布局。
 export function TabPageRenderer() {
   const { tabs, nonces } = useTabs()
   const pathname = useLocation({ select: location => location.pathname })
+  const [visitedPaths, setVisitedPaths] = useState<ReadonlySet<string>>(() => new Set([pathname]))
+
+  useEffect(() => {
+    if (!isRegisteredPage(pathname)) return
+    setVisitedPaths(prev => {
+      if (prev.has(pathname)) return prev
+      const next = new Set(prev)
+      next.add(pathname)
+      return next
+    })
+  }, [pathname])
 
   const paths = tabs.map(t => t.path)
   // 路由刚切换、标签还没登记时先临时渲染当前页，避免闪烁
   if (!paths.includes(pathname) && isRegisteredPage(pathname)) paths.push(pathname)
+  const mountedPaths = paths.filter(path => path === pathname || visitedPaths.has(path))
 
   return (
     <>
-      {paths.map(path => (
+      {mountedPaths.map(path => (
         // nonce 变化 → key 变化 → 重挂载，实现「刷新当前页」
         <TabPage key={`${path}:${nonces[path] ?? 0}`} path={path} active={path === pathname} />
       ))}
