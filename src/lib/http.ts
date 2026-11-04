@@ -31,8 +31,9 @@ export async function getApiResult<T>(url: string, init?: RequestInit): Promise<
   })
   const json = (await res.json()) as ApiEnvelope<T>
   const ok = json.success ?? json.code === 0
-  if (!ok || json.result === null) {
+  if (!ok) {
     throw new Error(json.message || `请求失败: ${res.status}`)
   }
-  return json.result
+  // 删除等无返回体接口的 result 为 null，属正常成功，不能当失败处理
+  return json.result as T
 }

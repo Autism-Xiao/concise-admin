@@ -4,84 +4,176 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { Notice, NoticeStatus, NoticeType } from '../api'
+import { toast } from 'sonner'
+import { NOTICE_CATEGORY_LABEL, NOTICE_PRIORITY_LABEL, NOTICE_TARGET_LABEL, type Notice, type NoticeCategory, type NoticePriority, type NoticeTarget, type NoticeWritePayload } from '../api'
 
 interface NoticeFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   /** null 表示新增 */
   notice: Notice | null
-  onSubmit: (values: Omit<Notice, 'id' | 'publisher' | 'publishAt'>) => void
+  onSubmit: (values: NoticeWritePayload) => Promise<void>
 }
 
-const emptyForm = { title: '', type: '通知' as NoticeType, status: '草稿' as NoticeStatus, content: '' }
+/** datetime-local 需要 "YYYY-MM-DDTHH:mm"，后端返回的是 ISO，截断即用 */
+function toLocalInput(iso?: string): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
 
 /** 由父组件按 key 控制重挂载，保证打开时表单初始化为对应公告 */
 export function NoticeFormDialog({ open, onOpenChange, notice, onSubmit }: NoticeFormDialogProps) {
-  const [form, setForm] = useState(() => (notice ? { title: notice.title, type: notice.type, status: notice.status, content: notice.content } : emptyForm))
+  const [form, setForm] = useState(() => ({
+    title: notice?.title ?? '',
+    msgContent: notice?.msgContent ?? '',
+    msgCategory: (notice?.msgCategory ?? '1') as NoticeCategory,
+    priority: (notice?.priority ?? 'M') as NoticePriority,
+    msgType: (notice?.msgType ?? 'ALL') as NoticeTarget,
+    userIds: notice?.userIds ?? '',
+    startTime: toLocalInput(notice?.startTime),
+    endTime: toLocalInput(notice?.endTime),
+    /** 编辑已撤销公告时默认仍是未发布，重新发布走列表的「发布」按钮 */
+    sendStatus: (notice?.sendStatus === '1' ? '1' : '0') as '0' | '1'
+  }))
+  const [pending, setPending] = useState(false)
 
-  const set = <K extends keyof typeof emptyForm>(key: K, value: (typeof emptyForm)[K]) => setForm(prev => ({ ...prev, [key]: value }))
+  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm(prev => ({ ...prev, [key]: value }))
+
+  const submit = async () => {
+    if (!form.title.trim()) {
+      toast.error('请填写标题')
+      return
+    }
+    setPending(true)
+    try {
+      await onSubmit({
+        title: form.title.trim(),
+        msgContent: form.msgContent,
+        msgCategory: form.msgCategory,
+        priority: form.priority,
+        msgType: form.msgType,
+        userIds: form.msgType === 'USER' ? form.userIds : undefined,
+        startTime: form.startTime ? new Date(form.startTime).toISOString() : undefined,
+        endTime: form.endTime ? new Date(form.endTime).toISOString() : undefined,
+        sendStatus: form.sendStatus
+      })
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '保存失败')
+    } finally {
+      setPending(false)
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{notice ? '编辑公告' : '新增公告'}</DialogTitle>
-          <DialogDescription>{notice ? '修改公告信息后保存' : '填写信息创建新公告，发布状态会记录发布时间'}</DialogDescription>
+          <DialogDescription>{notice ? '修改后保存，状态切到已发布会自动记录发布时间' : '填写信息创建公告，选「已发布」会立即上线'}</DialogDescription>
         </DialogHeader>
         <form
           className="space-y-4"
           onSubmit={e => {
             e.preventDefault()
-            onSubmit(form)
+            void submit()
           }}
         >
           <div className="space-y-2">
             <Label htmlFor="notice-title">标题</Label>
-            <Input id="notice-title" value={form.title} onChange={e => set('title', e.target.value)} required />
+            <Input id="notice-title" maxLength={100} value={form.title} onChange={e => set('title', e.target.value)} required />
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>类型</Label>
-              <Select value={form.type} onValueChange={v => set('type', v as NoticeType)} items={{ 通知: '通知', 公告: '公告' }}>
+              <Label>消息类型</Label>
+              <Select value={form.msgCategory} onValueChange={v => set('msgCategory', v as NoticeCategory)} items={NOTICE_CATEGORY_LABEL}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="通知">通知</SelectItem>
-                  <SelectItem value="公告">公告</SelectItem>
+                  <SelectItem value="1">通知公告</SelectItem>
+                  <SelectItem value="2">系统消息</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>状态</Label>
-              <Select value={form.status} onValueChange={v => set('status', v as NoticeStatus)} items={{ 草稿: '草稿', 已发布: '已发布', 已关闭: '已关闭' }}>
+              <Label>优先级</Label>
+              <Select value={form.priority} onValueChange={v => set('priority', v as NoticePriority)} items={NOTICE_PRIORITY_LABEL}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="草稿">草稿</SelectItem>
-                  <SelectItem value="已发布">已发布</SelectItem>
-                  <SelectItem value="已关闭">已关闭</SelectItem>
+                  <SelectItem value="H">高</SelectItem>
+                  <SelectItem value="M">中</SelectItem>
+                  <SelectItem value="L">低</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>通告对象</Label>
+              <Select value={form.msgType} onValueChange={v => set('msgType', v as NoticeTarget)} items={NOTICE_TARGET_LABEL}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">全体用户</SelectItem>
+                  <SelectItem value="USER">指定用户</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>发布状态</Label>
+              <Select value={form.sendStatus} onValueChange={v => set('sendStatus', v as '0' | '1')} items={{ '0': '未发布（存草稿）', '1': '已发布' }}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">未发布（存草稿）</SelectItem>
+                  <SelectItem value="1">已发布</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
+
+          {form.msgType === 'USER' && (
+            <div className="space-y-2">
+              <Label htmlFor="notice-users">接收用户 ID</Label>
+              <Input id="notice-users" placeholder="多个用英文逗号分隔" value={form.userIds} onChange={e => set('userIds', e.target.value)} />
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="notice-start">生效开始</Label>
+              <Input id="notice-start" type="datetime-local" value={form.startTime} onChange={e => set('startTime', e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notice-end">生效结束</Label>
+              <Input id="notice-end" type="datetime-local" value={form.endTime} onChange={e => set('endTime', e.target.value)} />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="notice-content">内容</Label>
             <textarea
               id="notice-content"
-              className="border-input bg-background placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 min-h-28 w-full rounded-md border px-3 py-2 text-sm outline-none focus-visible:ring-[3px]"
-              value={form.content}
-              onChange={e => set('content', e.target.value)}
-              required
+              className="border-input bg-background placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 min-h-32 w-full rounded-md border px-3 py-2 text-sm outline-none focus-visible:ring-[3px]"
+              value={form.msgContent}
+              onChange={e => set('msgContent', e.target.value)}
+              placeholder="公告正文，支持纯文本"
             />
           </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               取消
             </Button>
-            <Button type="submit">保存</Button>
+            <Button type="submit" disabled={pending}>
+              {pending ? '保存中…' : '保存'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
