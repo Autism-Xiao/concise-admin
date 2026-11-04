@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil, Plus, Search, ShieldCheck, Trash2 } from 'lucide-react'
+import { Download, Pencil, Plus, Search, ShieldCheck, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -8,12 +8,15 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
+import { hasPermission } from '@/lib/auth'
+import { saveBlobFile } from '@/lib/download'
 import { notifyPermissionsChanged } from '@/lib/permissions'
 import { fetchMenuTree } from '@/features/system/menu/api'
 import type { MenuTreeNode } from './components/role-permission-dialog'
 import { RoleFormDialog, type RoleFormValues } from './components/role-form-dialog'
+import { RoleImportDialog } from './components/role-import-dialog'
 import { RolePermissionDialog } from './components/role-permission-dialog'
-import { createRole, deleteRole, fetchRoleMenuIds, fetchRoles, saveRoleMenus, updateRole, type Role } from './api'
+import { createRole, deleteRole, exportRoles, fetchRoleMenuIds, fetchRoles, saveRoleMenus, updateRole, type Role } from './api'
 
 const columnLabels: Record<string, string> = {
   roleCode: '权限字符',
@@ -33,6 +36,8 @@ export function RolePage() {
   /** 授权弹窗：角色 + 打开时回显的已授权 id */
   const [permRole, setPermRole] = useState<{ role: Role; menuIds: string[] } | null>(null)
   const [permSaving, setPermSaving] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -173,6 +178,18 @@ export function RolePage() {
       })
   }
 
+  /** 导出 CSV：把当前搜索关键字带给后端，导出的是筛选后的结果（不传即全量） */
+  const handleExport = () => {
+    setExporting(true)
+    exportRoles(keyword.trim())
+      .then(({ filename, blob }) => {
+        saveBlobFile(filename, blob)
+        toast.success('角色已导出')
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '导出失败'))
+      .finally(() => setExporting(false))
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -182,10 +199,24 @@ export function RolePage() {
             共 {roles.length} 个角色{permSaving && '（保存中…）'}
           </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus />
-          新增角色
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {hasPermission('system:role:export') && (
+            <Button variant="outline" onClick={handleExport} disabled={exporting || roles.length === 0}>
+              <Download />
+              {exporting ? '导出中…' : '导出'}
+            </Button>
+          )}
+          {hasPermission('system:role:import') && (
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload />
+              导入
+            </Button>
+          )}
+          <Button onClick={openCreate}>
+            <Plus />
+            新增角色
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -242,6 +273,8 @@ export function RolePage() {
         description={<>即将删除角色「{deleting?.roleName ?? deleting?.roleCode}」，该操作不可恢复。</>}
         onConfirm={handleDelete}
       />
+
+      {importOpen && <RoleImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={load} />}
     </div>
   )
 }
