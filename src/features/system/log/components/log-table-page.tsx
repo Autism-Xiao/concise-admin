@@ -11,10 +11,10 @@ import { hasPermission } from '@/lib/auth'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
-import type { LogStatus } from '../api'
+import { deleteLogs, type LogStatus } from '../api'
 
 interface BaseLog {
-  id: number
+  id: string
   user: string
   ip: string
   time: string
@@ -24,8 +24,10 @@ interface BaseLog {
 interface LogTablePageProps<T extends BaseLog> {
   title: string
   searchPlaceholder: string
-  /** 加载数据（mock API） */
+  /** 加载数据（真实后端） */
   fetcher: () => Promise<T[]>
+  /** 删除端点类型：login 登录日志 / oper 操作日志 */
+  deleteKind: 'login' | 'oper'
   /** 插入在「用户」和「IP 地址」之间的业务列 */
   extraColumns: ColumnDef<T>[]
   /** 额外列的列显示名（用于列显示开关） */
@@ -40,8 +42,8 @@ const baseColumnLabels: Record<string, string> = {
   status: '状态'
 }
 
-/** 日志页通用骨架：搜索 + 状态筛选 + 表格 + 单条删除/清空，数据经 mock API 加载 */
-export function LogTablePage<T extends BaseLog>({ title, searchPlaceholder, fetcher, extraColumns, extraColumnLabels }: LogTablePageProps<T>) {
+/** 日志页通用骨架：搜索 + 状态筛选 + 表格 + 单条删除/清空（真实后端批量删除接口） */
+export function LogTablePage<T extends BaseLog>({ title, searchPlaceholder, fetcher, deleteKind, extraColumns, extraColumnLabels }: LogTablePageProps<T>) {
   const [list, setList] = useState<T[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -61,6 +63,14 @@ export function LogTablePage<T extends BaseLog>({ title, searchPlaceholder, fetc
   useEffect(load, [fetcher])
 
   const logs = useMemo(() => list ?? [], [list])
+
+  const removeIds = (ids: string[]) =>
+    deleteLogs(deleteKind, ids)
+      .then(() => {
+        toast.success(`已删除 ${ids.length} 条日志`)
+        load()
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '删除失败'))
 
   const columns = useMemo<ColumnDef<T>[]>(
     () => [
@@ -117,14 +127,12 @@ export function LogTablePage<T extends BaseLog>({ title, searchPlaceholder, fetc
 
   const handleDelete = () => {
     if (!deleting) return
-    setList(prev => (prev ?? []).filter(l => l.id !== deleting.id))
-    toast.success(`已删除日志 #${deleting.id}`)
+    removeIds([deleting.id])
     setDeleting(null)
   }
 
   const handleClear = () => {
-    setList([])
-    toast.success('已清空全部日志')
+    removeIds(logs.map(l => l.id))
     setClearing(false)
   }
 
@@ -133,7 +141,7 @@ export function LogTablePage<T extends BaseLog>({ title, searchPlaceholder, fetc
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{title}</h1>
-          <p className="text-muted-foreground text-sm">共 {logs.length} 条日志（mock 数据）</p>
+          <p className="text-muted-foreground text-sm">共 {logs.length} 条日志（已加载最近 {logs.length} 条）</p>
         </div>
         {hasPermission('system:log:delete') && (
           <Button variant="outline" onClick={() => setClearing(true)} disabled={logs.length === 0}>

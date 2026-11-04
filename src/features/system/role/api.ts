@@ -14,21 +14,24 @@ export interface Role {
   permissions?: Array<{ id: string }>
 }
 
-/* ---------- 角色增删改查（旧路由 /api/roles，暂保留） ---------- */
+/* ---------- 角色增删改查（/api/v1/roles） ---------- */
 
-export function fetchRoles(): Promise<Role[]> {
-  return getApiResult<Role[]>('/backend-api/roles')
+/** 角色列表（全量不分页，含已授权菜单；keyword 模糊匹配名称/编码） */
+export function fetchRoles(keyword = ''): Promise<Role[]> {
+  const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
+  return getApiResult<Role[]>(`/backend-api/v1/roles${qs}`)
 }
 
 export interface RoleWritePayload {
   roleName?: string
   roleCode?: string
   description?: string
+  /** 传入即全量覆盖授权（创建/更新都支持） */
   menuIds?: string[]
 }
 
 export function createRole(payload: RoleWritePayload): Promise<Role> {
-  return getApiResult<Role>('/backend-api/roles', {
+  return getApiResult<Role>('/backend-api/v1/roles', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -36,7 +39,7 @@ export function createRole(payload: RoleWritePayload): Promise<Role> {
 }
 
 export function updateRole(id: string, payload: RoleWritePayload): Promise<Role> {
-  return getApiResult<Role>(`/backend-api/roles/${id}`, {
+  return getApiResult<Role>(`/backend-api/v1/roles/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -44,7 +47,7 @@ export function updateRole(id: string, payload: RoleWritePayload): Promise<Role>
 }
 
 export function deleteRole(id: string): Promise<void> {
-  return getApiResult<null>(`/backend-api/roles/${id}`, { method: 'DELETE' })
+  return getApiResult<null>(`/backend-api/v1/roles/${id}`, { method: 'DELETE' }).then(() => undefined)
 }
 
 /* ---------- 角色授权（v1） ---------- */

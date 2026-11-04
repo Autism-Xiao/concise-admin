@@ -7,8 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
-import { DeptFormDialog, type DeptFormValues } from './components/dept-form-dialog'
-import { fetchDepts, saveDepts, type Dept } from './api'
+import { DeptFormDialog } from './components/dept-form-dialog'
+import { createDept, deleteDept, fetchDepts, updateDept, type Dept, type DeptWritePayload } from './api'
 import { withOperationLog } from '@/features/system/log/api'
 
 interface DeptNode extends Dept {
@@ -17,9 +17,9 @@ interface DeptNode extends Dept {
 
 type DropMode = 'before' | 'into' | 'after'
 
-/** 由 parentId 构建树，同级按 sort 排序 */
+/** 由 parentId 构建树，同级按 departOrder 排序 */
 function buildTree(depts: Dept[]): DeptNode[] {
-  const nodes = new Map<number, DeptNode>(depts.map(d => [d.id, { ...d, children: [] }]))
+  const nodes = new Map<string, DeptNode>(depts.map(d => [d.id, { ...d, children: [] }]))
   const roots: DeptNode[] = []
   for (const d of depts) {
     const node = nodes.get(d.id)
@@ -32,7 +32,7 @@ function buildTree(depts: Dept[]): DeptNode[] {
     }
   }
   const sortRecursive = (list: DeptNode[]) => {
-    list.sort((a, b) => a.sort - b.sort)
+    list.sort((a, b) => a.departOrder - b.departOrder)
     list.forEach(n => sortRecursive(n.children))
   }
   sortRecursive(roots)
@@ -40,8 +40,8 @@ function buildTree(depts: Dept[]): DeptNode[] {
 }
 
 /** 收集某部门及其全部后代的 id（含自身） */
-function collectSubtreeIds(id: number, depts: Dept[]): Set<number> {
-  const ids = new Set<number>([id])
+function collectSubtreeIds(id: string, depts: Dept[]): Set<string> {
+  const ids = new Set<string>([id])
   let changed = true
   while (changed) {
     changed = false
@@ -61,12 +61,12 @@ export function DeptPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [keyword, setKeyword] = useState('')
-  const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
-  const [dragId, setDragId] = useState<number | null>(null)
-  const [dropHint, setDropHint] = useState<{ id: number; mode: DropMode } | null>(null)
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [dropHint, setDropHint] = useState<{ id: string; mode: DropMode } | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Dept | null>(null)
-  const [createParentId, setCreateParentId] = useState<number | null>(null)
+  const [createParentId, setCreateParentId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<Dept | null>(null)
 
   const load = () => {
@@ -82,20 +82,7 @@ export function DeptPage() {
 
   const depts = useMemo(() => list ?? [], [list])
 
-  /** 乐观更新 + 写回 depts.json，失败回退重新加载；操作记入操作日志 */
-  const persist = (next: Dept[], successMsg: string) => {
-    setList(next)
-    setSaving(true)
-    withOperationLog(successMsg, () => saveDepts(next))
-      .then(() => toast.success(successMsg))
-      .catch(() => {
-        toast.error('写入 depts.json 失败，已重新加载')
-        load()
-      })
-      .finally(() => setSaving(false))
-  }
-
-  const openCreate = (parentId: number | null) => {
+  const openCreate = (parentId: string | null) => {
     setEditing(null)
     setCreateParentId(parentId)
     setFormOpen(true)
@@ -106,27 +93,27 @@ export function DeptPage() {
     setFormOpen(true)
   }
 
-  const handleSubmit = (values: DeptFormValues) => {
-    if (editing) {
-      persist(
-        depts.map(d => (d.id === editing.id ? { ...d, ...values } : d)),
-        '部门已更新'
-      )
-    } else {
-      const id = depts.length ? Math.max(...depts.map(d => d.id)) + 1 : 1
-      persist([{ ...values, id }, ...depts], '部门已创建')
-    }
-    setFormOpen(false)
+  const handleSubmit = (values: DeptWritePayload) => {
+    const request = editing
+      ? withOperationLog('更新部门', () => updateDept(editing.id, values))
+      : withOperationLog('新增部门', () => createDept({ ...values, parentId: values.parentId ?? createParentId }))
+    request
+      .then(() => {
+        toast.success(editing ? '部门已更新' : '部门已创建')
+        setFormOpen(false)
+        load()
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '保存失败'))
   }
 
   const handleDelete = () => {
     if (!deleting) return
-    // 连同下级部门一起删除
-    const ids = collectSubtreeIds(deleting.id, depts)
-    persist(
-      depts.filter(d => !ids.has(d.id)),
-      ids.size > 1 ? `已删除部门「${deleting.name}」及其 ${ids.size - 1} 个下级部门` : `已删除部门「${deleting.name}」`
-    )
+    withOperationLog(`删除部门「${deleting.departName}」`, () => deleteDept(deleting.id))
+      .then(() => {
+        toast.success(`已删除部门「${deleting.departName}」`)
+        load()
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '删除失败（有子部门或挂用户时会被拒绝）'))
     setDeleting(null)
   }
 
@@ -135,10 +122,12 @@ export function DeptPage() {
   const filtering = keyword.trim() !== ''
   const flatList = useMemo(() => {
     const kw = keyword.trim().toLowerCase()
-    return depts.filter(d => !kw || d.name.toLowerCase().includes(kw) || d.leader.toLowerCase().includes(kw)).sort((a, b) => a.sort - b.sort)
+    return depts
+      .filter(d => !kw || d.departName.toLowerCase().includes(kw) || (d.description ?? '').toLowerCase().includes(kw))
+      .sort((a, b) => a.departOrder - b.departOrder)
   }, [depts, keyword])
 
-  const toggle = (id: number) =>
+  const toggle = (id: string) =>
     setCollapsed(prev => {
       const next = new Set(prev)
       if (next.has(id)) {
@@ -157,8 +146,8 @@ export function DeptPage() {
     return 'into'
   }
 
-  /** 拖拽落点：into=成为子部门，before/after=同级排序；落点后的 sort 会按同级顺序重排 */
-  const handleDrop = (targetId: number, mode: DropMode) => {
+  /** 拖拽落点：into=成为子部门，before/after=同级排序；只把 parentId/departOrder 变化的节点提交后端 */
+  const handleDrop = (targetId: string, mode: DropMode) => {
     const sourceId = dragId
     setDragId(null)
     setDropHint(null)
@@ -168,7 +157,7 @@ export function DeptPage() {
       return
     }
 
-    const nodeMap = new Map<number, DeptNode>(depts.map(d => [d.id, { ...d, children: [] }]))
+    const nodeMap = new Map<string, DeptNode>(depts.map(d => [d.id, { ...d, children: [] }]))
     const roots: DeptNode[] = []
     for (const d of depts) {
       const node = nodeMap.get(d.id)
@@ -206,16 +195,36 @@ export function DeptPage() {
       insertInto(roots)
     }
 
-    // 展平回平铺数组，按同级顺序重排 sort
+    // 展平回平铺数组，按同级顺序重排 departOrder
     const next: Dept[] = []
-    const walk = (nodes: DeptNode[], parentId: number | null) => {
+    const walk = (nodes: DeptNode[], parentId: string | null) => {
       nodes.forEach((n, i) => {
-        next.push({ id: n.id, name: n.name, leader: n.leader, sort: i + 1, parentId })
+        next.push({ id: n.id, parentId, departName: n.departName, departOrder: i + 1, orgCode: n.orgCode, description: n.description, status: n.status })
         walk(n.children, n.id)
       })
     }
     walk(roots, null)
-    persist(next, '部门结构已调整')
+
+    // 只提交 parentId / departOrder 发生变化的节点（换父由后端防环并同步 orgCode）
+    const changed = next.filter(n => {
+      const old = depts.find(d => d.id === n.id)
+      return old && (old.parentId !== n.parentId || old.departOrder !== n.departOrder)
+    })
+    if (!changed.length) return
+
+    setList(next)
+    setSaving(true)
+    withOperationLog('部门结构已调整', () =>
+      Promise.all(
+        changed.map(n => updateDept(n.id, { departName: n.departName, parentId: n.parentId, departOrder: n.departOrder, description: n.description ?? null }))
+      )
+    )
+      .then(() => toast.success('部门结构已调整'))
+      .catch(e => {
+        toast.error(e instanceof Error ? e.message : '保存失败，已重新加载')
+        load()
+      })
+      .finally(() => setSaving(false))
   }
 
   const renderRows = (nodes: DeptNode[], depth: number): ReactNode[] =>
@@ -265,11 +274,13 @@ export function DeptPage() {
               ) : (
                 <span className="size-6" />
               )}
-              <span className="font-medium">{node.name}</span>
+              <span className="font-medium">{node.departName}</span>
             </div>
           </TableCell>
-          <TableCell>{node.leader}</TableCell>
-          <TableCell>{node.sort}</TableCell>
+          <TableCell>
+            <span className="font-mono text-xs">{node.orgCode ?? '-'}</span>
+          </TableCell>
+          <TableCell className="w-20">{node.departOrder}</TableCell>
           <TableCell className="text-end">
             <Button variant="ghost" size="icon" title="新增子部门" onClick={() => openCreate(node.id)}>
               <Plus className="size-4" />
@@ -326,7 +337,7 @@ export function DeptPage() {
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative w-full max-w-xs">
                 <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
-                <Input placeholder="搜索部门 / 负责人" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
+                <Input placeholder="搜索部门 / 描述" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
               </div>
             </div>
 
@@ -334,7 +345,7 @@ export function DeptPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>部门名称</TableHead>
-                  <TableHead className="w-40">负责人</TableHead>
+                  <TableHead className="w-40">部门编码</TableHead>
                   <TableHead className="w-20">排序</TableHead>
                   <TableHead className="w-36 text-end">操作</TableHead>
                 </TableRow>
@@ -371,7 +382,7 @@ export function DeptPage() {
       <ConfirmDeleteDialog
         open={!!deleting}
         onOpenChange={v => !v && setDeleting(null)}
-        description={<>即将删除部门「{deleting?.name}」及其所有下级部门，该操作不可恢复。</>}
+        description={<>即将删除部门「{deleting?.departName}」。存在子部门或部门下仍有用户时后端会拒绝删除；删除为软删除。</>}
         onConfirm={handleDelete}
       />
 

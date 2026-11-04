@@ -16,24 +16,30 @@ import {
 import { useLocale } from '@/context/locale-provider'
 import { getName, getRoleCode, getUsername, logout, setRoleCode } from '@/lib/auth'
 import { notifyPermissionsChanged } from '@/lib/permissions'
-import type { Role } from '@/features/system/role/api'
+
+/** 旧 mock 角色结构（/mock/roles.json），仅用于"切换角色"演示 */
+interface MockRole {
+  code: string
+  name: string
+  status: string
+}
 
 export function ProfileDropdown() {
   const navigate = useNavigate()
   const { t } = useLocale()
-  const [roles, setRoles] = useState<Role[]>([])
+  const [roles, setRoles] = useState<MockRole[]>([])
   const [roleCode, setCurrentRole] = useState(getRoleCode())
 
   useEffect(() => {
     fetch('/mock/roles.json')
-      .then(r => r.json() as Promise<Role[]>)
+      .then(r => r.json() as Promise<MockRole[]>)
       .then(setRoles)
       .catch(() => {
         // 角色列表加载失败时不展示切换项
       })
   }, [])
 
-  const switchRole = (role: Role) => {
+  const switchRole = (role: MockRole) => {
     setRoleCode(role.code)
     setCurrentRole(role.code)
     notifyPermissionsChanged()

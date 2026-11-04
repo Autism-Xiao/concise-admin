@@ -23,7 +23,8 @@ export interface User {
 }
 
 export interface UserWritePayload {
-  username: string
+  /** 新增必填；编辑时后端不可改，不下发 */
+  username?: string
   realname?: string
   /** 新增必填；编辑不传表示不改密码 */
   password?: string
@@ -76,9 +77,9 @@ export function deleteUser(id: string): Promise<unknown> {
 export { fetchRoles }
 export type { Role }
 
-/** 后端部门列表（sys_depart，字符串 id；dept 管理页还是 mock，这里直连后端） */
+/** 后端部门列表（/api/v1/depts 扁平结构，供用户表单部门下拉使用） */
 export function fetchBackendDepts(): Promise<Array<{ id: string; departName: string; parentId?: string | null }>> {
-  return getApiResult<Array<{ id: string; departName: string; parentId?: string | null }>>('/backend-api/depts')
+  return getApiResult<Array<{ id: string; departName: string; parentId?: string | null }>>('/backend-api/v1/depts')
 }
 
 /** 新增用户的默认初始密码（创建后应引导用户自行修改） */

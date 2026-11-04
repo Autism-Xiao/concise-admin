@@ -38,6 +38,7 @@ export function LoginLogPage() {
       title="登录日志"
       searchPlaceholder="搜索用户 / IP / 地点"
       fetcher={fetchLoginLogs}
+      deleteKind="login"
       extraColumns={extraColumns}
       extraColumnLabels={extraColumnLabels}
     />

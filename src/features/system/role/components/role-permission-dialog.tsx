@@ -3,7 +3,7 @@ import { ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
-/** 后端菜单树节点（GET /api/menus/tree，含按钮节点） */
+/** 后端菜单树节点（GET /api/v1/menus/tree，含按钮节点） */
 export interface MenuTreeNode {
   id: string
   parentId?: string | null
@@ -12,16 +12,16 @@ export interface MenuTreeNode {
   /** 0 目录 / 1 菜单 / 2 按钮权限 */
   menuType?: number
   status?: string
-  children: MenuTreeNode[]
+  children?: MenuTreeNode[]
 }
 
 function collectIds(node: MenuTreeNode): string[] {
-  return [node.id, ...node.children.flatMap(collectIds)]
+  return [node.id, ...(node.children ?? []).flatMap(collectIds)]
 }
 
 /** 全部叶子 id 总数（按钮也算一项） */
 function countAll(nodes: MenuTreeNode[]): number {
-  return nodes.reduce((n, node) => n + 1 + countAll(node.children), 0)
+  return nodes.reduce((n, node) => n + 1 + countAll(node.children ?? []), 0)
 }
 
 interface RolePermissionDialogProps {
@@ -71,7 +71,7 @@ export function RolePermissionDialog({ open, onOpenChange, role, tree, checkedId
       const checkedCount = ids.filter(id => checked.has(id)).length
       const allChecked = checkedCount === ids.length
       const someChecked = checkedCount > 0 && !allChecked
-      const hasChildren = node.children.length > 0
+      const hasChildren = (node.children?.length ?? 0) > 0
       const isCollapsed = collapsed.has(node.id)
       const isButton = node.menuType === 2
       const row = (
@@ -103,7 +103,7 @@ export function RolePermissionDialog({ open, onOpenChange, role, tree, checkedId
           )}
         </div>
       )
-      return isCollapsed || !hasChildren ? [row] : [row, ...renderNodes(node.children, depth + 1)]
+      return isCollapsed || !hasChildren ? [row] : [row, ...renderNodes(node.children ?? [], depth + 1)]
     })
 
   return (

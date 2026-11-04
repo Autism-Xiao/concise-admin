@@ -26,6 +26,7 @@ export function OperationLogPage() {
       title="操作日志"
       searchPlaceholder="搜索用户 / 操作类型 / IP"
       fetcher={fetchOperationLogs}
+      deleteKind="oper"
       extraColumns={extraColumns}
       extraColumnLabels={extraColumnLabels}
     />

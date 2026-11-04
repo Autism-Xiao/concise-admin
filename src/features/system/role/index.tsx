@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { notifyPermissionsChanged } from '@/lib/permissions'
-import { getApiResult } from '@/lib/http'
+import { fetchMenuTree } from '@/features/system/menu/api'
 import type { MenuTreeNode } from './components/role-permission-dialog'
 import { RoleFormDialog, type RoleFormValues } from './components/role-form-dialog'
 import { RolePermissionDialog } from './components/role-permission-dialog'
@@ -38,7 +38,7 @@ export function RolePage() {
     setLoading(true)
     setError(null)
     // 菜单树加载失败不阻塞列表（授权弹窗会提示重试）
-    Promise.all([fetchRoles(), getApiResult<MenuTreeNode[]>('/backend-api/menus/tree').catch(() => [])])
+    Promise.all([fetchRoles(), fetchMenuTree().catch(() => [] as MenuTreeNode[])])
       .then(([roleList, tree]) => {
         setList(roleList)
         setMenuTree(tree)
@@ -111,7 +111,9 @@ export function RolePage() {
         enableHiding: false,
         cell: ({ row }) => (
           <div className="text-end">
-            <Button variant="ghost" size="icon" title="分配权限" onClick={() => openPerm(row.original)}>              <ShieldCheck className="size-4" />
+            <Button variant="ghost" size="icon" title="分配权限" onClick={() => openPerm(row.original)}>
+              {' '}
+              <ShieldCheck className="size-4" />
               <span className="sr-only">分配权限</span>
             </Button>
             <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
@@ -176,7 +178,9 @@ export function RolePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">角色权限</h1>
-          <p className="text-muted-foreground text-sm">共 {roles.length} 个角色{permSaving && '（保存中…）'}</p>
+          <p className="text-muted-foreground text-sm">
+            共 {roles.length} 个角色{permSaving && '（保存中…）'}
+          </p>
         </div>
         <Button onClick={openCreate}>
           <Plus />

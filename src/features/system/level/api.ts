@@ -1,28 +1,48 @@
-import { getJson } from '@/lib/http'
+import { getApiResult } from '@/lib/http'
 
-export type LevelStatus = '正常' | '停用'
-
+/** 后端职级（level_rank 降序 = 级别从高到低） */
 export interface Level {
-  id: number
+  id: string
   /** 职级名称，如 P6 / M1 */
-  name: string
-  /** 等级排序，数字越大级别越高 */
-  rank: number
-  status: LevelStatus
-  remark: string
+  levelName: string
+  /** 数字越大级别越高 */
+  levelRank: number
+  /** '1' 正常 / '0' 停用 */
+  status: string
+  remark?: string | null
+  createTime?: string
 }
 
-// 开发环境走 public/mock 下的静态 JSON；接真实后端时改这里即可
-export function fetchLevels(): Promise<Level[]> {
-  return getJson<Level[]>('/mock/levels.json')
+export interface LevelWritePayload {
+  levelName: string
+  levelRank: number
+  status?: string
+  remark?: string | null
 }
 
-// 开发环境由 vite 中间件写入 public/mock/levels.json；生产环境换成真实接口
-export async function saveLevels(levels: Level[]): Promise<void> {
-  const res = await fetch('/api/levels', {
+/** 职级列表（keyword 模糊匹配名称/备注） */
+export function fetchLevels(keyword = ''): Promise<Level[]> {
+  const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
+  return getApiResult<Level[]>(`/backend-api/v1/levels${qs}`)
+}
+
+export function createLevel(payload: LevelWritePayload): Promise<Level> {
+  return getApiResult<Level>('/backend-api/v1/levels', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(levels)
+    body: JSON.stringify(payload)
   })
-  if (!res.ok) throw new Error('保存失败')
+}
+
+export function updateLevel(id: string, payload: LevelWritePayload): Promise<Level> {
+  return getApiResult<Level>(`/backend-api/v1/levels/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+}
+
+/** 删除职级（硬删，暂无关联数据） */
+export function deleteLevel(id: string): Promise<void> {
+  return getApiResult<null>(`/backend-api/v1/levels/${id}`, { method: 'DELETE' }).then(() => undefined)
 }
