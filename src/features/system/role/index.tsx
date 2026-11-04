@@ -5,46 +5,43 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
-import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { notifyPermissionsChanged } from '@/lib/permissions'
-import { fetchMenus, type Menu } from '../menu/api'
-import { RoleFormDialog } from './components/role-form-dialog'
+import { getApiResult } from '@/lib/http'
+import type { MenuTreeNode } from './components/role-permission-dialog'
+import { RoleFormDialog, type RoleFormValues } from './components/role-form-dialog'
 import { RolePermissionDialog } from './components/role-permission-dialog'
-import { fetchRoles, saveRoles, type Role } from './api'
-import { withOperationLog } from '@/features/system/log/api'
+import { createRole, deleteRole, fetchRoleMenuIds, fetchRoles, saveRoleMenus, updateRole, type Role } from './api'
 
 const columnLabels: Record<string, string> = {
-  id: 'ID',
-  name: '角色名称',
-  code: '权限字符',
-  userCount: '用户数',
-  createdAt: '创建时间',
-  status: '状态'
+  roleCode: '权限字符',
+  roleName: '角色名称',
+  description: '描述',
+  createTime: '创建时间'
 }
 
 export function RolePage() {
   const [list, setList] = useState<Role[] | null>(null)
-  const [menus, setMenus] = useState<Menu[]>([])
+  const [menuTree, setMenuTree] = useState<MenuTreeNode[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [statusFilter, setStatusFilter] = useState('all')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Role | null>(null)
   const [deleting, setDeleting] = useState<Role | null>(null)
-  const [permRole, setPermRole] = useState<Role | null>(null)
+  /** 授权弹窗：角色 + 打开时回显的已授权 id */
+  const [permRole, setPermRole] = useState<{ role: Role; menuIds: string[] } | null>(null)
+  const [permSaving, setPermSaving] = useState(false)
 
   const load = () => {
     setLoading(true)
     setError(null)
-    Promise.all([fetchRoles(), fetchMenus()])
-      .then(([roleList, menuList]) => {
+    // 菜单树加载失败不阻塞列表（授权弹窗会提示重试）
+    Promise.all([fetchRoles(), getApiResult<MenuTreeNode[]>('/backend-api/menus/tree').catch(() => [])])
+      .then(([roleList, tree]) => {
         setList(roleList)
-        setMenus(menuList)
+        setMenuTree(tree)
       })
       .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
       .finally(() => setLoading(false))
@@ -53,23 +50,6 @@ export function RolePage() {
   useEffect(load, [])
 
   const roles = useMemo(() => list ?? [], [list])
-
-  /** 乐观更新 + 写回 roles.json，失败回退重新加载；操作记入操作日志 */
-  const persist = (next: Role[], successMsg: string) => {
-    setList(next)
-    setSaving(true)
-    withOperationLog(successMsg, () => saveRoles(next))
-      .then(() => {
-        toast.success(successMsg)
-        // 角色权限可能变化，通知侧边栏重新计算可见菜单
-        notifyPermissionsChanged()
-      })
-      .catch(() => {
-        toast.error('写入 roles.json 失败，已重新加载')
-        load()
-      })
-      .finally(() => setSaving(false))
-  }
 
   const openCreate = () => {
     setEditing(null)
@@ -81,38 +61,48 @@ export function RolePage() {
     setFormOpen(true)
   }
 
+  /** 打开授权弹窗：先拉角色当前已授权 id 用于回显 */
+  const openPerm = (role: Role) => {
+    setPermRole({ role, menuIds: [] })
+    fetchRoleMenuIds(role.id)
+      .then(menuIds => setPermRole({ role, menuIds }))
+      .catch(e => {
+        toast.error(e instanceof Error ? e.message : '加载角色权限失败')
+        setPermRole(null)
+      })
+  }
+
   const columns = useMemo<ColumnDef<Role>[]>(
     () => [
       {
-        accessorKey: 'id',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />
-      },
-      {
-        accessorKey: 'name',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="角色名称" />,
-        cell: ({ row }) => <span className="font-medium">{row.getValue('name')}</span>
-      },
-      {
-        accessorKey: 'code',
+        accessorKey: 'roleCode',
         header: ({ column }) => <DataTableColumnHeader column={column} title="权限字符" />,
-        cell: ({ row }) => <span className="font-mono text-xs">{row.getValue('code')}</span>
+        cell: ({ row }) => <span className="font-mono text-xs">{row.getValue('roleCode')}</span>
       },
       {
-        accessorKey: 'userCount',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="用户数" />
+        accessorKey: 'roleName',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="角色名称" />,
+        cell: ({ row }) => <span className="font-medium">{row.getValue('roleName') ?? '-'}</span>
       },
       {
-        accessorKey: 'createdAt',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="创建时间" />
+        accessorKey: 'description',
+        header: '描述',
+        enableSorting: false,
+        cell: ({ row }) => <span className="text-muted-foreground">{row.getValue('description') ?? '-'}</span>
       },
       {
-        accessorKey: 'status',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="状态" />,
+        accessorKey: 'createTime',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="创建时间" />,
         cell: ({ row }) => {
-          const status = row.getValue<Role['status']>('status')
-          return <StatusBadge ok={status === '正常'} label={status} />
-        },
-        filterFn: (row, id, value) => row.getValue(id) === value
+          const v = row.getValue<string | undefined>('createTime')
+          return <span className="font-mono text-xs">{v ? String(v).slice(0, 19).replace('T', ' ') : '-'}</span>
+        }
+      },
+      {
+        id: 'permCount',
+        header: () => <div>已授权</div>,
+        enableSorting: false,
+        cell: ({ row }) => <span>{row.original.permissions?.length ?? 0} 项</span>
       },
       {
         id: 'actions',
@@ -121,8 +111,7 @@ export function RolePage() {
         enableHiding: false,
         cell: ({ row }) => (
           <div className="text-end">
-            <Button variant="ghost" size="icon" title="分配权限" onClick={() => setPermRole(row.original)}>
-              <ShieldCheck className="size-4" />
+            <Button variant="ghost" size="icon" title="分配权限" onClick={() => openPerm(row.original)}>              <ShieldCheck className="size-4" />
               <span className="sr-only">分配权限</span>
             </Button>
             <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
@@ -140,37 +129,46 @@ export function RolePage() {
     []
   )
 
-  const columnFilters = useMemo(() => (statusFilter === 'all' ? [] : [{ id: 'status', value: statusFilter }]), [statusFilter])
-  const { table, keyword, setKeyword } = useDataTable({ data: roles, columns, columnFilters })
+  const { table, keyword, setKeyword } = useDataTable({ data: roles, columns })
 
-  const handleSubmit = (values: Pick<Role, 'name' | 'code' | 'status'>) => {
-    if (editing) {
-      persist(
-        roles.map(r => (r.id === editing.id ? { ...r, ...values } : r)),
-        '角色已更新'
-      )
-    } else {
-      const id = roles.length ? Math.max(...roles.map(r => r.id)) + 1 : 1
-      persist([{ ...values, id, userCount: 0, createdAt: new Date().toISOString().slice(0, 10), menus: [] }, ...roles], '角色已创建')
-    }
-    setFormOpen(false)
+  const handleSubmit = (values: RoleFormValues) => {
+    const req = editing ? updateRole(editing.id, values) : createRole(values)
+    req
+      .then(() => {
+        toast.success(editing ? '角色已更新' : '角色已创建')
+        setFormOpen(false)
+        load()
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '保存失败'))
   }
 
-  const handlePermissionSubmit = (menuIds: number[]) => {
+  const handlePermissionSubmit = (menuIds: string[]) => {
     if (!permRole) return
-    persist(
-      roles.map(r => (r.id === permRole.id ? { ...r, menus: menuIds } : r)),
-      `已更新角色「${permRole.name}」的菜单权限`
-    )
+    setPermSaving(true)
+    saveRoleMenus(permRole.role.id, menuIds)
+      .then(() => {
+        toast.success(`已更新角色「${permRole.role.roleName ?? permRole.role.roleCode}」的权限，相关用户重新登录后生效`)
+        // 角色权限可能变化，通知侧边栏重新计算可见菜单
+        notifyPermissionsChanged()
+        setPermRole(null)
+        load()
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '保存失败'))
+      .finally(() => setPermSaving(false))
   }
 
   const handleDelete = () => {
     if (!deleting) return
-    persist(
-      roles.filter(r => r.id !== deleting.id),
-      `已删除角色「${deleting.name}」`
-    )
-    setDeleting(null)
+    deleteRole(deleting.id)
+      .then(() => {
+        toast.success(`已删除角色「${deleting.roleName ?? deleting.roleCode}」`)
+        setDeleting(null)
+        load()
+      })
+      .catch(e => {
+        toast.error(e instanceof Error ? e.message : '删除失败')
+        setDeleting(null)
+      })
   }
 
   return (
@@ -178,9 +176,7 @@ export function RolePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">角色权限</h1>
-          <p className="text-muted-foreground text-sm">
-            共 {roles.length} 个角色（mock 数据）{saving && '（保存中…）'}
-          </p>
+          <p className="text-muted-foreground text-sm">共 {roles.length} 个角色{permSaving && '（保存中…）'}</p>
         </div>
         <Button onClick={openCreate}>
           <Plus />
@@ -212,16 +208,6 @@ export function RolePage() {
                 <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
                 <Input placeholder="搜索名称 / 权限字符" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter} items={{ all: '全部状态', 正常: '正常', 停用: '停用' }}>
-                <SelectTrigger className="h-9 w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部状态</SelectItem>
-                  <SelectItem value="正常">正常</SelectItem>
-                  <SelectItem value="停用">停用</SelectItem>
-                </SelectContent>
-              </Select>
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 
@@ -235,11 +221,13 @@ export function RolePage() {
 
       {permRole && (
         <RolePermissionDialog
-          key={permRole.id}
+          key={permRole.role.id}
           open={!!permRole}
           onOpenChange={v => !v && setPermRole(null)}
-          role={permRole}
-          menus={menus}
+          role={permRole.role}
+          tree={menuTree}
+          checkedIds={permRole.menuIds}
+          saving={permSaving}
           onSubmit={handlePermissionSubmit}
         />
       )}
@@ -247,7 +235,7 @@ export function RolePage() {
       <ConfirmDeleteDialog
         open={!!deleting}
         onOpenChange={v => !v && setDeleting(null)}
-        description={<>即将删除角色「{deleting?.name}」，该操作不可恢复。</>}
+        description={<>即将删除角色「{deleting?.roleName ?? deleting?.roleCode}」，该操作不可恢复。</>}
         onConfirm={handleDelete}
       />
     </div>

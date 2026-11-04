@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
+import { hasPermission } from '@/lib/auth'
 import { UserFormDialog } from './components/user-form-dialog'
 import { createAccountFor, deleteAccountFor, fetchUsers, saveUsers, updateAccountFor, type User, type UserStatus } from './api'
 import { withOperationLog } from '@/features/system/log/api'
@@ -112,14 +113,18 @@ export function UsersPage() {
         enableHiding: false,
         cell: ({ row }) => (
           <div className="text-end">
-            <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
-              <Pencil className="size-4" />
-              <span className="sr-only">编辑</span>
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setDeleting(row.original)}>
-              <Trash2 className="text-destructive size-4" />
-              <span className="sr-only">删除</span>
-            </Button>
+            {hasPermission('system:user:edit') && (
+              <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
+                <Pencil className="size-4" />
+                <span className="sr-only">编辑</span>
+              </Button>
+            )}
+            {hasPermission('system:user:delete') && (
+              <Button variant="ghost" size="icon" onClick={() => setDeleting(row.original)}>
+                <Trash2 className="text-destructive size-4" />
+                <span className="sr-only">删除</span>
+              </Button>
+            )}
           </div>
         )
       }
@@ -178,10 +183,12 @@ export function UsersPage() {
           <h1 className="text-2xl font-bold">用户管理</h1>
           <p className="text-muted-foreground text-sm">共 {users.length} 个用户（mock 数据）</p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus />
-          新增用户
-        </Button>
+        {hasPermission('system:user:add') && (
+          <Button onClick={openCreate}>
+            <Plus />
+            新增用户
+          </Button>
+        )}
       </div>
 
       {loading ? (

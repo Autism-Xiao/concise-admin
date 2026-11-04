@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { hasPermission } from '@/lib/auth'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
@@ -97,10 +98,12 @@ export function LogTablePage<T extends BaseLog>({ title, searchPlaceholder, fetc
         enableHiding: false,
         cell: ({ row }) => (
           <div className="text-end">
-            <Button variant="ghost" size="icon" onClick={() => setDeleting(row.original)}>
-              <Trash2 className="text-destructive size-4" />
-              <span className="sr-only">删除</span>
-            </Button>
+            {hasPermission('system:log:delete') && (
+              <Button variant="ghost" size="icon" onClick={() => setDeleting(row.original)}>
+                <Trash2 className="text-destructive size-4" />
+                <span className="sr-only">删除</span>
+              </Button>
+            )}
           </div>
         )
       }
@@ -132,10 +135,12 @@ export function LogTablePage<T extends BaseLog>({ title, searchPlaceholder, fetc
           <h1 className="text-2xl font-bold">{title}</h1>
           <p className="text-muted-foreground text-sm">共 {logs.length} 条日志（mock 数据）</p>
         </div>
-        <Button variant="outline" onClick={() => setClearing(true)} disabled={logs.length === 0}>
-          <Eraser />
-          清空日志
-        </Button>
+        {hasPermission('system:log:delete') && (
+          <Button variant="outline" onClick={() => setClearing(true)} disabled={logs.length === 0}>
+            <Eraser />
+            清空日志
+          </Button>
+        )}
       </div>
 
       {loading ? (
