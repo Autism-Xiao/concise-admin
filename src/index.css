@@ -160,6 +160,27 @@
   }
 }
 
+/* 登录页品牌面板装饰光斑：缓慢上下漂浮 */
+@keyframes login-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-16px);
+  }
+}
+
+.animate-login-float {
+  animation: login-float 8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-login-float {
+    animation: none;
+  }
+}
+
 /* 侧边栏子菜单展开/收起高度动画（Base UI Collapsible：高度变量 + 过渡） */
 .CollapsibleContent {
   height: var(--collapsible-panel-height);

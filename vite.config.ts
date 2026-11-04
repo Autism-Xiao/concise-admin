@@ -21,6 +21,8 @@ const POSTS_FILE = path.resolve(__dirname, 'public/mock/posts.json')
 const TENANTS_FILE = path.resolve(__dirname, 'public/mock/tenants.json')
 const NOTICES_FILE = path.resolve(__dirname, 'public/mock/notices.json')
 const REGIONS_FILE = path.resolve(__dirname, 'public/mock/regions.json')
+// Go 后端地址：开发环境通过 /backend-api 代理访问，规避 CORS（生产环境由网关/Nginx 转发）
+const BACKEND_URL = 'http://192.168.1.12:3459'
 const LOGIN_LOGS_FILE = path.resolve(__dirname, 'public/mock/logs-login.json')
 const OPERATION_LOGS_FILE = path.resolve(__dirname, 'public/mock/logs-operation.json')
 const DEFAULT_SETTINGS = {
@@ -197,6 +199,13 @@ export default defineConfig({
     jsonAppendApi('concise-operation-logs-api', '/api/logs/operation', OPERATION_LOGS_FILE)
   ],
   server: {
+    proxy: {
+      '/backend-api': {
+        target: BACKEND_URL,
+        changeOrigin: true,
+        rewrite: p => p.replace(/^\/backend-api/, '/api')
+      }
+    },
     watch: {
       // settings.json / mock 写回文件由接口写入，变化不应触发页面刷新
       ignored: [

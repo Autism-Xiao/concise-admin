@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
-import { ChevronRight, Search } from 'lucide-react'
+import { ChevronRight, Circle, Search, type LucideIcon } from 'lucide-react'
 import { Collapsible } from '@base-ui/react/collapsible'
 import { Logo } from '@/assets/logo'
 import { NavUser } from '@/components/layout/nav-user'
@@ -33,7 +33,9 @@ import {
 } from '@/components/ui/sidebar'
 import { useLocale } from '@/context/locale-provider'
 import { navGroups, type NavGroup, type NavItem } from '@/config/nav'
-import { usePermittedPaths } from '@/lib/permissions'
+import { PAGE_REGISTRY } from '@/config/page-registry'
+import { menuPath, useMenuTree, usePermittedPaths } from '@/lib/permissions'
+import type { PermissionMenu } from '@/features/auth/api'
 import { cn } from '@/lib/utils'
 
 import type { Direction, SidebarVariant } from '@/lib/settings'
@@ -42,6 +44,56 @@ interface AppSidebarProps {
   variant?: SidebarVariant
   collapsible?: 'icon' | 'offcanvas'
   direction?: Direction
+}
+
+/* ---------- 后端菜单树 → 侧边栏分组 ---------- */
+
+interface DynItem {
+  url: string
+  label: string
+  icon: LucideIcon
+}
+
+interface DynGroup {
+  key: string
+  /** 空字符串表示无分组标题（顶层独立菜单） */
+  label: string
+  items: DynItem[]
+}
+
+function menuIcon(path?: string): LucideIcon {
+  return (path && PAGE_REGISTRY[path]?.icon) || Circle
+}
+
+/**
+ * menuType 0（目录）带 children → 侧边栏分组；menuType 1 → 组内菜单项；
+ * menuType 2（按钮权限）、hidden=1、status='0'（停用）不显示；顶层无子级但有路由的收进无标题分组。
+ * 字段兼容真实后端（name/url/sortNo）与旧 mock（title/path/sort）。
+ */
+function treeToGroups(tree: PermissionMenu[]): DynGroup[] {
+  const visible = (n: PermissionMenu) => n.menuType !== 2 && n.hidden !== 1 && n.status !== '0'
+  const nodeLabel = (n: PermissionMenu) => n.name ?? n.title ?? ''
+  const bySort = (a: PermissionMenu, b: PermissionMenu) => (a.sortNo ?? a.sort ?? 0) - (b.sortNo ?? b.sort ?? 0)
+  const groups: DynGroup[] = []
+  const loose: DynItem[] = []
+  for (const node of [...tree].sort(bySort)) {
+    if (!visible(node)) continue
+    const label = nodeLabel(node)
+    const items = (node.children ?? [])
+      .filter(visible)
+      .sort(bySort)
+      .map(c => ({ c, url: menuPath(c) }))
+      .filter((x): x is { c: PermissionMenu; url: string } => !!x.url)
+      .map(({ c, url }) => ({ url, label: nodeLabel(c) || url, icon: menuIcon(url) }))
+    const nodeUrl = menuPath(node)
+    if (items.length > 0) {
+      groups.push({ key: String(node.id), label, items })
+    } else if (nodeUrl) {
+      loose.push({ url: nodeUrl, label, icon: menuIcon(nodeUrl) })
+    }
+  }
+  if (loose.length) groups.unshift({ key: '_loose', label: '', items: loose })
+  return groups
 }
 
 export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', direction = 'ltr' }: AppSidebarProps) {
@@ -78,6 +130,10 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
       })
       .filter(group => group.items.length > 0)
   }, [permitted])
+
+  // 登录后拿到后端菜单树则直接用它渲染（后端已按角色过滤）；否则回退静态菜单
+  const menuTree = useMenuTree()
+  const dynamicGroups = useMemo<DynGroup[] | null>(() => (menuTree ? treeToGroups(menuTree) : null), [menuTree])
 
   return (
     <Sidebar collapsible={collapsible} variant={variant} side={direction === 'rtl' ? 'right' : 'left'}>
@@ -116,71 +172,92 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {visibleGroups.map(group => (
-          <SidebarGroup key={group.titleKey}>
-            <SidebarGroupLabel>{t(group.titleKey)}</SidebarGroupLabel>
+        {/* 后端菜单树模式：menuType 0 → 分组，menuType 1 → 组内菜单项 */}
+        {dynamicGroups?.map(group => (
+          <SidebarGroup key={group.key}>
+            {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map(item => {
-                  if (!item.items) {
-                    return (
-                      <SidebarMenuItem key={item.url}>
-                        <SidebarMenuButton asChild tooltip={t(item.titleKey)}>
-                          <Link to={item.url!} activeProps={{ 'data-active': true }} onClick={closeMobileSidebar}>
-                            <item.icon />
-                            <span>{t(item.titleKey)}</span>
-                            {item.badge && <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>}
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    )
-                  }
-
-                  const childActive = item.items.some(sub => isActive(sub.url))
-
-                  // 折叠态：悬浮显示提示，点击图标弹出二级菜单浮层，点击子项跳转页面
-                  if (collapsed) {
-                    return (
-                      <SidebarMenuItem key={item.titleKey}>
-                        <CollapsedNavDropdown item={item} childActive={childActive} />
-                      </SidebarMenuItem>
-                    )
-                  }
-
-                  // 展开态：保持手风琴展开二级菜单
-                  return (
-                    <Collapsible.Root key={item.titleKey} className="group/collapsible" defaultOpen={childActive}>
-                      <SidebarMenuItem>
-                        <Collapsible.Trigger
-                          render={
-                            <SidebarMenuButton>
-                              <item.icon />
-                              <span>{t(item.titleKey)}</span>
-                              <ChevronRight className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
-                            </SidebarMenuButton>
-                          }
-                        />
-                        <Collapsible.Panel className="CollapsibleContent">
-                          <SidebarMenuSub>
-                            {item.items.map(sub => (
-                              <SidebarMenuSubItem key={sub.url}>
-                                <SidebarMenuSubButton asChild>
-                                  <Link to={sub.url} activeProps={{ 'data-active': true }} onClick={closeMobileSidebar}>
-                                    {t(sub.titleKey)}
-                                  </Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            ))}
-                          </SidebarMenuSub>
-                        </Collapsible.Panel>
-                      </SidebarMenuItem>
-                    </Collapsible.Root>
-                  )
-                })}
+                {group.items.map(item => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton asChild tooltip={item.label}>
+                      <Link to={item.url} activeProps={{ 'data-active': true }} onClick={closeMobileSidebar}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
+        {!dynamicGroups &&
+          visibleGroups.map(group => (
+            <SidebarGroup key={group.titleKey}>
+              <SidebarGroupLabel>{t(group.titleKey)}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map(item => {
+                    if (!item.items) {
+                      return (
+                        <SidebarMenuItem key={item.url}>
+                          <SidebarMenuButton asChild tooltip={t(item.titleKey)}>
+                            <Link to={item.url!} activeProps={{ 'data-active': true }} onClick={closeMobileSidebar}>
+                              <item.icon />
+                              <span>{t(item.titleKey)}</span>
+                              {item.badge && <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>}
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      )
+                    }
+
+                    const childActive = item.items.some(sub => isActive(sub.url))
+
+                    // 折叠态：悬浮显示提示，点击图标弹出二级菜单浮层，点击子项跳转页面
+                    if (collapsed) {
+                      return (
+                        <SidebarMenuItem key={item.titleKey}>
+                          <CollapsedNavDropdown item={item} childActive={childActive} />
+                        </SidebarMenuItem>
+                      )
+                    }
+
+                    // 展开态：保持手风琴展开二级菜单
+                    return (
+                      <Collapsible.Root key={item.titleKey} className="group/collapsible" defaultOpen={childActive}>
+                        <SidebarMenuItem>
+                          <Collapsible.Trigger
+                            render={
+                              <SidebarMenuButton>
+                                <item.icon />
+                                <span>{t(item.titleKey)}</span>
+                                <ChevronRight className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
+                              </SidebarMenuButton>
+                            }
+                          />
+                          <Collapsible.Panel className="CollapsibleContent">
+                            <SidebarMenuSub>
+                              {item.items.map(sub => (
+                                <SidebarMenuSubItem key={sub.url}>
+                                  <SidebarMenuSubButton asChild>
+                                    <Link to={sub.url} activeProps={{ 'data-active': true }} onClick={closeMobileSidebar}>
+                                      {t(sub.titleKey)}
+                                    </Link>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              ))}
+                            </SidebarMenuSub>
+                          </Collapsible.Panel>
+                        </SidebarMenuItem>
+                      </Collapsible.Root>
+                    )
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

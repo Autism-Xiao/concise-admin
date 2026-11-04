@@ -6,16 +6,33 @@ import type { Role } from '@/features/system/role/api'
 
 const listeners = new Set<() => void>()
 
+/**
+ * 统一取菜单节点的路由地址：真实后端用 url，旧 mock 用 path。
+ * 顺带把后端与前端路由不一致的地址映射到前端实际路由。
+ */
+export const MENU_URL_ALIAS: Record<string, string> = {
+  '/system/user': '/system/users',
+  '/system/task': '/tasks',
+  '/tools/storage': '/system/file'
+}
+
+export function menuPath(item: Pick<PermissionMenu, 'url' | 'path'>): string | undefined {
+  const raw = item.url ?? item.path ?? undefined
+  if (!raw) return undefined
+  return MENU_URL_ALIAS[raw] ?? raw
+}
+
 /** 角色权限或当前角色变化后调用，侧边栏等订阅方会重新计算可见菜单 */
 export function notifyPermissionsChanged(): void {
   listeners.forEach(l => l())
 }
 
-/** 从后端返回的菜单树收集可见路径（排除按钮节点与隐藏路由） */
+/** 从后端返回的菜单树收集可见路径（排除按钮节点、隐藏与停用路由） */
 function collectPaths(items: PermissionMenu[], out: Set<string>): void {
   for (const item of items) {
-    if (item.menuType !== 2 && item.hidden !== 1 && item.path) {
-      out.add(item.path)
+    const url = menuPath(item)
+    if (item.menuType !== 2 && item.hidden !== 1 && item.status !== '0' && url) {
+      out.add(url)
     }
     if (item.children?.length) collectPaths(item.children, out)
   }
@@ -71,6 +88,21 @@ export function usePermittedPaths(): Set<string> | null {
   }, [])
 
   return paths
+}
+
+/** 响应式读取登录后存下的后端菜单树；null 表示回退静态菜单（mock / 接口异常） */
+export function useMenuTree(): PermissionMenu[] | null {
+  const [tree, setTree] = useState<PermissionMenu[] | null>(() => getMenuTree<PermissionMenu[]>())
+
+  useEffect(() => {
+    const reload = () => setTree(getMenuTree<PermissionMenu[]>())
+    listeners.add(reload)
+    return () => {
+      listeners.delete(reload)
+    }
+  }, [])
+
+  return tree?.length ? tree : null
 }
 
 /** 始终放行的路径前缀：错误页、设置、帮助中心不参与权限拦截 */

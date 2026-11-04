@@ -78,12 +78,26 @@ export function loginRequest(payload: LoginPayload): Promise<LoginResult> {
 export interface PermissionMenu {
   id: string
   parentId?: string | null
-  title?: string
+  /** 菜单名（真实后端字段） */
   name?: string
-  path?: string
-  /** 菜单类型：0 一级菜单 / 1 子菜单 / 2 按钮权限 */
+  /** 兼容 mock 的标题字段 */
+  title?: string
+  /** 路由地址（真实后端字段，按钮节点为 null） */
+  url?: string | null
+  /** 兼容 mock 的路由字段 */
+  path?: string | null
+  /** 菜单类型：0 目录 / 1 菜单 / 2 按钮权限 */
   menuType?: number
-  hidden?: number
+  /** 1 表示不在侧边栏显示 */
+  hidden?: number | null
+  /** '0' 表示停用（真实后端为字符串状态） */
+  status?: string
+  /** 同级排序（真实后端字段），越小越靠前 */
+  sortNo?: number
+  /** 兼容 mock 的排序字段 */
+  sort?: number
+  /** 后端图标名（可选，前端优先按路由从 PAGE_REGISTRY 取图标） */
+  icon?: string | null
   children?: PermissionMenu[]
 }
 
