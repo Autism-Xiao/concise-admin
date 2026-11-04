@@ -87,6 +87,33 @@ export function NoticePage() {
   const columns = useMemo<ColumnDef<Notice>[]>(
     () => [
       {
+        id: 'select',
+        header: ({ table }) => (
+          <input
+            type="checkbox"
+            className="accent-primary size-4 cursor-pointer align-middle"
+            aria-label="全选本页"
+            checked={table.getIsAllPageRowsSelected()}
+            ref={el => {
+              if (el) el.indeterminate = table.getIsSomePageRowsSelected()
+            }}
+            onChange={table.getToggleAllPageRowsSelectedHandler()}
+          />
+        ),
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            className="accent-primary size-4 cursor-pointer align-middle"
+            aria-label={`选择「${row.original.title}」`}
+            checked={row.getIsSelected()}
+            disabled={!row.getCanSelect()}
+            onChange={row.getToggleSelectedHandler()}
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false
+      },
+      {
         accessorKey: 'title',
         header: ({ column }) => <DataTableColumnHeader column={column} title="标题" />,
         cell: ({ row }) => {
@@ -164,7 +191,7 @@ export function NoticePage() {
                   </Button>
                 ) : (
                   <Button variant="ghost" size="icon" disabled={busy} onClick={() => handleStatusChange(notice, 'publish')}>
-                    <Send className="text-emerald-600 size-4" />
+                    <Send className="size-4 text-emerald-600" />
                     <span className="sr-only">发布</span>
                   </Button>
                 ))}
@@ -190,7 +217,29 @@ export function NoticePage() {
     return filters
   }, [statusFilter, categoryFilter])
 
-  const { table, keyword, setKeyword } = useDataTable({ data: list, columns, columnFilters })
+  const { table, keyword, setKeyword, rowSelection, setRowSelection } = useDataTable({ data: list, columns, columnFilters, getRowId: n => n.id })
+
+  /** 当前勾选（跨页保留），批量删除入口按数量展示 */
+  const selectedCount = Object.keys(rowSelection).filter(k => rowSelection[k]).length
+  const [batchDeleting, setBatchDeleting] = useState(false)
+  const [batchBusy, setBatchBusy] = useState(false)
+
+  /** 批量删除：后端为单 id 删除接口，这里并发执行并汇总成功/失败（已发布的需先撤销） */
+  const handleBatchDelete = () => {
+    const targets = table.getSelectedRowModel().rows.map(r => r.original)
+    if (!targets.length) return
+    setBatchBusy(true)
+    Promise.allSettled(targets.map(n => deleteNotice(n.id))).then(results => {
+      const ok = results.filter(r => r.status === 'fulfilled').length
+      const fail = results.length - ok
+      if (ok) toast.success(`已删除 ${ok} 条公告`)
+      if (fail) toast.error(`${fail} 条删除失败（已发布的需先撤销）`)
+      setBatchDeleting(false)
+      setBatchBusy(false)
+      setRowSelection({})
+      load()
+    })
+  }
 
   const handleSubmit = async (values: NoticeWritePayload) => {
     if (editing) {
@@ -237,12 +286,20 @@ export function NoticePage() {
             共 {total} 条{total > list.length ? `（当前展示最近 ${list.length} 条）` : ''}
           </p>
         </div>
-        {hasPermission('system:notice:add') && (
-          <Button onClick={openCreate}>
-            <Plus />
-            新增公告
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {hasPermission('system:notice:delete') && selectedCount > 0 && (
+            <Button variant="outline" onClick={() => setBatchDeleting(true)}>
+              <Trash2 />
+              批量删除（{selectedCount}）
+            </Button>
+          )}
+          {hasPermission('system:notice:add') && (
+            <Button onClick={openCreate}>
+              <Plus />
+              新增公告
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -314,6 +371,14 @@ export function NoticePage() {
         onOpenChange={v => !v && setDeleting(null)}
         description={<>即将删除公告「{deleting?.title}」，该操作不可恢复。</>}
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDeleteDialog
+        open={batchDeleting}
+        onOpenChange={v => !batchBusy && setBatchDeleting(v)}
+        title="批量删除公告"
+        description={<>即将删除勾选的 {selectedCount} 条公告，已发布的会被后端拒绝（需先撤销）。该操作不可恢复。</>}
+        onConfirm={handleBatchDelete}
       />
     </div>
   )
