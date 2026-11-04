@@ -90,18 +90,18 @@ async function downloadFile(path: string, fallbackName: string): Promise<{ filen
   return { filename, blob: await res.blob() }
 }
 
-/** 导出角色 CSV（不带 keyword 即全量；与列表同过滤条件需自行拼 query） */
+/** 导出角色 Excel（不带 keyword 即全量；与列表同过滤条件需自行拼 query） */
 export function exportRoles(keyword = ''): Promise<{ filename: string; blob: Blob }> {
   const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
-  return downloadFile(`/v1/roles/export${qs}`, 'roles.csv')
+  return downloadFile(`/v1/roles/export${qs}`, 'roles.xlsx')
 }
 
-/** 下载导入模板 CSV（表头 + 两行示例） */
+/** 下载导入模板 Excel（表头 + 两行示例） */
 export function downloadRoleTemplate(): Promise<{ filename: string; blob: Blob }> {
-  return downloadFile('/v1/roles/import-template', 'roles-import-template.csv')
+  return downloadFile('/v1/roles/import-template', 'roles-import-template.xlsx')
 }
 
-/** 导入角色 CSV（multipart，字段名 file；按角色编码新增或更新，不动菜单授权） */
+/** 导入角色（multipart，字段名 file；支持 .xlsx/.csv，按角色编码新增或更新，不动菜单授权） */
 export function importRoles(file: File): Promise<RoleImportResult> {
   const form = new FormData()
   form.append('file', file)

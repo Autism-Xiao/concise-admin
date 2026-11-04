@@ -16,7 +16,7 @@ interface RoleImportDialogProps {
 /** 失败明细最多展示条数，避免几十行错误把弹窗撑爆 */
 const MAX_ERROR_ROWS = 10
 
-/** 角色导入弹窗：选 CSV → 上传 → 展示逐行统计与失败原因 */
+/** 角色导入弹窗：选 Excel/CSV → 上传 → 展示逐行统计与失败原因 */
 export function RoleImportDialog({ open, onOpenChange, onImported }: RoleImportDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
@@ -47,7 +47,7 @@ export function RoleImportDialog({ open, onOpenChange, onImported }: RoleImportD
 
   const handleImport = () => {
     if (!file) {
-      toast.error('请先选择 CSV 文件')
+      toast.error('请先选择文件')
       return
     }
     setImporting(true)
@@ -74,7 +74,7 @@ export function RoleImportDialog({ open, onOpenChange, onImported }: RoleImportD
         <DialogHeader>
           <DialogTitle>导入角色</DialogTitle>
           <DialogDescription>
-            按「角色编码」判定：不存在则新增，已存在则覆盖名称与描述（不动已授权菜单）。仅支持 UTF-8 的 CSV，单次最多 2000 行。
+            按「角色编码」判定：不存在则新增，已存在则覆盖名称与描述（不动已授权菜单）。支持 .xlsx（推荐）与 .csv，单次最多 2000 行。
           </DialogDescription>
         </DialogHeader>
 
@@ -91,7 +91,7 @@ export function RoleImportDialog({ open, onOpenChange, onImported }: RoleImportD
             <input
               ref={inputRef}
               type="file"
-              accept=".csv,text/csv"
+              accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
               className="hidden"
               onChange={e => {
                 setFile(e.target.files?.[0] ?? null)

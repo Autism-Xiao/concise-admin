@@ -178,7 +178,7 @@ export function RolePage() {
       })
   }
 
-  /** 导出 CSV：把当前搜索关键字带给后端，导出的是筛选后的结果（不传即全量） */
+  /** 导出 Excel：把当前搜索关键字带给后端，导出的是筛选后的结果（.xlsx，不传关键字即全量） */
   const handleExport = () => {
     setExporting(true)
     exportRoles(keyword.trim())
