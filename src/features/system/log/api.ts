@@ -1,4 +1,4 @@
-import { getJson } from '@/lib/http'
+import { getApiResult, getJson } from '@/lib/http'
 import { getUsername } from '@/lib/auth'
 import { fetchPublicIp } from '@/lib/use-public-ip'
 
@@ -13,6 +13,8 @@ export interface LoginLog {
   os: string
   time: string
   status: LogStatus
+  /** 失败原因（后端返回的语义化文案，如「验证码错误」） */
+  message?: string
 }
 
 export interface OperationLog {
@@ -26,52 +28,53 @@ export interface OperationLog {
   status: LogStatus
 }
 
-// 开发环境走 public/mock 下的静态 JSON；接真实后端时改这里即可
-export function fetchLoginLogs(): Promise<LoginLog[]> {
-  return getJson<LoginLog[]>('/mock/logs-login.json')
+/* ---------- 登录日志：真实后端 ---------- */
+
+interface BackendLoginLog {
+  id: number
+  /** 尝试登录的账号（不存在也记录） */
+  username: string
+  status: number
+  message: string
+  ip: string
+  location?: string
+  browser?: string
+  os?: string
+  userAgent?: string
+  createdAt: string
 }
 
-function parseBrowser(ua: string): string {
-  const m = ua.match(/(Edg|Firefox|Chrome|Safari)\/(\d+)/)
-  if (!m) return '未知浏览器'
-  const name = m[1] === 'Edg' ? 'Edge' : m[1]
-  return `${name} ${m[2]}`
-}
-
-function parseOs(ua: string): string {
-  if (ua.includes('Windows NT 10')) return 'Windows 10/11'
-  if (ua.includes('Windows')) return 'Windows'
-  if (ua.includes('Mac OS X')) return 'macOS'
-  if (ua.includes('Android')) return 'Android'
-  if (ua.includes('iPhone') || ua.includes('iPad')) return 'iOS'
-  if (ua.includes('Linux')) return 'Linux'
-  return '未知系统'
-}
-
-function formatTime(d: Date): string {
+function formatDateTime(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
   const p = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
 }
 
 /**
- * 追加一条登录日志（成功/失败都记）。开发环境写入 logs-login.json；
- * 生产环境换成真实日志接口。调用方 fire-and-forget，失败静默忽略。
+ * 拉取登录日志（真实后端 GET /api/logs/login）。
+ * 后端是分页接口，这里取前 200 条倒序（列表页场景够用）；
+ * 字段映射：username→user、0/1→失败/成功、createdAt→time。
  */
-export async function reportLogin(user: string, status: LogStatus): Promise<void> {
-  const ip = await fetchPublicIp()
-  await fetch('/api/logs/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      user,
-      ip,
-      location: ip === '127.0.0.1' ? '本机' : '未知',
-      browser: parseBrowser(navigator.userAgent),
-      os: parseOs(navigator.userAgent),
-      time: formatTime(new Date()),
-      status
-    })
-  })
+export async function fetchLoginLogs(): Promise<LoginLog[]> {
+  const page = await getApiResult<{ items: BackendLoginLog[] }>('/backend-api/logs/login?page=1&pageSize=200')
+  return (page.items ?? []).map(row => ({
+    id: row.id,
+    user: row.username,
+    ip: row.ip,
+    location: row.location || '未知',
+    browser: row.browser || '未知',
+    os: row.os || '未知',
+    time: formatDateTime(row.createdAt),
+    status: row.status === 1 ? '成功' : '失败',
+    message: row.message
+  }))
+}
+
+/* ---------- 操作日志：暂为 mock（页面数据仍是本地 mock，后端拦截器只记真实写操作） ---------- */
+
+function formatNow(): string {
+  return formatDateTime(new Date().toISOString())
 }
 
 /**
@@ -88,7 +91,7 @@ export async function reportOperation(action: string, cost: number, status: LogS
       action,
       ip,
       cost,
-      time: formatTime(new Date()),
+      time: formatNow(),
       status
     })
   })

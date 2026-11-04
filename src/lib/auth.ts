@@ -2,6 +2,10 @@ const AUTH_KEY = 'concise-auth'
 const USER_KEY = 'concise-user'
 const NAME_KEY = 'concise-name'
 const ROLE_KEY = 'concise-role'
+const TOKEN_KEY = 'concise-token'
+const REFRESH_TOKEN_KEY = 'concise-refresh-token'
+const PERMS_KEY = 'concise-perms'
+const MENUS_KEY = 'concise-menus'
 
 export interface LoginAccount {
   username: string
@@ -43,4 +47,57 @@ export function logout(): void {
   localStorage.removeItem(USER_KEY)
   localStorage.removeItem(NAME_KEY)
   localStorage.removeItem(ROLE_KEY)
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
+  localStorage.removeItem(PERMS_KEY)
+  localStorage.removeItem(MENUS_KEY)
+}
+
+/** 保存后端下发的令牌 */
+export function setTokens(accessToken?: string, refreshToken?: string): void {
+  if (accessToken) localStorage.setItem(TOKEN_KEY, accessToken)
+  if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+}
+
+export function getAccessToken(): string {
+  return localStorage.getItem(TOKEN_KEY) || ''
+}
+
+export function getRefreshToken(): string {
+  return localStorage.getItem(REFRESH_TOKEN_KEY) || ''
+}
+
+/* ---------- 登录后权限数据（来自 GET /backend-api/v1/auth/permissions） ---------- */
+
+/** 保存按钮权限编码汇总（超管为 ['*']） */
+export function setPermissions(perms: string[]): void {
+  localStorage.setItem(PERMS_KEY, JSON.stringify(perms))
+}
+
+export function getPermissions(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(PERMS_KEY) || '[]') as string[]
+  } catch {
+    return []
+  }
+}
+
+/** 保存按角色过滤的菜单树（侧边栏可见范围的数据源） */
+export function setMenuTree(menus: unknown): void {
+  localStorage.setItem(MENUS_KEY, JSON.stringify(menus))
+}
+
+export function getMenuTree<T>(): T | null {
+  try {
+    const raw = localStorage.getItem(MENUS_KEY)
+    return raw ? (JSON.parse(raw) as T) : null
+  } catch {
+    return null
+  }
+}
+
+/** 按钮级权限判断：超管（'*'）或精确命中编码 */
+export function hasPermission(perm: string): boolean {
+  const perms = getPermissions()
+  return perms.includes('*') || perms.includes(perm)
 }

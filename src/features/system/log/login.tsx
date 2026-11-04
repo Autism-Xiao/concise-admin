@@ -17,13 +17,19 @@ const extraColumns: ColumnDef<LoginLog>[] = [
     accessorKey: 'os',
     header: '操作系统',
     enableSorting: false
+  },
+  {
+    accessorKey: 'message',
+    header: '说明',
+    enableSorting: false
   }
 ]
 
 const extraColumnLabels: Record<string, string> = {
   location: '登录地点',
   browser: '浏览器',
-  os: '操作系统'
+  os: '操作系统',
+  message: '说明'
 }
 
 export function LoginLogPage() {
