@@ -88,7 +88,7 @@ export function DictPage() {
   const loadItems = (dictId: string) => {
     setLoadingItems(true)
     fetchDictItems({ dictId })
-      .then(result => setItems(result.items))
+      .then(rows => setItems(rows))
       .catch(error => toast.error(error instanceof Error ? error.message : '字典项加载失败'))
       .finally(() => setLoadingItems(false))
   }

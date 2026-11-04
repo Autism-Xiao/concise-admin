@@ -66,34 +66,67 @@ export function fetchDicts(keyword?: string): Promise<Dict[]> {
 }
 
 export function createDict(values: DictFormValues): Promise<Dict> {
-  return getApiResult<Dict>(DICT_BASE, { method: 'POST', body: JSON.stringify(values) })
+  return getApiResult<Dict>(DICT_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(values)
+  })
 }
 
 export function updateDict(id: string, values: Partial<DictFormValues>): Promise<Dict> {
-  return getApiResult<Dict>(`${DICT_BASE}/${id}`, { method: 'PUT', body: JSON.stringify(values) })
+  return getApiResult<Dict>(`${DICT_BASE}/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(values)
+  })
 }
 
 export function deleteDict(id: string): Promise<{ deleted: number }> {
   return getApiResult<{ deleted: number }>(`${DICT_BASE}/${id}`, { method: 'DELETE' })
 }
 
+/** 后端 pageSize 上限 100（PagerDto 上 @Max(100)），超过直接 1001 报错 */
+const ITEM_PAGE_SIZE = 100
+/** 客户端分页最多翻 20 页（2000 条），防止脏数据把页面拖死 */
+const ITEM_MAX_PAGES = 20
+
 /**
- * 字典项列表
- * 页面用客户端分页，这里一次取 200 条（字典项很少超过这个量）
+ * 字典项列表（取全量，页面自己做客户端分页）
+ * 按后端上限 100 条/页翻页累加，直到取完或触达 20 页上限；
+ * 注意别再直接传 pageSize=200 —— 会命中 "pageSize must not be greater than 100"
  */
-export function fetchDictItems(params: { dictId: string; keyword?: string; status?: number }): Promise<PageResult<DictItem>> {
-  const query = new URLSearchParams({ dictId: params.dictId, page: '1', pageSize: '200' })
-  if (params.keyword) query.set('keyword', params.keyword)
-  if (params.status !== undefined) query.set('status', String(params.status))
-  return getApiResult<PageResult<DictItem>>(`${ITEM_BASE}?${query.toString()}`)
+export async function fetchDictItems(params: { dictId: string; keyword?: string; status?: number }): Promise<DictItem[]> {
+  const items: DictItem[] = []
+  for (let page = 1; page <= ITEM_MAX_PAGES; page += 1) {
+    const query = new URLSearchParams({ dictId: params.dictId, page: String(page), pageSize: String(ITEM_PAGE_SIZE) })
+    if (params.keyword) query.set('keyword', params.keyword)
+    if (params.status !== undefined) query.set('status', String(params.status))
+
+    const result = await getApiResult<PageResult<DictItem>>(`${ITEM_BASE}?${query.toString()}`)
+    items.push(...(result.items ?? []))
+    const totalPages = result.totalPages ?? Math.ceil((result.total ?? 0) / ITEM_PAGE_SIZE)
+    // 取完最后一页（或后端返回不足一页）即结束，避免多打一次空请求
+    if (page >= totalPages || (result.items?.length ?? 0) < ITEM_PAGE_SIZE) {
+      break
+    }
+  }
+  return items
 }
 
 export function createDictItem(dictId: string, values: DictItemFormValues): Promise<DictItem> {
-  return getApiResult<DictItem>(ITEM_BASE, { method: 'POST', body: JSON.stringify({ ...values, dictId }) })
+  return getApiResult<DictItem>(ITEM_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...values, dictId })
+  })
 }
 
 export function updateDictItem(id: string, values: Partial<DictItemFormValues>): Promise<DictItem> {
-  return getApiResult<DictItem>(`${ITEM_BASE}/${id}`, { method: 'PUT', body: JSON.stringify(values) })
+  return getApiResult<DictItem>(`${ITEM_BASE}/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(values)
+  })
 }
 
 export function deleteDictItem(id: string): Promise<{ deleted: number }> {
