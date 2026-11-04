@@ -49,9 +49,12 @@ interface AppSidebarProps {
 /* ---------- 后端菜单树 → 侧边栏分组 ---------- */
 
 interface DynItem {
-  url: string
+  /** 叶子菜单的路由地址；目录节点（带子菜单）没有 url，仅作为折叠容器 */
+  url?: string
   label: string
   icon: LucideIcon
+  /** 子菜单（最多再嵌一层：目录 > 子目录 > 页面） */
+  children?: DynItem[]
 }
 
 interface DynGroup {
@@ -65,31 +68,49 @@ function menuIcon(path?: string): LucideIcon {
   return (path && PAGE_REGISTRY[path]?.icon) || Circle
 }
 
+const visible = (n: PermissionMenu) => n.menuType !== 2 && n.hidden !== 1 && n.status !== '0'
+const nodeLabel = (n: PermissionMenu) => n.name ?? n.title ?? ''
+const bySort = (a: PermissionMenu, b: PermissionMenu) => (a.sortNo ?? a.sort ?? 0) - (b.sortNo ?? b.sort ?? 0)
+
 /**
- * menuType 0（目录）带 children → 侧边栏分组；menuType 1 → 组内菜单项；
+ * 菜单节点 → DynItem：
+ * - 有可见子菜单 → 目录项（无 url，渲染为可折叠子菜单）
+ * - 无子菜单但有路由 → 叶子链接
+ * - 既无子菜单又无路由（或只有按钮子级）→ 丢弃
+ */
+function toDynItem(node: PermissionMenu): DynItem | null {
+  const children = (node.children ?? [])
+    .filter(visible)
+    .sort(bySort)
+    .map(toDynItem)
+    .filter((x): x is DynItem => x != null)
+  const label = nodeLabel(node)
+  if (children.length > 0) return { label, icon: menuIcon(menuPath(node)), children }
+  const url = menuPath(node)
+  return url ? { url, label: label || url, icon: menuIcon(url) } : null
+}
+
+/**
+ * menuType 0（目录）带 children → 侧边栏分组；menuType 1 → 组内菜单项，
+ * 组内支持二级折叠（如 系统管理 > 日志管理 > 登录日志/操作日志）；
  * menuType 2（按钮权限）、hidden=1、status='0'（停用）不显示；顶层无子级但有路由的收进无标题分组。
  * 字段兼容真实后端（name/url/sortNo）与旧 mock（title/path/sort）。
  */
 function treeToGroups(tree: PermissionMenu[]): DynGroup[] {
-  const visible = (n: PermissionMenu) => n.menuType !== 2 && n.hidden !== 1 && n.status !== '0'
-  const nodeLabel = (n: PermissionMenu) => n.name ?? n.title ?? ''
-  const bySort = (a: PermissionMenu, b: PermissionMenu) => (a.sortNo ?? a.sort ?? 0) - (b.sortNo ?? b.sort ?? 0)
   const groups: DynGroup[] = []
   const loose: DynItem[] = []
   for (const node of [...tree].sort(bySort)) {
     if (!visible(node)) continue
-    const label = nodeLabel(node)
-    const items = (node.children ?? [])
+    const children = (node.children ?? [])
       .filter(visible)
       .sort(bySort)
-      .map(c => ({ c, url: menuPath(c) }))
-      .filter((x): x is { c: PermissionMenu; url: string } => !!x.url)
-      .map(({ c, url }) => ({ url, label: nodeLabel(c) || url, icon: menuIcon(url) }))
-    const nodeUrl = menuPath(node)
-    if (items.length > 0) {
-      groups.push({ key: String(node.id), label, items })
-    } else if (nodeUrl) {
-      loose.push({ url: nodeUrl, label, icon: menuIcon(nodeUrl) })
+      .map(toDynItem)
+      .filter((x): x is DynItem => x != null)
+    if (children.length > 0) {
+      groups.push({ key: String(node.id), label: nodeLabel(node), items: children })
+    } else {
+      const item = toDynItem({ ...node, children: [] })
+      if (item) loose.push(item)
     }
   }
   if (loose.length) groups.unshift({ key: '_loose', label: '', items: loose })
@@ -172,22 +193,73 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {/* 后端菜单树模式：menuType 0 → 分组，menuType 1 → 组内菜单项 */}
+        {/* 后端菜单树模式：menuType 0 → 分组，menuType 1 → 组内菜单项（支持二级折叠） */}
         {dynamicGroups?.map(group => (
           <SidebarGroup key={group.key}>
             {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map(item => (
-                  <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton asChild tooltip={item.label}>
-                      <Link to={item.url} activeProps={{ 'data-active': true }} onClick={closeMobileSidebar}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {group.items.map(item => {
+                  // 目录项（如 日志管理）：手风琴展开子菜单
+                  if (item.children?.length) {
+                    const childActive =
+                      item.children.some(sub => sub.url === pathname) || item.children.some(sub => sub.children?.some(d => d.url === pathname))
+                    return (
+                      <Collapsible.Root key={item.label} className="group/collapsible" defaultOpen={childActive}>
+                        <SidebarMenuItem>
+                          <Collapsible.Trigger
+                            render={
+                              <SidebarMenuButton tooltip={item.label}>
+                                <item.icon />
+                                <span>{item.label}</span>
+                                <ChevronRight className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
+                              </SidebarMenuButton>
+                            }
+                          />
+                          <Collapsible.Panel className="CollapsibleContent">
+                            <SidebarMenuSub>
+                              {item.children.map(sub =>
+                                sub.children?.length ? (
+                                  sub.children.map(d =>
+                                    d.url ? (
+                                      <SidebarMenuSubItem key={d.url}>
+                                        <SidebarMenuSubButton asChild>
+                                          <Link to={d.url} activeProps={{ 'data-active': true }} onClick={closeMobileSidebar}>
+                                            {d.label}
+                                          </Link>
+                                        </SidebarMenuSubButton>
+                                      </SidebarMenuSubItem>
+                                    )
+                                    : null
+                                  )
+                                ) : (
+                                  <SidebarMenuSubItem key={sub.url}>
+                                    <SidebarMenuSubButton asChild>
+                                      <Link to={sub.url} activeProps={{ 'data-active': true }} onClick={closeMobileSidebar}>
+                                        {sub.label}
+                                      </Link>
+                                    </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
+                                )
+                              )}
+                            </SidebarMenuSub>
+                          </Collapsible.Panel>
+                        </SidebarMenuItem>
+                      </Collapsible.Root>
+                    )
+                  }
+                  // 叶子菜单：普通链接
+                  return (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton asChild tooltip={item.label}>
+                        <Link to={item.url} activeProps={{ 'data-active': true }} onClick={closeMobileSidebar}>
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
