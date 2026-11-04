@@ -9,32 +9,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { StatusBadge } from '@/components/status-badge'
+import { hasPermission } from '@/lib/auth'
 import { MenuFormDialog } from './components/menu-form-dialog'
-import { fetchMenus, saveMenus, type Menu } from './api'
+import { createMenu, deleteMenu, fetchMenus, menuTypeMap, updateMenu, type Menu } from './api'
 import { withOperationLog } from '@/features/system/log/api'
 
 interface MenuNode extends Menu {
   children: MenuNode[]
 }
 
-/** 按路径推导树形结构：/system/users 挂在 path 为 /system 的菜单下 */
+/** 按 parentId 组树（后端返回扁平列表，parent_id 为 null/'' 为顶级） */
 function buildTree(menus: Menu[]): MenuNode[] {
-  const byPath = new Map(menus.map(m => [m.path, m]))
-  const nodes = new Map<number, MenuNode>(menus.map(m => [m.id, { ...m, children: [] }]))
+  const nodes = new Map<string, MenuNode>(menus.map(m => [m.id, { ...m, children: [] }]))
   const roots: MenuNode[] = []
   for (const m of menus) {
     const node = nodes.get(m.id)
     if (!node) continue
-    const parentPath = m.path.slice(0, m.path.lastIndexOf('/'))
-    const parent = parentPath ? byPath.get(parentPath) : undefined
+    const parent = m.parentId ? nodes.get(m.parentId) : undefined
     if (parent && parent.id !== m.id) {
-      nodes.get(parent.id)?.children.push(node)
+      parent.children.push(node)
     } else {
       roots.push(node)
     }
   }
   const sortRecursive = (list: MenuNode[]) => {
-    list.sort((a, b) => a.sort - b.sort)
+    list.sort((a, b) => a.sortNo - b.sortNo)
     list.forEach(n => sortRecursive(n.children))
   }
   sortRecursive(roots)
@@ -45,13 +44,12 @@ export function MenuPage() {
   const [list, setList] = useState<Menu[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
-  const [saving, setSaving] = useState(false)
   const [keyword, setKeyword] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
+  const [typeFilter, setTypeFilter] = useState('all')
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Menu | null>(null)
-  const [createParentId, setCreateParentId] = useState<number | null>(null)
+  const [createParentId, setCreateParentId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<Menu | null>(null)
 
   const load = useCallback(() => {
@@ -65,20 +63,7 @@ export function MenuPage() {
 
   useEffect(load, [load])
 
-  /** 乐观更新 + 写回 menus.json，失败回退重新加载；操作记入操作日志 */
-  const persist = (next: Menu[], successMsg: string) => {
-    setList(next)
-    setSaving(true)
-    withOperationLog(successMsg, () => saveMenus(next))
-      .then(() => toast.success(successMsg))
-      .catch(() => {
-        toast.error('写入 menus.json 失败，已重新加载')
-        load()
-      })
-      .finally(() => setSaving(false))
-  }
-
-  const openCreate = (parentId: number | null) => {
+  const openCreate = (parentId: string | null) => {
     setEditing(null)
     setCreateParentId(parentId)
     setFormOpen(true)
@@ -89,41 +74,40 @@ export function MenuPage() {
     setFormOpen(true)
   }
 
-  const handleSubmit = (values: Omit<Menu, 'id'>) => {
-    if (editing) {
-      persist(
-        list.map(m => (m.id === editing.id ? { ...m, ...values } : m)),
-        '菜单已更新'
-      )
-    } else {
-      const id = list.length ? Math.max(...list.map(m => m.id)) + 1 : 1
-      persist([...list, { ...values, id }], '菜单已创建')
-    }
-    setFormOpen(false)
+  const handleSubmit = (values: Parameters<typeof createMenu>[0]) => {
+    const request = editing
+      ? withOperationLog('更新菜单', () => updateMenu(editing.id, values))
+      : withOperationLog('新增菜单', () => createMenu({ ...values, parentId: createParentId ?? values.parentId ?? null }))
+    request
+      .then(() => {
+        toast.success(editing ? '菜单已更新' : '菜单已创建')
+        setFormOpen(false)
+        load()
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '保存失败'))
   }
 
   const handleDelete = () => {
     if (!deleting) return
-    // 级联删除所有路径前缀匹配的子菜单
-    const prefix = deleting.path + '/'
-    const removed = list.filter(m => m.id === deleting.id || m.path.startsWith(prefix)).length
-    persist(
-      list.filter(m => m.id !== deleting.id && !m.path.startsWith(prefix)),
-      removed > 1 ? `已删除「${deleting.name}」及其 ${removed - 1} 个子菜单` : `已删除菜单「${deleting.name}」`
-    )
+    withOperationLog(`删除菜单「${deleting.name}」`, () => deleteMenu(deleting.id))
+      .then(() => {
+        toast.success(`已删除菜单「${deleting.name}」`)
+        load()
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '删除失败（有子菜单时需先删子级）'))
     setDeleting(null)
   }
 
-  const filtering = keyword.trim() !== '' || statusFilter !== 'all'
+  const filtering = keyword.trim() !== '' || typeFilter !== 'all'
   const tree = useMemo(() => buildTree(list), [list])
   const flatList = useMemo(() => {
     const kw = keyword.trim().toLowerCase()
-    return list
-      .filter(m => (statusFilter === 'all' || m.status === statusFilter) && (!kw || m.name.toLowerCase().includes(kw) || m.path.toLowerCase().includes(kw)))
-      .sort((a, b) => a.sort - b.sort)
-  }, [list, keyword, statusFilter])
+    return list.filter(
+      m => (typeFilter === 'all' || String(m.menuType) === typeFilter) && (!kw || m.name.toLowerCase().includes(kw) || (m.url ?? '').toLowerCase().includes(kw))
+    )
+  }, [list, keyword, typeFilter])
 
-  const toggle = (id: number) =>
+  const toggle = (id: string) =>
     setCollapsed(prev => {
       const next = new Set(prev)
       if (next.has(id)) {
@@ -154,25 +138,37 @@ export function MenuPage() {
             </div>
           </TableCell>
           <TableCell>
-            <span className="font-mono text-xs">{node.path}</span>
+            <span className="rounded bg-muted px-1.5 py-0.5 text-xs">{menuTypeMap[node.menuType] ?? node.menuType}</span>
           </TableCell>
-          <TableCell>{node.sort}</TableCell>
           <TableCell>
-            <StatusBadge ok={node.status === '正常'} label={node.status} />
+            <span className="font-mono text-xs">{node.url ?? '-'}</span>
+          </TableCell>
+          <TableCell>
+            <span className="font-mono text-xs">{node.perms ?? '-'}</span>
+          </TableCell>
+          <TableCell className="w-16">{node.sortNo}</TableCell>
+          <TableCell className="w-24">
+            <StatusBadge ok={node.status === '1'} label={node.status === '1' ? '正常' : '停用'} />
           </TableCell>
           <TableCell className="text-end">
-            <Button variant="ghost" size="icon" title="新增子菜单" onClick={() => openCreate(node.id)}>
-              <Plus className="size-4" />
-              <span className="sr-only">新增子菜单</span>
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => openEdit(node)}>
-              <Pencil className="size-4" />
-              <span className="sr-only">编辑</span>
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setDeleting(node)}>
-              <Trash2 className="text-destructive size-4" />
-              <span className="sr-only">删除</span>
-            </Button>
+            {node.menuType !== 2 && hasPermission('system:menu:add') && (
+              <Button variant="ghost" size="icon" title="新增子菜单" onClick={() => openCreate(node.id)}>
+                <Plus className="size-4" />
+                <span className="sr-only">新增子菜单</span>
+              </Button>
+            )}
+            {hasPermission('system:menu:update') && (
+              <Button variant="ghost" size="icon" onClick={() => openEdit(node)}>
+                <Pencil className="size-4" />
+                <span className="sr-only">编辑</span>
+              </Button>
+            )}
+            {hasPermission('system:menu:delete') && (
+              <Button variant="ghost" size="icon" onClick={() => setDeleting(node)}>
+                <Trash2 className="text-destructive size-4" />
+                <span className="sr-only">删除</span>
+              </Button>
+            )}
           </TableCell>
         </TableRow>
       )
@@ -184,15 +180,14 @@ export function MenuPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">菜单管理</h1>
-          <p className="text-muted-foreground text-sm">
-            {loading ? '加载中…' : `共 ${list.length} 个菜单`}
-            {saving && '（保存中…）'}
-          </p>
+          <p className="text-muted-foreground text-sm">{loading ? '加载中…' : `共 ${list.length} 个菜单（含按钮权限）`}</p>
         </div>
-        <Button onClick={() => openCreate(null)}>
-          <Plus />
-          新增菜单
-        </Button>
+        {hasPermission('system:menu:add') && (
+          <Button onClick={() => openCreate(null)}>
+            <Plus />
+            新增菜单
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -202,14 +197,15 @@ export function MenuPage() {
               <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
               <Input placeholder="搜索名称 / 路由" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter} items={{ all: '全部状态', 正常: '正常', 停用: '停用' }}>
+            <Select value={typeFilter} onValueChange={setTypeFilter} items={{ all: '全部类型', 0: '目录', 1: '菜单', 2: '按钮' }}>
               <SelectTrigger className="h-9 w-32">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部状态</SelectItem>
-                <SelectItem value="正常">正常</SelectItem>
-                <SelectItem value="停用">停用</SelectItem>
+                <SelectItem value="all">全部类型</SelectItem>
+                <SelectItem value="0">目录</SelectItem>
+                <SelectItem value="1">菜单</SelectItem>
+                <SelectItem value="2">按钮</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -233,8 +229,10 @@ export function MenuPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>菜单名称</TableHead>
+                  <TableHead className="w-20">类型</TableHead>
                   <TableHead>路由地址</TableHead>
-                  <TableHead className="w-20">排序</TableHead>
+                  <TableHead>权限编码</TableHead>
+                  <TableHead className="w-16">排序</TableHead>
                   <TableHead className="w-24">状态</TableHead>
                   <TableHead className="w-36 text-end">操作</TableHead>
                 </TableRow>
@@ -248,7 +246,7 @@ export function MenuPage() {
                     )
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
+                      <TableCell colSpan={7} className="text-muted-foreground py-10 text-center">
                         没有匹配的菜单
                       </TableCell>
                     </TableRow>
@@ -277,7 +275,7 @@ export function MenuPage() {
       <ConfirmDeleteDialog
         open={!!deleting}
         onOpenChange={v => !v && setDeleting(null)}
-        description={<>即将删除菜单「{deleting?.name}」及其所有子菜单，该操作不可恢复。</>}
+        description={<>即将删除菜单「{deleting?.name}」。存在子菜单时删除会被拒绝；删除为软删除，不影响历史授权记录。</>}
         onConfirm={handleDelete}
       />
     </div>

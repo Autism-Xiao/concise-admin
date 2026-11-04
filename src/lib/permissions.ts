@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react'
 import { getMenuTree, getPermissions, getRoleCode } from '@/lib/auth'
 import type { PermissionMenu } from '@/features/auth/api'
-import type { Menu } from '@/features/system/menu/api'
 import type { Role } from '@/features/system/role/api'
+
+/** 旧 mock 菜单结构（/mock/menus.json，数字 id + path），仅作真实接口异常时的兜底 */
+interface MockMenu {
+  id: number
+  name: string
+  path: string
+  sort: number
+  status: string
+}
 
 const listeners = new Set<() => void>()
 
@@ -56,7 +64,7 @@ async function loadPermittedPaths(): Promise<Set<string> | null> {
   }
   // 旧 mock 兜底（真实接口异常或未接入时）
   const [menus, roles] = await Promise.all([
-    fetch('/mock/menus.json').then(r => r.json() as Promise<Menu[]>),
+    fetch('/mock/menus.json').then(r => r.json() as Promise<MockMenu[]>),
     fetch('/mock/roles.json').then(r => r.json() as Promise<Role[]>)
   ])
   const role = roles.find(r => r.code === code)
