@@ -1,102 +1,231 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { User, UserRole, UserStatus } from '../api'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  fetchBackendDepts,
+  fetchRoles,
+  type Role,
+  type User,
+  type UserWritePayload
+} from '../api'
 
 interface UserFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   /** null 表示新增 */
   user: User | null
-  onSubmit: (values: Omit<User, 'id' | 'createdAt'>) => void
+  onSubmit: (values: UserWritePayload) => void
 }
 
-const emptyForm = { name: '', username: '', email: '', phone: '', status: 'active' as UserStatus, role: 'cashier' as UserRole }
+interface FormState {
+  username: string
+  realname: string
+  password: string
+  email: string
+  phone: string
+  workNo: string
+  sex: number
+  status: number
+  roleIds: string[]
+  deptIds: string[]
+}
+
+const emptyForm: FormState = { username: '', realname: '', password: '', email: '', phone: '', workNo: '', sex: 0, status: 1, roleIds: [], deptIds: [] }
+
+/** 复选框列表（角色/部门多选） */
+function CheckList({
+  options,
+  selected,
+  onToggle
+}: {
+  options: Array<{ id: string; label: string }>
+  selected: string[]
+  onToggle: (id: string) => void
+}) {
+  if (!options.length) return <p className="text-muted-foreground text-sm">暂无可选项</p>
+  return (
+    <div className="max-h-36 space-y-1.5 overflow-y-auto rounded-md border p-2">
+      {options.map(o => (
+        <label key={o.id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm hover:bg-accent">
+          <input type="checkbox" className="accent-primary" checked={selected.includes(o.id)} onChange={() => onToggle(o.id)} />
+          {o.label}
+        </label>
+      ))}
+    </div>
+  )
+}
 
 /** 由父组件按 key 控制重挂载，保证打开时表单初始化为对应用户 */
 export function UserFormDialog({ open, onOpenChange, user, onSubmit }: UserFormDialogProps) {
-  const [form, setForm] = useState(() =>
-    user ? { name: user.name, username: user.username, email: user.email, phone: user.phone, status: user.status, role: user.role } : emptyForm
+  const [form, setForm] = useState<FormState>(() =>
+    user
+      ? {
+          username: user.username,
+          realname: user.realname ?? '',
+          password: '',
+          email: user.email ?? '',
+          phone: user.phone ?? '',
+          workNo: user.workNo ?? '',
+          sex: user.sex ?? 0,
+          status: user.status,
+          roleIds: (user.roles ?? []).map(r => r.id),
+          deptIds: (user.depts ?? []).map(d => d.id)
+        }
+      : emptyForm
   )
+  const [roles, setRoles] = useState<Role[] | null>(null)
+  const [depts, setDepts] = useState<Array<{ id: string; departName: string }> | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
-  const set = <K extends keyof typeof emptyForm>(key: K, value: (typeof emptyForm)[K]) => setForm(prev => ({ ...prev, [key]: value }))
+  // 弹窗打开时拉角色/部门下拉数据（每次挂载拉一次，数据量小）
+  useEffect(() => {
+    Promise.all([fetchRoles(), fetchBackendDepts()])
+      .then(([r, d]) => {
+        setRoles(r)
+        setDepts(d)
+      })
+      .catch(e => setLoadError(e instanceof Error ? e.message : '加载角色/部门失败'))
+  }, [])
+
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm(prev => ({ ...prev, [key]: value }))
+
+  const toggle = (key: 'roleIds' | 'deptIds', id: string) =>
+    setForm(prev => ({ ...prev, [key]: prev[key].includes(id) ? prev[key].filter(v => v !== id) : [...prev[key], id] }))
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user && form.password.length < 6) return // 新增时密码必填，靠原生 required 双保险
+    setSubmitting(true)
+    // 编辑时 password 留空表示不改密码；username 后端不可改，编辑时不下发
+    const payload: UserWritePayload = user
+      ? {
+          realname: form.realname,
+          email: form.email || undefined,
+          phone: form.phone || undefined,
+          workNo: form.workNo || undefined,
+          sex: form.sex,
+          status: form.status,
+          roleIds: form.roleIds,
+          deptIds: form.deptIds,
+          ...(form.password ? { password: form.password } : {})
+        }
+      : {
+          username: form.username,
+          realname: form.realname,
+          password: form.password,
+          email: form.email || undefined,
+          phone: form.phone || undefined,
+          workNo: form.workNo || undefined,
+          sex: form.sex,
+          status: form.status,
+          roleIds: form.roleIds,
+          deptIds: form.deptIds
+        }
+    Promise.resolve(onSubmit(payload)).finally(() => setSubmitting(false))
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{user ? '编辑用户' : '新增用户'}</DialogTitle>
-          <DialogDescription>{user ? '修改用户信息后保存' : '填写信息创建新用户'}</DialogDescription>
+          <DialogDescription>{user ? '账号不可修改；密码留空表示不修改' : '填写信息创建新用户'}</DialogDescription>
         </DialogHeader>
-        <form
-          className="space-y-4"
-          onSubmit={e => {
-            e.preventDefault()
-            onSubmit(form)
-          }}
-        >
-          <div className="space-y-2">
-            <Label htmlFor="name">姓名</Label>
-            <Input id="name" value={form.name} onChange={e => set('name', e.target.value)} required />
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">账号</Label>
+              <Input id="username" value={form.username} onChange={e => set('username', e.target.value)} disabled={!!user} required minLength={3} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="realname">姓名</Label>
+              <Input id="realname" value={form.realname} onChange={e => set('realname', e.target.value)} required />
+            </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="username">用户名</Label>
-            <Input id="username" value={form.username} onChange={e => set('username', e.target.value)} required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">邮箱</Label>
-            <Input id="email" type="email" value={form.email} onChange={e => set('email', e.target.value)} required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">手机号</Label>
-            <Input id="phone" value={form.phone} onChange={e => set('phone', e.target.value)} />
+            <Label htmlFor="password">{user ? '重置密码（留空不改）' : '初始密码'}</Label>
+            <Input
+              id="password"
+              type="password"
+              value={form.password}
+              onChange={e => set('password', e.target.value)}
+              placeholder={user ? '留空表示不修改密码' : '至少 6 位'}
+              required={!user}
+              minLength={user ? 0 : 6}
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>角色</Label>
-              <Select
-                value={form.role}
-                onValueChange={v => set('role', v as UserRole)}
-                items={{ superadmin: '超级管理员', admin: '管理员', manager: '经理', cashier: '收银' }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="superadmin">超级管理员</SelectItem>
-                  <SelectItem value="admin">管理员</SelectItem>
-                  <SelectItem value="manager">经理</SelectItem>
-                  <SelectItem value="cashier">收银</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="phone">手机号</Label>
+              <Input id="phone" value={form.phone} onChange={e => set('phone', e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>状态</Label>
-              <Select
-                value={form.status}
-                onValueChange={v => set('status', v as UserStatus)}
-                items={{ active: '活跃', inactive: '未激活', invited: '已邀请', suspended: '已停用' }}
-              >
+              <Label htmlFor="email">邮箱</Label>
+              <Input id="email" type="email" value={form.email} onChange={e => set('email', e.target.value)} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="workNo">工号</Label>
+              <Input id="workNo" value={form.workNo} onChange={e => set('workNo', e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>性别</Label>
+              <Select value={String(form.sex)} onValueChange={v => set('sex', Number(v))} items={{ 0: '未知', 1: '男', 2: '女' }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">活跃</SelectItem>
-                  <SelectItem value="inactive">未激活</SelectItem>
-                  <SelectItem value="invited">已邀请</SelectItem>
-                  <SelectItem value="suspended">已停用</SelectItem>
+                  <SelectItem value="0">未知</SelectItem>
+                  <SelectItem value="1">男</SelectItem>
+                  <SelectItem value="2">女</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
+          <div className="space-y-2">
+            <Label>状态</Label>
+            <Select value={String(form.status)} onValueChange={v => set('status', Number(v))} items={{ 1: '正常', 2: '冻结' }}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">正常</SelectItem>
+                <SelectItem value="2">冻结</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {loadError ? (
+            <p className="text-destructive text-sm">{loadError}</p>
+          ) : !roles || !depts ? (
+            <div className="space-y-2">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>角色（多选）</Label>
+                <CheckList options={roles.map(r => ({ id: r.id, label: r.roleName || r.roleCode }))} selected={form.roleIds} onToggle={id => toggle('roleIds', id)} />
+              </div>
+              <div className="space-y-2">
+                <Label>部门（多选，首个为主部门）</Label>
+                <CheckList options={depts.map(d => ({ id: d.id, label: d.departName }))} selected={form.deptIds} onToggle={id => toggle('deptIds', id)} />
+              </div>
+            </div>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               取消
             </Button>
-            <Button type="submit">保存</Button>
+            <Button type="submit" disabled={submitting || !roles || !depts}>
+              保存
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

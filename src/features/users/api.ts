@@ -1,80 +1,91 @@
-import { getJson } from '@/lib/http'
-import { fetchAccounts, saveAccounts, type Account } from '@/features/auth/api'
+import { getApiResult } from '@/lib/http'
+import { fetchRoles, type Role } from '@/features/system/role/api'
 
-export type UserStatus = 'active' | 'inactive' | 'invited' | 'suspended'
-export type UserRole = 'superadmin' | 'admin' | 'manager' | 'cashier'
-
+/** 后端 sys_user（对齐 JeecgBoot），只保留页面需要的字段 */
 export interface User {
-  id: number
-  name: string
+  id: string
   username: string
-  email: string
-  phone: string
-  status: UserStatus
-  role: UserRole
-  createdAt: string
+  realname?: string
+  email?: string
+  phone?: string
+  telephone?: string
+  workNo?: string
+  sex?: number
+  avatar?: string
+  birthday?: string
+  /** 1 正常 / 2 冻结 */
+  status: number
+  createTime?: string
+  roles?: Pick<Role, 'id' | 'roleName' | 'roleCode'>[]
+  depts?: Array<{ id: string; departName: string }>
+  /** 主部门 id（后端兼容字段 = depts[0].id） */
+  deptId?: string | null
 }
 
-// 开发环境走 public/mock 下的静态 JSON；接真实后端时改这里即可
-export function fetchUsers(): Promise<User[]> {
-  return getJson<User[]>('/mock/users.json')
+export interface UserWritePayload {
+  username: string
+  realname?: string
+  /** 新增必填；编辑不传表示不改密码 */
+  password?: string
+  email?: string
+  phone?: string
+  telephone?: string
+  workNo?: string
+  sex?: number
+  status?: number
+  roleIds?: string[]
+  deptIds?: string[]
 }
 
-// 开发环境由 vite 中间件写入 public/mock/users.json；生产环境换成真实接口
-export async function saveUsers(users: User[]): Promise<void> {
-  const res = await fetch('/api/users', {
+export interface UserListResult {
+  items: User[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
+/** 分页查询用户列表（大页容量一次拉全，前端表格本地筛选） */
+export function fetchUsers(keyword = '', status = ''): Promise<UserListResult> {
+  const params = new URLSearchParams({ page: '1', pageSize: '100' })
+  if (keyword) params.set('keyword', keyword)
+  if (status) params.set('status', status)
+  return getApiResult<UserListResult>(`/backend-api/v1/users?${params.toString()}`)
+}
+
+export function createUser(payload: UserWritePayload): Promise<User> {
+  return getApiResult<User>('/backend-api/v1/users', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(users)
+    body: JSON.stringify(payload)
   })
-  if (!res.ok) throw new Error('保存失败')
 }
 
-/** 新用户的初始登录密码 */
+export function updateUser(id: string, payload: UserWritePayload): Promise<User> {
+  return getApiResult<User>(`/backend-api/v1/users/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+}
+
+export function deleteUser(id: string): Promise<unknown> {
+  return getApiResult<unknown>(`/backend-api/v1/users/${id}`, { method: 'DELETE' })
+}
+
+export { fetchRoles }
+export type { Role }
+
+/** 后端部门列表（sys_depart，字符串 id；dept 管理页还是 mock，这里直连后端） */
+export function fetchBackendDepts(): Promise<Array<{ id: string; departName: string; parentId?: string | null }>> {
+  return getApiResult<Array<{ id: string; departName: string; parentId?: string | null }>>('/backend-api/depts')
+}
+
+/** 新增用户的默认初始密码（创建后应引导用户自行修改） */
 export const DEFAULT_PASSWORD = '123456'
 
-/** 用户管理的角色 → roles.json 的权限角色码（决定登录后的菜单权限） */
-export function mapUserRoleToCode(role: UserRole): string {
-  const map: Record<UserRole, string> = {
-    superadmin: 'superadmin',
-    admin: 'admin',
-    manager: 'operator',
-    cashier: 'support'
-  }
-  return map[role]
-}
-
-function accountOf(user: User): Account {
-  return {
-    username: user.username,
-    password: DEFAULT_PASSWORD,
-    name: user.name,
-    role: mapUserRoleToCode(user.role),
-    status: user.status === 'active' ? 'active' : 'disabled'
-  }
-}
-
-/** 新增用户时同步创建登录账号（用户名已存在则跳过） */
-export async function createAccountFor(user: User): Promise<void> {
-  const accounts = await fetchAccounts()
-  if (accounts.some(a => a.username === user.username)) return
-  await saveAccounts([...accounts, accountOf(user)])
-}
-
-/** 编辑用户时同步账号（改名/姓名/角色/状态）；账号不存在则补建 */
-export async function updateAccountFor(prev: User, next: User): Promise<void> {
-  const accounts = await fetchAccounts()
-  const existing = accounts.find(a => a.username === prev.username)
-  if (!existing) {
-    await createAccountFor(next)
-    return
-  }
-  // 保留原密码，其余字段跟随用户
-  await saveAccounts(accounts.map(a => (a.username === prev.username ? { ...accountOf(next), password: a.password } : a)))
-}
-
-/** 删除用户时同步删除登录账号 */
-export async function deleteAccountFor(user: User): Promise<void> {
-  const accounts = await fetchAccounts()
-  await saveAccounts(accounts.filter(a => a.username !== user.username))
+/** 状态展示映射（对齐后端 1 正常 / 2 冻结） */
+export const userStatusMap: Record<number, { label: string; className: string }> = {
+  1: { label: '正常', className: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' },
+  2: { label: '冻结', className: 'bg-destructive/15 text-destructive' }
 }
