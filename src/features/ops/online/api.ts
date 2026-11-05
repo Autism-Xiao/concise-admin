@@ -1,3 +1,4 @@
+import type { BatchDeleteResult } from '@/lib/batch-delete'
 import { getApiResult } from '@/lib/http'
 
 /** 一条在线会话（来自后端 Redis 会话，非表数据） */
@@ -50,4 +51,13 @@ export function formatDateTime(value?: string | null): string {
   if (Number.isNaN(date.getTime())) return '-'
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+/** 批量强制下线：sessionId 走统一批量接口的 ids 字段，逐条结算 */
+export function batchKickUsers(sessionIds: string[]): Promise<BatchDeleteResult> {
+  return getApiResult<{ kicked: number; failed: Array<{ id: string; reason: string }> }>(`${BASE}/batch-kick`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids: sessionIds })
+  }).then(result => ({ deleted: result.kicked, failed: result.failed }))
 }

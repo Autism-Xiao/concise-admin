@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { Download, Pencil, Plus, Search, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -8,11 +8,14 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { ExcelImportDialog } from '@/components/excel-import-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
+import { toastBatchResult } from '@/lib/batch-delete'
+import { saveBlobFile } from '@/lib/download'
 import { PostFormDialog } from './components/post-form-dialog'
-import { createPost, deletePost, fetchPosts, updatePost, type Post, type PostWritePayload } from './api'
+import { createPost, deletePost, deletePosts, downloadPostTemplate, exportPosts, fetchPosts, importPosts, updatePost, type Post, type PostWritePayload } from './api'
 import { withOperationLog } from '@/features/system/log/api'
 
 const columnLabels: Record<string, string> = {
@@ -32,6 +35,10 @@ export function PostPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Post | null>(null)
   const [deleting, setDeleting] = useState<Post | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [batchDeleting, setBatchDeleting] = useState(false)
+  const [batchBusy, setBatchBusy] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -121,7 +128,35 @@ export function PostPage() {
   )
 
   const columnFilters = useMemo(() => (statusFilter === 'all' ? [] : [{ id: 'status', value: statusFilter }]), [statusFilter])
-  const { table, keyword, setKeyword } = useDataTable({ data: posts, columns, columnFilters })
+  const { table, keyword, setKeyword, rowSelection, setRowSelection } = useDataTable({ data: posts, columns, columnFilters, getRowId: post => post.id })
+  const selectedCount = Object.keys(rowSelection).filter(key => rowSelection[key]).length
+
+  const handleBatchDelete = async () => {
+    const targets = table.getSelectedRowModel().rows.map(row => row.original)
+    if (!targets.length || batchBusy) return
+    setBatchBusy(true)
+    try {
+      const result = await withOperationLog(`批量删除 ${targets.length} 个岗位`, () => deletePosts(targets.map(post => post.id)))
+      toastBatchResult(result, '岗位')
+      setBatchDeleting(false)
+      setRowSelection({})
+      load()
+    } finally {
+      setBatchBusy(false)
+    }
+  }
+
+  /** 导出：把当前搜索关键字带给后端，导出的是筛选后的结果 */
+  const handleExport = () => {
+    setExporting(true)
+    exportPosts({ keyword: keyword.trim() })
+      .then(({ filename, blob }) => {
+        saveBlobFile(filename, blob)
+        toast.success('岗位已导出')
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '导出失败'))
+      .finally(() => setExporting(false))
+  }
 
   const handleSubmit = (values: PostWritePayload) => {
     const request = editing ? withOperationLog('更新岗位', () => updatePost(editing.id, values)) : withOperationLog('新增岗位', () => createPost(values))
@@ -152,12 +187,32 @@ export function PostPage() {
           <h1 className="text-2xl font-bold">岗位管理</h1>
           <p className="text-muted-foreground text-sm">共 {posts.length} 个岗位</p>
         </div>
-        {hasPermission('system:post:add') && (
-          <Button onClick={openCreate}>
-            <Plus />
-            新增岗位
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {hasPermission('system:post:export') && (
+            <Button variant="outline" onClick={handleExport} disabled={exporting || posts.length === 0}>
+              <Download />
+              {exporting ? '导出中…' : '导出'}
+            </Button>
+          )}
+          {hasPermission('system:post:import') && (
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload />
+              导入
+            </Button>
+          )}
+          {hasPermission('system:post:delete') && selectedCount > 0 && (
+            <Button variant="outline" onClick={() => setBatchDeleting(true)} disabled={batchBusy}>
+              <Trash2 />
+              批量删除（{selectedCount}）
+            </Button>
+          )}
+          {hasPermission('system:post:add') && (
+            <Button onClick={openCreate}>
+              <Plus />
+              新增岗位
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -205,11 +260,35 @@ export function PostPage() {
 
       {formOpen && <PostFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} post={editing} onSubmit={handleSubmit} />}
 
+      {importOpen && (
+        <ExcelImportDialog
+          open={importOpen}
+          onOpenChange={setImportOpen}
+          title="导入岗位"
+          description="按「岗位编码」判定：不存在则新增，已存在则更新填写了的名称、部门、排序与状态。「所属部门」按名称匹配，找不到该行会失败。单次最多 2000 行。"
+          onImported={load}
+          downloadTemplate={downloadPostTemplate}
+          importFile={importPosts}
+        />
+      )}
+
       <ConfirmDeleteDialog
         open={!!deleting}
         onOpenChange={v => !v && setDeleting(null)}
         description={<>即将删除岗位「{deleting?.postName}」，该操作为硬删除，不可恢复。</>}
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDeleteDialog
+        open={batchDeleting}
+        onOpenChange={v => !batchBusy && setBatchDeleting(v)}
+        title="批量删除岗位"
+        description={
+          <>
+            即将删除勾选的 {selectedCount} 个岗位，该操作为硬删除，不可恢复。{batchBusy ? '正在删除，请稍候…' : ''}
+          </>
+        }
+        onConfirm={handleBatchDelete}
       />
     </div>
   )

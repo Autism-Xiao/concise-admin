@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CirclePause, CirclePlay, Pencil, Play, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
+import { CirclePause, CirclePlay, Download, Pencil, Play, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,7 @@ import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
+import { saveBlobFile } from '@/lib/download'
 import { JobFormDialog } from './components/job-form-dialog'
 import {
   createJob,
@@ -24,8 +25,7 @@ import {
   updateJob,
   type JobItem,
   type JobStatus,
-  type JobWritePayload
-} from './api'
+  type JobWritePayload, exportJobs } from './api'
 
 const columnLabels: Record<string, string> = {
   jobClassName: '任务类名',
@@ -43,6 +43,7 @@ export function JobPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<'all' | `${JobStatus}`>('all')
+  const [exporting, setExporting] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<JobItem | null>(null)
   const [deleting, setDeleting] = useState<JobItem | null>(null)
@@ -63,6 +64,18 @@ export function JobPage() {
   useEffect(load, [])
 
   const running = list.filter(job => job.status === 0).length
+
+  /** 导出：与列表同筛选条件（关键字 + 状态） */
+  const handleExport = () => {
+    setExporting(true)
+    exportJobs({ keyword: keyword.trim(), status: statusFilter === 'all' ? undefined : Number(statusFilter) })
+      .then(({ filename, blob }) => {
+        saveBlobFile(filename, blob)
+        toast.success('定时任务已导出')
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '导出失败'))
+      .finally(() => setExporting(false))
+  }
 
   const openCreate = () => {
     setEditing(null)
@@ -237,6 +250,12 @@ export function JobPage() {
             <RefreshCw />
             刷新
           </Button>
+          {hasPermission('system:job:export') && (
+            <Button variant="outline" onClick={handleExport} disabled={exporting || list.length === 0}>
+              <Download />
+              {exporting ? '导出中…' : '导出'}
+            </Button>
+          )}
           {hasPermission('system:job:add') && (
             <Button onClick={openCreate}>
               <Plus />

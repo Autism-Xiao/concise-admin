@@ -1,3 +1,6 @@
+import { batchDeleteRequest, type BatchDeleteResult } from '@/lib/batch-delete'
+import { downloadFromApi } from '@/lib/download'
+import type { ImportResult } from '@/components/excel-import-dialog'
 import { getApiResult } from '@/lib/http'
 
 /** 字典（对齐后端 sys_dict，JeecgBoot 字段） */
@@ -142,4 +145,34 @@ export function fetchDictItemsByCode(code: string): Promise<{
   items: Pick<DictItem, 'itemText' | 'itemValue' | 'sortOrder' | 'description'>[]
 }> {
   return getApiResult(`${ITEM_BASE}/code/${encodeURIComponent(code)}`)
+}
+
+/* ---------- 导入导出（/api/v1/dicts/export | import-template | import） ---------- */
+
+/** 导出字典 Excel（一个工作簿两张表：字典类型 + 字典项） */
+export function exportDicts(params: { keyword?: string } = {}): Promise<{ filename: string; blob: Blob }> {
+  const qs = params.keyword ? `?keyword=${encodeURIComponent(params.keyword)}` : ''
+  return downloadFromApi(`/v1/dicts/export${qs}`, 'dicts.xlsx')
+}
+
+/** 下载字典导入模板（两张工作表：字典类型 / 字典项） */
+export function downloadDictTemplate(): Promise<{ filename: string; blob: Blob }> {
+  return downloadFromApi('/v1/dicts/import-template', 'dicts-import-template.xlsx')
+}
+
+/** 导入字典（读取两张工作表，可只填其中一张） */
+export function importDicts(file: File): Promise<ImportResult> {
+  const form = new FormData()
+  form.append('file', file)
+  return getApiResult<ImportResult>('/backend-api/v1/dicts/import', { method: 'POST', body: form })
+}
+
+/** 批量删除字典（有字典项的那条会失败并返回原因） */
+export function deleteDicts(ids: string[]): Promise<BatchDeleteResult> {
+  return batchDeleteRequest('dicts', ids)
+}
+
+/** 批量删除字典项 */
+export function deleteDictItems(ids: string[]): Promise<BatchDeleteResult> {
+  return batchDeleteRequest('dict-items', ids)
 }

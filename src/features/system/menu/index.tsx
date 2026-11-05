@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ChevronRight, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
+import { ChevronRight, Download, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -10,8 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { hasPermission } from '@/lib/auth'
+import { saveBlobFile } from '@/lib/download'
 import { MenuFormDialog } from './components/menu-form-dialog'
-import { createMenu, deleteMenu, fetchMenus, menuTypeMap, updateMenu, type Menu } from './api'
+import { createMenu, deleteMenu, exportMenus, fetchMenus, menuTypeMap, updateMenu, type Menu } from './api'
 import { withOperationLog } from '@/features/system/log/api'
 
 interface MenuNode extends Menu {
@@ -45,6 +46,7 @@ export function MenuPage() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [keyword, setKeyword] = useState('')
+  const [exporting, setExporting] = useState(false)
   const [typeFilter, setTypeFilter] = useState('all')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [formOpen, setFormOpen] = useState(false)
@@ -62,6 +64,18 @@ export function MenuPage() {
   }, [])
 
   useEffect(load, [load])
+
+  /** 导出权限快照：只导出不导入（菜单主键/父级关系跨库无法对应） */
+  const handleExport = () => {
+    setExporting(true)
+    exportMenus()
+      .then(({ filename, blob }) => {
+        saveBlobFile(filename, blob)
+        toast.success('菜单权限已导出')
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '导出失败'))
+      .finally(() => setExporting(false))
+  }
 
   const openCreate = (parentId: string | null) => {
     setEditing(null)
@@ -182,12 +196,20 @@ export function MenuPage() {
           <h1 className="text-2xl font-bold">菜单管理</h1>
           <p className="text-muted-foreground text-sm">{loading ? '加载中…' : `共 ${list.length} 个菜单（含按钮权限）`}</p>
         </div>
-        {hasPermission('system:menu:add') && (
-          <Button onClick={() => openCreate(null)}>
-            <Plus />
-            新增菜单
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {hasPermission('system:menu:export') && (
+            <Button variant="outline" onClick={handleExport} disabled={exporting || list.length === 0}>
+              <Download />
+              {exporting ? '导出中…' : '导出'}
+            </Button>
+          )}
+          {hasPermission('system:menu:add') && (
+            <Button onClick={() => openCreate(null)}>
+              <Plus />
+              新增菜单
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card>

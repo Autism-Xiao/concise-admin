@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { Download, Pencil, Plus, Search, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -8,9 +8,12 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { ExcelImportDialog } from '@/components/excel-import-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
+import { toastBatchResult } from '@/lib/batch-delete'
+import { saveBlobFile } from '@/lib/download'
 import { cn } from '@/lib/utils'
 import { DictFormDialog } from './components/dict-form-dialog'
 import { DictItemFormDialog } from './components/dict-item-form-dialog'
@@ -19,8 +22,12 @@ import {
   createDictItem,
   deleteDict,
   deleteDictItem,
+  deleteDictItems,
+  downloadDictTemplate,
+  exportDicts,
   fetchDictItems,
   fetchDicts,
+  importDicts,
   updateDict,
   updateDictItem,
   type Dict,
@@ -64,6 +71,12 @@ export function DictPage() {
   const [itemFormOpen, setItemFormOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<DictItem | null>(null)
   const [deletingItem, setDeletingItem] = useState<DictItem | null>(null)
+
+  // ---- 导入导出 / 批量删除 ----
+  const [importOpen, setImportOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [batchDeleting, setBatchDeleting] = useState(false)
+  const [batchBusy, setBatchBusy] = useState(false)
 
   const loadDicts = (preferId?: string) => {
     setLoadingDicts(true)
@@ -175,7 +188,8 @@ export function DictPage() {
   )
 
   const columnFilters = useMemo(() => (itemStatus === 'all' ? [] : [{ id: 'status', value: itemStatus }]), [itemStatus])
-  const { table, keyword, setKeyword } = useDataTable({ data: items, columns, columnFilters })
+  const { table, keyword, setKeyword, rowSelection, setRowSelection } = useDataTable({ data: items, columns, columnFilters, getRowId: item => item.id })
+  const selectedCount = Object.keys(rowSelection).filter(key => rowSelection[key]).length
 
   // ---- 字典 CRUD ----
   const handleDictSubmit = async (values: DictFormValues) => {
@@ -226,6 +240,37 @@ export function DictPage() {
     }
   }
 
+  /** 导出：整包带走（字典类型 + 字典项），与导入模板列一致，改完可再导回 */
+  const handleExport = () => {
+    setExporting(true)
+    exportDicts({ keyword: dictKeyword.trim() })
+      .then(({ filename, blob }) => {
+        saveBlobFile(filename, blob)
+        toast.success('字典已导出')
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '导出失败'))
+      .finally(() => setExporting(false))
+  }
+
+  /** 批量删除字典项：走后端统一接口，逐条结算 */
+  const handleBatchDelete = async () => {
+    const targets = table.getSelectedRowModel().rows.map(row => row.original)
+    if (!targets.length || batchBusy) return
+    setBatchBusy(true)
+    try {
+      const result = await deleteDictItems(targets.map(item => item.id))
+      toastBatchResult(result, '字典项')
+      setBatchDeleting(false)
+      setRowSelection({})
+      if (activeDict) {
+        loadItems(activeDict.id)
+        loadDicts(activeDict.id)
+      }
+    } finally {
+      setBatchBusy(false)
+    }
+  }
+
   const handleDeleteItem = async () => {
     if (!deletingItem || !activeDict) return
     try {
@@ -246,17 +291,31 @@ export function DictPage() {
           <h1 className="text-2xl font-bold">数据字典</h1>
           <p className="text-muted-foreground text-sm">共 {dicts.length} 个字典 · 左侧选择字典，右侧维护其字典项</p>
         </div>
-        {hasPermission('system:dict:add') && (
-          <Button
-            onClick={() => {
-              setEditingDict(null)
-              setDictFormOpen(true)
-            }}
-          >
-            <Plus />
-            新增字典
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {hasPermission('system:dict:export') && (
+            <Button variant="outline" onClick={handleExport} disabled={exporting || dicts.length === 0}>
+              <Download />
+              {exporting ? '导出中…' : '导出'}
+            </Button>
+          )}
+          {hasPermission('system:dict:import') && (
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload />
+              导入
+            </Button>
+          )}
+          {hasPermission('system:dict:add') && (
+            <Button
+              onClick={() => {
+                setEditingDict(null)
+                setDictFormOpen(true)
+              }}
+            >
+              <Plus />
+              新增字典
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
@@ -319,6 +378,12 @@ export function DictPage() {
             </div>
             {activeDict && (
               <div className="flex items-center gap-1">
+                {hasPermission('system:dict:delete') && selectedCount > 0 && (
+                  <Button variant="outline" size="sm" onClick={() => setBatchDeleting(true)} disabled={batchBusy}>
+                    <Trash2 className="size-4" />
+                    批量删除（{selectedCount}）
+                  </Button>
+                )}
                 {hasPermission('system:dict:add') && (
                   <Button
                     size="sm"
@@ -416,6 +481,31 @@ export function DictPage() {
         onOpenChange={v => !v && setDeletingItem(null)}
         description={<>即将删除字典项「{deletingItem?.itemText}」，该操作不可恢复。</>}
         onConfirm={handleDeleteItem}
+      />
+
+      {importOpen && (
+        <ExcelImportDialog
+          open={importOpen}
+          onOpenChange={setImportOpen}
+          title="导入字典"
+          description="一个工作簿两张工作表：「字典类型」与「字典项」，靠字典编码关联，可以只填其中一张。字典编码已存在时更新（已删除的会恢复），字典项按「字典编码 + 项值」判定。单表最多 2000 行。"
+          templateHint="模板含两张工作表与填写说明，必须列带 *"
+          onImported={() => loadDicts(activeId ?? undefined)}
+          downloadTemplate={downloadDictTemplate}
+          importFile={importDicts}
+        />
+      )}
+
+      <ConfirmDeleteDialog
+        open={batchDeleting}
+        onOpenChange={v => !batchBusy && setBatchDeleting(v)}
+        title="批量删除字典项"
+        description={
+          <>
+            即将删除当前字典下勾选的 {selectedCount} 个字典项，该操作为硬删除，不可恢复。{batchBusy ? '正在删除，请稍候…' : ''}
+          </>
+        }
+        onConfirm={handleBatchDelete}
       />
     </div>
   )

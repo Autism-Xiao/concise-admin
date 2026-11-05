@@ -25,6 +25,13 @@ async function main() {
           }
         }
       }
+      // 字典 api 现在还引用了下载与批量删除公共件；本用例只验证 CRUD 请求头，给空实现即可
+      if (id === '@/lib/download') {
+        return { downloadFromApi: async () => ({ filename: 'dicts.xlsx', blob: null }) }
+      }
+      if (id === '@/lib/batch-delete') {
+        return { batchDeleteRequest: async () => ({ deleted: 0, failed: [] }) }
+      }
       throw new Error(`Unexpected import: ${id}`)
     },
     URLSearchParams,

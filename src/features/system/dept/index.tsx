@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type DragEvent, type ReactNode } from 'react'
-import { ChevronRight, GripVertical, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { ChevronRight, Download, GripVertical, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -8,8 +8,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DeptFormDialog } from './components/dept-form-dialog'
-import { createDept, deleteDept, deleteDepts, fetchDepts, updateDept, type Dept, type DeptWritePayload } from './api'
+import { createDept, deleteDept, deleteDepts, exportDepts, fetchDepts, updateDept, type Dept, type DeptWritePayload } from './api'
 import { withOperationLog } from '@/features/system/log/api'
+import { hasPermission } from '@/lib/auth'
+import { toastBatchResult } from '@/lib/batch-delete'
+import { saveBlobFile } from '@/lib/download'
 
 interface DeptNode extends Dept {
   children: DeptNode[]
@@ -61,6 +64,7 @@ export function DeptPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [keyword, setKeyword] = useState('')
+  const [exporting, setExporting] = useState(false)
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [dragId, setDragId] = useState<string | null>(null)
   const [dropHint, setDropHint] = useState<{ id: string; mode: DropMode } | null>(null)
@@ -156,16 +160,25 @@ export function DeptPage() {
     })
   }
 
+  /** 导出：带完整路径，keyword 与列表筛选一致 */
+  const handleExport = () => {
+    setExporting(true)
+    exportDepts({ keyword: keyword.trim() })
+      .then(({ filename, blob }) => {
+        saveBlobFile(filename, blob)
+        toast.success('部门已导出')
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '导出失败'))
+      .finally(() => setExporting(false))
+  }
+
   const handleBatchDelete = async () => {
     const targets = depts.filter(dept => selectedIds.has(dept.id))
     if (!targets.length || batchBusy) return
     setBatchBusy(true)
     try {
-      const results = await withOperationLog(`批量删除 ${targets.length} 个部门`, () => deleteDepts(targets.map(dept => dept.id)))
-      const succeeded = results.filter(result => result.status === 'fulfilled').length
-      const failed = results.length - succeeded
-      if (succeeded) toast.success(`已删除 ${succeeded} 个部门`)
-      if (failed) toast.error(`${failed} 个部门删除失败（有子部门或挂用户时会被拒绝）`)
+      const result = await withOperationLog(`批量删除 ${targets.length} 个部门`, () => deleteDepts(targets.map(dept => dept.id)))
+      toastBatchResult(result, '部门')
       setBatchDeleting(false)
       setSelectedIds(new Set())
       load()
@@ -368,6 +381,12 @@ export function DeptPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {hasPermission('system:dept:export') && (
+            <Button variant="outline" onClick={handleExport} disabled={exporting || depts.length === 0}>
+              <Download />
+              {exporting ? '导出中…' : '导出'}
+            </Button>
+          )}
           {selectedCount > 0 && (
             <Button variant="outline" onClick={() => setBatchDeleting(true)} disabled={batchBusy}>
               <Trash2 />

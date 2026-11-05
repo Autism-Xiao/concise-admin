@@ -1,3 +1,4 @@
+import { batchDeleteRequest, type BatchDeleteResult } from '@/lib/batch-delete'
 import { getApiResult } from '@/lib/http'
 
 /** 消息类型（jeecg msg_category）：1 通知公告 / 2 系统消息 */
@@ -149,4 +150,9 @@ export function importNotices(file: File): Promise<NoticeImportResult> {
   const form = new FormData()
   form.append('file', file)
   return getApiResult<NoticeImportResult>('/backend-api/v1/notices/import', { method: 'POST', body: form })
+}
+
+/** 批量删除公告：走后端统一接口，逐条结算（已发布的需先撤销，会返回失败原因） */
+export function deleteNotices(ids: string[]): Promise<BatchDeleteResult> {
+  return batchDeleteRequest('notices', ids)
 }

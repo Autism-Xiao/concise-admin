@@ -1,3 +1,4 @@
+import { downloadFromApi } from '@/lib/download'
 import { getApiResult } from '@/lib/http'
 
 /** 任务状态（对齐 JeecgBoot sys_quartz_job.status）：0 正常（运行中）/ -1 停止 */
@@ -115,4 +116,13 @@ export function formatDateTime(value?: string | null): string {
   if (Number.isNaN(date.getTime())) return '-'
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+/** 导出定时任务配置（与列表同筛选条件；不支持导入） */
+export function exportJobs(params: { keyword?: string; status?: number } = {}): Promise<{ filename: string; blob: Blob }> {
+  const qs = new URLSearchParams()
+  if (params.keyword) qs.set('keyword', params.keyword)
+  if (params.status !== undefined) qs.set('status', String(params.status))
+  const query = qs.toString()
+  return downloadFromApi(`/v1/jobs/export${query ? `?${query}` : ''}`, 'jobs.xlsx')
 }

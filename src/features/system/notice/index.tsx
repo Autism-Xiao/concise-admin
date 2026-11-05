@@ -13,11 +13,13 @@ import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOpt
 import { hasPermission } from '@/lib/auth'
 import { NoticeFormDialog } from './components/notice-form-dialog'
 import { NoticeImportDialog } from './components/notice-import-dialog'
+import { toastBatchResult } from '@/lib/batch-delete'
 import {
   NOTICE_CATEGORY_LABEL,
   NOTICE_PRIORITY_LABEL,
   NOTICE_STATUS_LABEL,
   deleteNotice,
+  deleteNotices,
   fetchNotices,
   formatDateTime,
   publishNotice,
@@ -226,21 +228,20 @@ export function NoticePage() {
   const [batchDeleting, setBatchDeleting] = useState(false)
   const [batchBusy, setBatchBusy] = useState(false)
 
-  /** 批量删除：后端为单 id 删除接口，这里并发执行并汇总成功/失败（已发布的需先撤销） */
+  /** 批量删除：走后端统一接口，一次事务外逐条结算（已发布的会返回失败原因） */
   const handleBatchDelete = () => {
     const targets = table.getSelectedRowModel().rows.map(r => r.original)
     if (!targets.length) return
     setBatchBusy(true)
-    Promise.allSettled(targets.map(n => deleteNotice(n.id))).then(results => {
-      const ok = results.filter(r => r.status === 'fulfilled').length
-      const fail = results.length - ok
-      if (ok) toast.success(`已删除 ${ok} 条公告`)
-      if (fail) toast.error(`${fail} 条删除失败（已发布的需先撤销）`)
-      setBatchDeleting(false)
-      setBatchBusy(false)
-      setRowSelection({})
-      load()
-    })
+    deleteNotices(targets.map(n => n.id))
+      .then(result => toastBatchResult(result, '公告'))
+      .catch(e => toast.error(e instanceof Error ? e.message : '删除失败'))
+      .finally(() => {
+        setBatchDeleting(false)
+        setBatchBusy(false)
+        setRowSelection({})
+        load()
+      })
   }
 
   const handleSubmit = async (values: NoticeWritePayload) => {

@@ -15,6 +15,7 @@ import { saveBlobFile } from '@/lib/download'
 import { UserImportDialog } from './components/user-import-dialog'
 import { createUser, deleteUser, deleteUsers, exportUsers, fetchUsers, updateUser, userStatusMap, type User, type UserWritePayload } from './api'
 import { withOperationLog } from '@/features/system/log/api'
+import { toastBatchResult } from '@/lib/batch-delete'
 
 const columnLabels: Record<string, string> = {
   username: '账号',
@@ -178,11 +179,8 @@ export function UsersPage() {
     if (!targets.length || batchBusy) return
     setBatchBusy(true)
     try {
-      const results = await withOperationLog(`批量删除 ${targets.length} 个用户`, () => deleteUsers(targets.map(user => user.id)))
-      const succeeded = results.filter(result => result.status === 'fulfilled').length
-      const failed = results.length - succeeded
-      if (succeeded) toast.success(`已删除 ${succeeded} 个用户`)
-      if (failed) toast.error(`${failed} 个用户删除失败，请检查是否包含不可删除的账号`)
+      const result = await withOperationLog(`批量删除 ${targets.length} 个用户`, () => deleteUsers(targets.map(user => user.id)))
+      toastBatchResult(result, '用户')
       setBatchDeleting(false)
       setRowSelection({})
       load()

@@ -1,3 +1,5 @@
+import { batchDeleteRequest, type BatchDeleteResult } from '@/lib/batch-delete'
+import { downloadFromApi } from '@/lib/download'
 import { getApiResult } from '@/lib/http'
 
 /** 后端 sys_depart（部门），只保留页面需要的字段 */
@@ -56,7 +58,13 @@ export function deleteDept(id: string): Promise<void> {
   return getApiResult<null>(`/backend-api/v1/depts/${id}`, { method: 'DELETE' }).then(() => undefined)
 }
 
-/** 批量删除逐条结算，单个部门删除失败不阻断其他请求 */
-export function deleteDepts(ids: string[]): Promise<PromiseSettledResult<void>[]> {
-  return Promise.allSettled(ids.map(id => deleteDept(id)))
+/** 批量删除部门：走后端统一接口，逐条结算（有子部门/有用户的会返回失败原因） */
+export function deleteDepts(ids: string[]): Promise<BatchDeleteResult> {
+  return batchDeleteRequest('depts', ids)
+}
+
+/** 导出部门 Excel（带完整路径，keyword 与列表一致） */
+export function exportDepts(params: { keyword?: string } = {}): Promise<{ filename: string; blob: Blob }> {
+  const qs = params.keyword ? `?keyword=${encodeURIComponent(params.keyword)}` : ''
+  return downloadFromApi(`/v1/depts/export${qs}`, 'depts.xlsx')
 }

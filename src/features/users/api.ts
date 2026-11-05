@@ -1,3 +1,5 @@
+import { batchDeleteRequest, type BatchDeleteResult } from '@/lib/batch-delete'
+import { downloadFromApi } from '@/lib/download'
 import { getApiResult } from '@/lib/http'
 import { fetchRoleOptions, type Role } from '@/features/system/role/api'
 
@@ -74,9 +76,9 @@ export function deleteUser(id: string): Promise<unknown> {
   return getApiResult<unknown>(`/backend-api/v1/users/${id}`, { method: 'DELETE' })
 }
 
-/** 批量删除逐条结算，单个用户删除失败不阻断其他请求 */
-export function deleteUsers(ids: string[]): Promise<PromiseSettledResult<unknown>[]> {
-  return Promise.allSettled(ids.map(id => deleteUser(id)))
+/** 批量删除用户：走后端统一接口，逐条结算（内置管理员会返回失败原因） */
+export function deleteUsers(ids: string[]): Promise<BatchDeleteResult> {
+  return batchDeleteRequest('users', ids)
 }
 
 export { fetchRoleOptions }
@@ -99,32 +101,18 @@ export interface UserImportResult {
   errors: Array<{ row: number; username: string; message: string }>
 }
 
-/** 文件下载统一走原生 fetch（需要 blob + Content-Disposition 文件名，不走 JSON 外壳） */
-async function downloadFile(path: string, fallbackName: string): Promise<{ filename: string; blob: Blob }> {
-  const token = localStorage.getItem('concise-token') ?? ''
-  const res = await fetch(`/backend-api${path}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {}
-  })
-  if (!res.ok) throw new Error(`导出失败: ${res.status}`)
-  const disposition = res.headers.get('content-disposition') ?? ''
-  // 优先取 UTF-8 中文名（filename*），老格式 filename 兜底
-  const utf8Name = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1]
-  const filename = utf8Name ? decodeURIComponent(utf8Name) : (/filename="?([^";]+)"?/.exec(disposition)?.[1] ?? fallbackName)
-  return { filename, blob: await res.blob() }
-}
-
 /** 导出用户 Excel（与列表同过滤条件，不传即全量） */
 export function exportUsers(params: { keyword?: string; status?: string } = {}): Promise<{ filename: string; blob: Blob }> {
   const qs = new URLSearchParams()
   if (params.keyword) qs.set('keyword', params.keyword)
   if (params.status) qs.set('status', params.status)
   const query = qs.toString()
-  return downloadFile(`/v1/users/export${query ? `?${query}` : ''}`, 'users.xlsx')
+  return downloadFromApi(`/v1/users/export${query ? `?${query}` : ''}`, 'users.xlsx')
 }
 
 /** 下载用户导入模板 Excel（第一个工作表为模板，第二个为填写示例） */
 export function downloadUserTemplate(): Promise<{ filename: string; blob: Blob }> {
-  return downloadFile('/v1/users/import-template', 'users-import-template.xlsx')
+  return downloadFromApi('/v1/users/import-template', 'users-import-template.xlsx')
 }
 
 /** 导入用户（multipart，字段名 file；支持 .xlsx/.csv，按登录账号新增或更新） */

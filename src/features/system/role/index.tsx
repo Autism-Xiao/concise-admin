@@ -17,6 +17,7 @@ import { RoleFormDialog, type RoleFormValues } from './components/role-form-dial
 import { RoleImportDialog } from './components/role-import-dialog'
 import { RolePermissionDialog } from './components/role-permission-dialog'
 import { createRole, deleteRole, deleteRoles, exportRoles, fetchRoleMenuIds, fetchRoles, saveRoleMenus, updateRole, type Role } from './api'
+import { toastBatchResult } from '@/lib/batch-delete'
 
 const columnLabels: Record<string, string> = {
   roleCode: '权限字符',
@@ -188,11 +189,8 @@ export function RolePage() {
     if (!targets.length || batchBusy) return
     setBatchBusy(true)
     try {
-      const results = await deleteRoles(targets.map(role => role.id))
-      const succeeded = results.filter(result => result.status === 'fulfilled').length
-      const failed = results.length - succeeded
-      if (succeeded) toast.success(`已删除 ${succeeded} 个角色`)
-      if (failed) toast.error(`${failed} 个角色删除失败，请检查角色是否仍被用户使用`)
+      const result = await deleteRoles(targets.map(role => role.id))
+      toastBatchResult(result, '角色')
       setBatchDeleting(false)
       setRowSelection({})
       load()

@@ -9,7 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
-import { fetchOnlineUsers, formatDateTime, kickUser, type OnlineUser } from './api'
+import { toastBatchResult } from '@/lib/batch-delete'
+import { batchKickUsers, fetchOnlineUsers, formatDateTime, kickUser, type OnlineUser } from './api'
 
 const columnLabels: Record<string, string> = {
   sessionId: '会话编号',
@@ -29,6 +30,8 @@ export function OnlineUsersPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [kicking, setKicking] = useState<OnlineUser | null>(null)
+  const [batchKicking, setBatchKicking] = useState(false)
+  const [batchBusy, setBatchBusy] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -119,7 +122,26 @@ export function OnlineUsersPage() {
     []
   )
 
-  const { table, keyword, setKeyword } = useDataTable({ data: list, columns })
+  const { table, keyword, setKeyword, rowSelection, setRowSelection } = useDataTable({ data: list, columns, getRowId: user => user.sessionId })
+  const selectedCount = Object.keys(rowSelection).filter(key => rowSelection[key]).length
+
+  /** 批量强退：一次请求，后端逐条踢并返回失败原因（会话已过期的会出现在失败列表） */
+  const handleBatchKick = async () => {
+    const targets = table.getSelectedRowModel().rows.map(row => row.original)
+    if (!targets.length || batchBusy) return
+    setBatchBusy(true)
+    try {
+      const result = await batchKickUsers(targets.map(user => user.sessionId))
+      toastBatchResult(result, '会话')
+      setBatchKicking(false)
+      setRowSelection({})
+      load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '批量下线失败')
+    } finally {
+      setBatchBusy(false)
+    }
+  }
 
   const handleKick = async () => {
     if (!kicking) return
@@ -142,10 +164,18 @@ export function OnlineUsersPage() {
             当前共 {total} 人在线（来自 Redis 实时会话{total > list.length ? `，展示最近登录的 ${list.length} 个` : ''}）
           </p>
         </div>
-        <Button variant="outline" onClick={load}>
-          <RefreshCw />
-          刷新
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {hasPermission('system:online:kick') && selectedCount > 0 && (
+            <Button variant="outline" onClick={() => setBatchKicking(true)} disabled={batchBusy}>
+              <LogOut />
+              批量下线（{selectedCount}）
+            </Button>
+          )}
+          <Button variant="outline" onClick={load}>
+            <RefreshCw />
+            刷新
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -187,6 +217,18 @@ export function OnlineUsersPage() {
         title="强制下线"
         description={<>即将把「{kicking?.username}」踢下线，其令牌立即失效并需重新登录。</>}
         onConfirm={handleKick}
+      />
+
+      <ConfirmDeleteDialog
+        open={batchKicking}
+        onOpenChange={v => !batchBusy && setBatchKicking(v)}
+        title="批量强制下线"
+        description={
+          <>
+            即将让勾选的 {selectedCount} 个会话立即失效，对应用户需要重新登录。{batchBusy ? '正在处理，请稍候…' : ''}
+          </>
+        }
+        onConfirm={handleBatchKick}
       />
     </div>
   )

@@ -1,3 +1,4 @@
+import { batchDeleteRequest, type BatchDeleteResult } from '@/lib/batch-delete'
 import { getApiResult } from '@/lib/http'
 
 /** 后端 RoleEntity（sys_role，字符串主键） */
@@ -59,8 +60,9 @@ export function deleteRole(id: string): Promise<void> {
 }
 
 /** 批量删除逐条结算，单个角色删除失败不阻断其他请求 */
-export function deleteRoles(ids: string[]): Promise<PromiseSettledResult<void>[]> {
-  return Promise.allSettled(ids.map(id => deleteRole(id)))
+/** 批量删除角色：走后端统一接口，逐条结算（内置角色/有用户的会返回失败原因） */
+export function deleteRoles(ids: string[]): Promise<BatchDeleteResult> {
+  return batchDeleteRequest('roles', ids)
 }
 
 /* ---------- 角色授权（v1） ---------- */

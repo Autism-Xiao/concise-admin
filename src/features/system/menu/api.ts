@@ -1,3 +1,4 @@
+import { downloadFromApi } from '@/lib/download'
 import { getApiResult } from '@/lib/http'
 
 /** 后端 sys_permission（对齐 JeecgBoot），菜单管理页用的完整结构 */
@@ -65,3 +66,8 @@ export function deleteMenu(id: string): Promise<unknown> {
 
 /** 菜单类型展示 */
 export const menuTypeMap: Record<number, string> = { 0: '目录', 1: '菜单', 2: '按钮' }
+
+/** 导出菜单权限快照（扁平导出，含按钮权限；用于留档与环境比对，不支持导回） */
+export function exportMenus(): Promise<{ filename: string; blob: Blob }> {
+  return downloadFromApi('/v1/menus/export', 'menus.xlsx')
+}

@@ -4,6 +4,7 @@ const path = require('node:path')
 const vm = require('node:vm')
 const ts = require('typescript')
 
+/** 角色批量删除：验证「一次请求 + 后端逐条结算」，被用户占用时的失败原因要能透传 */
 async function main() {
   const filename = path.resolve(__dirname, '../src/features/system/role/api.ts')
   const source = fs.readFileSync(filename, 'utf8')
@@ -11,16 +12,20 @@ async function main() {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
   })
 
+  const calls = []
   const module = { exports: {} }
   vm.runInNewContext(outputText, {
     module,
     exports: module.exports,
     require(id) {
       if (id === '@/lib/http') {
+        return { getApiResult: async () => null }
+      }
+      if (id === '@/lib/batch-delete') {
         return {
-          getApiResult: async url => {
-            if (url.endsWith('/role-b')) throw new Error('角色仍被用户使用')
-            return null
+          batchDeleteRequest: async (resource, ids) => {
+            calls.push({ resource, ids })
+            return { deleted: ids.length - 1, failed: [{ id: 'role-b', name: '编辑', reason: '该角色下还有 2 个用户，请先解绑后再删除' }] }
           }
         }
       }
@@ -34,14 +39,13 @@ async function main() {
   })
 
   assert.equal(typeof module.exports.deleteRoles, 'function', '缺少角色批量删除方法')
-  const results = await module.exports.deleteRoles(['role-a', 'role-b', 'role-c'])
-  assert.equal(results.length, 3)
-  assert.deepEqual(
-    Array.from(results, result => result.status),
-    ['fulfilled', 'rejected', 'fulfilled']
-  )
-  assert.equal(results[1].reason.message, '角色仍被用户使用')
-  console.log('PASS: 批量删除逐条结算，单条失败不影响其他角色')
+  const result = await module.exports.deleteRoles(['role-a', 'role-b', 'role-c'])
+  assert.equal(calls.length, 1, '批量删除应只发一次请求')
+  assert.equal(calls[0].resource, 'roles', '应走 roles 批量接口')
+  assert.deepEqual(calls[0].ids, ['role-a', 'role-b', 'role-c'])
+  assert.equal(result.deleted, 2)
+  assert.equal(result.failed[0].reason, '该角色下还有 2 个用户，请先解绑后再删除')
+  console.log('PASS: 角色批量删除一次请求，占用情况由后端给出原因')
 }
 
 main().catch(error => {
