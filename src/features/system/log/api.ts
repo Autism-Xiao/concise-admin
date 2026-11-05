@@ -98,7 +98,7 @@ export async function exportLogs(kind: 'login' | 'oper'): Promise<{ filename: st
   })
   if (!res.ok) throw new Error(`导出失败: ${res.status}`)
   const disposition = res.headers.get('content-disposition') ?? ''
-  const filename = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? `${kind}-logs.csv`
+  const filename = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? `${kind}-logs.xlsx`
   return { filename, blob: await res.blob() }
 }
 
