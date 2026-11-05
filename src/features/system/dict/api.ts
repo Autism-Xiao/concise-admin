@@ -47,13 +47,13 @@ export interface DictItemFormValues {
   description?: string
 }
 
-/** 分页返回（后端 Pagination 结构） */
+/** 分页返回（后端 Pagination 结构，对齐 jeecg IPage） */
 export interface PageResult<T> {
-  items: T[]
+  records: T[]
   total: number
-  page: number
-  pageSize: number
-  totalPages: number
+  current: number
+  size: number
+  pages: number
 }
 
 const DICT_BASE = '/backend-api/v1/dicts'
@@ -103,10 +103,10 @@ export async function fetchDictItems(params: { dictId: string; keyword?: string;
     if (params.status !== undefined) query.set('status', String(params.status))
 
     const result = await getApiResult<PageResult<DictItem>>(`${ITEM_BASE}?${query.toString()}`)
-    items.push(...(result.items ?? []))
-    const totalPages = result.totalPages ?? Math.ceil((result.total ?? 0) / ITEM_PAGE_SIZE)
+    items.push(...(result.records ?? []))
+    const pages = result.pages ?? Math.ceil((result.total ?? 0) / ITEM_PAGE_SIZE)
     // 取完最后一页（或后端返回不足一页）即结束，避免多打一次空请求
-    if (page >= totalPages || (result.items?.length ?? 0) < ITEM_PAGE_SIZE) {
+    if (page >= pages || (result.records?.length ?? 0) < ITEM_PAGE_SIZE) {
       break
     }
   }

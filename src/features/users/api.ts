@@ -39,11 +39,11 @@ export interface UserWritePayload {
 }
 
 export interface UserListResult {
-  items: User[]
+  records: User[]
   total: number
-  page: number
-  pageSize: number
-  totalPages: number
+  current: number
+  size: number
+  pages: number
 }
 
 /** 分页查询用户列表（大页容量一次拉全，前端表格本地筛选） */

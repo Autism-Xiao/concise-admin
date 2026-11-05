@@ -35,7 +35,7 @@ export function OnlineUsersPage() {
     setError(null)
     fetchOnlineUsers()
       .then(res => {
-        setList(res.items ?? [])
+        setList(res.records ?? [])
         setTotal(res.total ?? 0)
       })
       .catch(e => setError(e instanceof Error ? e.message : '加载失败'))

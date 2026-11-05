@@ -30,11 +30,11 @@ export interface JobItem {
 }
 
 export interface JobPage {
-  items: JobItem[]
+  records: JobItem[]
   total: number
-  page: number
-  pageSize: number
-  totalPages: number
+  current: number
+  size: number
+  pages: number
 }
 
 /** 可选执行器（jobClassName 的可选值） */

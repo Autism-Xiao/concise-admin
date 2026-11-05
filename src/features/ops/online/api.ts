@@ -18,11 +18,11 @@ export interface OnlineUser {
 }
 
 export interface OnlinePage {
-  items: OnlineUser[]
+  records: OnlineUser[]
   total: number
-  page: number
-  pageSize: number
-  totalPages: number
+  current: number
+  size: number
+  pages: number
 }
 
 const BASE = '/backend-api/v1/online'

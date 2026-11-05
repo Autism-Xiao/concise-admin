@@ -53,8 +53,8 @@ function formatDateTime(iso: string): string {
 
 /** 登录日志（GET /api/v1/logs/login，取最近 100 条倒序；后端 pageSize 上限 100） */
 export async function fetchLoginLogs(): Promise<LoginLog[]> {
-  const page = await getApiResult<{ items: BackendSysLog[] }>('/backend-api/v1/logs/login?page=1&pageSize=100')
-  return (page.items ?? []).map(row => ({
+  const page = await getApiResult<{ records: BackendSysLog[] }>('/backend-api/v1/logs/login?page=1&pageSize=100')
+  return (page.records ?? []).map(row => ({
     id: row.id,
     user: row.operateUserName,
     ip: row.ip,
@@ -69,8 +69,8 @@ export async function fetchLoginLogs(): Promise<LoginLog[]> {
 
 /** 操作日志（GET /api/v1/logs/oper，取最近 100 条倒序；后端 pageSize 上限 100） */
 export async function fetchOperationLogs(): Promise<OperationLog[]> {
-  const page = await getApiResult<{ items: BackendSysLog[] }>('/backend-api/v1/logs/oper?page=1&pageSize=100')
-  return (page.items ?? []).map(row => ({
+  const page = await getApiResult<{ records: BackendSysLog[] }>('/backend-api/v1/logs/oper?page=1&pageSize=100')
+  return (page.records ?? []).map(row => ({
     id: row.id,
     user: row.operateUserName,
     action: row.logContent,

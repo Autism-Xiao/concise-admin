@@ -31,11 +31,11 @@ export interface Notice {
 }
 
 export interface NoticeListResult {
-  items: Notice[]
+  records: Notice[]
   total: number
-  page: number
-  pageSize: number
-  totalPages: number
+  current: number
+  size: number
+  pages: number
 }
 
 /** 新增/编辑提交体（sendStatus 只传 0/1，撤销走单独接口） */

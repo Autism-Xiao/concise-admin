@@ -65,7 +65,7 @@ export function NoticePage() {
     setError(null)
     fetchNotices({ pageSize: 100 })
       .then(res => {
-        setList(res.items ?? [])
+        setList(res.records ?? [])
         setTotal(res.total ?? 0)
       })
       .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
