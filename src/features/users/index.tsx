@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { Download, Pencil, Plus, Search, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,9 @@ import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { UserFormDialog } from './components/user-form-dialog'
-import { createUser, deleteUser, deleteUsers, fetchUsers, updateUser, userStatusMap, type User, type UserWritePayload } from './api'
+import { saveBlobFile } from '@/lib/download'
+import { UserImportDialog } from './components/user-import-dialog'
+import { createUser, deleteUser, deleteUsers, exportUsers, fetchUsers, updateUser, userStatusMap, type User, type UserWritePayload } from './api'
 import { withOperationLog } from '@/features/system/log/api'
 
 const columnLabels: Record<string, string> = {
@@ -33,6 +35,8 @@ export function UsersPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<User | null>(null)
   const [deleting, setDeleting] = useState<User | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -198,6 +202,18 @@ export function UsersPage() {
       .catch(e => toast.error(e instanceof Error ? e.message : '保存失败'))
   }
 
+  /** 导出 Excel：把当前搜索关键字与状态筛选带给后端，导出的是筛选后的结果（不筛选即全量） */
+  const handleExport = () => {
+    setExporting(true)
+    exportUsers({ keyword: keyword.trim(), status: statusFilter === 'all' ? '' : statusFilter })
+      .then(({ filename, blob }) => {
+        saveBlobFile(filename, blob)
+        toast.success('用户已导出')
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '导出失败'))
+      .finally(() => setExporting(false))
+  }
+
   const handleDelete = () => {
     if (!deleting) return
     withOperationLog(`删除用户「${deleting.realname || deleting.username}」`, () => deleteUser(deleting.id))
@@ -217,6 +233,18 @@ export function UsersPage() {
           <p className="text-muted-foreground text-sm">共 {total} 个用户</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {hasPermission('system:user:export') && (
+            <Button variant="outline" onClick={handleExport} disabled={exporting || users.length === 0}>
+              <Download />
+              {exporting ? '导出中…' : '导出'}
+            </Button>
+          )}
+          {hasPermission('system:user:import') && (
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload />
+              导入
+            </Button>
+          )}
           {hasPermission('system:user:delete') && selectedCount > 0 && (
             <Button variant="outline" onClick={() => setBatchDeleting(true)} disabled={batchBusy}>
               <Trash2 />
@@ -279,6 +307,8 @@ export function UsersPage() {
       )}
 
       {formOpen && <UserFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} user={editing} onSubmit={handleSubmit} />}
+
+      {importOpen && <UserImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={load} />}
 
       <ConfirmDeleteDialog
         open={!!deleting}

@@ -87,6 +87,53 @@ export function fetchBackendDepts(): Promise<Array<{ id: string; departName: str
   return getApiResult<Array<{ id: string; departName: string; parentId?: string | null }>>('/backend-api/v1/depts')
 }
 
+/* ---------- 导入导出（/api/v1/users/export | import | import-template） ---------- */
+
+/** 导入结果：后端逐行统计 + 失败明细 */
+export interface UserImportResult {
+  total: number
+  created: number
+  updated: number
+  skipped: number
+  failed: number
+  errors: Array<{ row: number; username: string; message: string }>
+}
+
+/** 文件下载统一走原生 fetch（需要 blob + Content-Disposition 文件名，不走 JSON 外壳） */
+async function downloadFile(path: string, fallbackName: string): Promise<{ filename: string; blob: Blob }> {
+  const token = localStorage.getItem('concise-token') ?? ''
+  const res = await fetch(`/backend-api${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  })
+  if (!res.ok) throw new Error(`导出失败: ${res.status}`)
+  const disposition = res.headers.get('content-disposition') ?? ''
+  // 优先取 UTF-8 中文名（filename*），老格式 filename 兜底
+  const utf8Name = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1]
+  const filename = utf8Name ? decodeURIComponent(utf8Name) : (/filename="?([^";]+)"?/.exec(disposition)?.[1] ?? fallbackName)
+  return { filename, blob: await res.blob() }
+}
+
+/** 导出用户 Excel（与列表同过滤条件，不传即全量） */
+export function exportUsers(params: { keyword?: string; status?: string } = {}): Promise<{ filename: string; blob: Blob }> {
+  const qs = new URLSearchParams()
+  if (params.keyword) qs.set('keyword', params.keyword)
+  if (params.status) qs.set('status', params.status)
+  const query = qs.toString()
+  return downloadFile(`/v1/users/export${query ? `?${query}` : ''}`, 'users.xlsx')
+}
+
+/** 下载用户导入模板 Excel（第一个工作表为模板，第二个为填写示例） */
+export function downloadUserTemplate(): Promise<{ filename: string; blob: Blob }> {
+  return downloadFile('/v1/users/import-template', 'users-import-template.xlsx')
+}
+
+/** 导入用户（multipart，字段名 file；支持 .xlsx/.csv，按登录账号新增或更新） */
+export function importUsers(file: File): Promise<UserImportResult> {
+  const form = new FormData()
+  form.append('file', file)
+  return getApiResult<UserImportResult>('/backend-api/v1/users/import', { method: 'POST', body: form })
+}
+
 /** 新增用户的默认初始密码（创建后应引导用户自行修改） */
 export const DEFAULT_PASSWORD = '123456'
 
