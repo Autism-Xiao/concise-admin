@@ -42,7 +42,17 @@ export function setRoleCode(code: string): void {
   localStorage.setItem(ROLE_KEY, code)
 }
 
+/** 退出登录：尽力通知后端把令牌拉黑并删在线会话（失败不阻断），随后清空本地凭证 */
 export function logout(): void {
+  const accessToken = localStorage.getItem(TOKEN_KEY)
+  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
+  if (accessToken) {
+    void fetch('/backend-api/v1/auth/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ refreshToken })
+    }).catch(() => undefined)
+  }
   localStorage.removeItem(AUTH_KEY)
   localStorage.removeItem(USER_KEY)
   localStorage.removeItem(NAME_KEY)
