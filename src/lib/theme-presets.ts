@@ -1026,6 +1026,9 @@ export function buildCustomThemeVars(hex: string): { light: Record<string, strin
 }
 
 // 生成覆盖 CSS 变量的 style 内容；default 返回空串（使用默认主题），custom 由所选颜色实时生成
+// 选择器带 html 前缀提升优先级：html:root(0,1,1) > :root(0,1,0)、html.dark > .dark。
+// 必须这样做：dev 模式下 index.css 由 JS 在运行时注入 head 末尾，晚于 transformIndexHtml
+// 注入的主题 style，同优先级会按顺序被 index.css 的默认变量覆盖，导致刷新时「先默认色再主题色」闪烁
 export function buildThemeColorCss(name: string, customColor?: string): string {
   if (name === 'custom') {
     if (!customColor) return ''
@@ -1035,7 +1038,7 @@ export function buildThemeColorCss(name: string, customColor?: string): string {
       Object.entries(v)
         .map(([k, val]) => `${k}:${val}`)
         .join(';')
-    return `:root{${toCustomRules(vars.light)}}.dark{${toCustomRules(vars.dark)}}`
+    return `html:root{${toCustomRules(vars.light)}}html.dark{${toCustomRules(vars.dark)}}`
   }
   const preset = getThemeColorPreset(name)
   if (preset.name === 'default') return ''
@@ -1043,7 +1046,7 @@ export function buildThemeColorCss(name: string, customColor?: string): string {
     Object.entries(vars)
       .map(([k, v]) => `${k}:${v}`)
       .join(';')
-  return `:root{${toRules(preset.vars.light)}}.dark{${toRules(preset.vars.dark)}}`
+  return `html:root{${toRules(preset.vars.light)}}html.dark{${toRules(preset.vars.dark)}}`
 }
 
 // 灰色 / 色弱模式滤镜

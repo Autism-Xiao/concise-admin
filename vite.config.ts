@@ -48,7 +48,9 @@ function settingsApi(): Plugin {
       const css = `html{font-size:${size}}` + buildThemeColorCss(s.themeColor, s.customColor) + buildFilterCss(s.grayscale, s.colorWeak)
       return {
         html,
-        tags: [{ tag: 'style', children: css, injectTo: 'head' as const }],
+        // id 与 settings-provider 的 STYLE_ID 一致：运行时切换主题直接复用该元素，
+        // 切回 default 时移除它即可，不会残留旧主题（注入选择器优先级已提升，残留会盖过 index.css 默认值）
+        tags: [{ tag: 'style', attrs: { id: 'app-settings-override' }, children: css, injectTo: 'head' as const }],
         htmlAttrs: { dir: s.direction === 'rtl' ? 'rtl' : 'ltr' }
       }
     },

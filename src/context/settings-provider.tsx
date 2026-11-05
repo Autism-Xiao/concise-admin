@@ -10,7 +10,9 @@ const FONT_SIZE_MAP: Record<FontSize, string> = {
 
 const STYLE_ID = 'app-settings-override'
 
-// 主题色与滤镜通过注入的 style 标签生效（首屏由 vite 注入同款内容，无闪烁）
+// 主题色与滤镜通过注入的 style 标签生效。首屏由 vite transformIndexHtml 注入同 id 的
+// style（内容一致）；注入 CSS 使用 html:root / html.dark 提升优先级，保证不被运行时
+// 注入的 index.css（默认变量）按顺序覆盖，刷新首帧即为正确主题色、无闪烁
 function applyOverrides(settings: AppSettings) {
   const css = buildThemeColorCss(settings.themeColor, settings.customColor) + buildFilterCss(settings.grayscale, settings.colorWeak)
   let styleEl = document.getElementById(STYLE_ID) as HTMLStyleElement | null
