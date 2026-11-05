@@ -8,8 +8,10 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Watermark } from '@/components/watermark'
 import { useSettings } from '@/context/settings-provider'
 import { TabsProvider } from '@/context/tabs-provider'
-import { isRegisteredPage } from '@/config/page-registry'
+import { HOME_PATH, isRegisteredPage } from '@/config/page-registry'
+import { NoMenuAccess } from '@/features/errors'
 import { getUsername, isAuthenticated } from '@/lib/auth'
+import { resolveHomePath } from '@/lib/home-path'
 import { isPathAllowed, usePermittedPaths } from '@/lib/permissions'
 import { usePublicIp } from '@/lib/use-public-ip'
 import type { WatermarkDensity } from '@/lib/settings'
@@ -72,6 +74,15 @@ function MainContent() {
 function PermissionGuard({ children }: { children: ReactNode }) {
   const pathname = useLocation({ select: location => location.pathname })
   const permitted = usePermittedPaths()
+  // 退出登录的瞬间布局还挂在树上，此时 pathname 已变成 /login：
+  // 若继续按权限把它跳到 /errors/403，而 403 又要求登录、会被 login 的守卫踢回 /login，
+  // 两者互相重定向形成死循环，表现为点「退出登录」后卡住退不出去。未登录时直接不渲染。
+  if (!isAuthenticated()) return null
   if (!permitted || isPathAllowed(pathname, permitted)) return children
+  // 一个业务菜单都没授权：给明确提示 + 退出入口，而不是甩 403 让人以为链接坏了
+  const home = resolveHomePath(permitted)
+  if (!home) return <NoMenuAccess />
+  // 落在默认首页（/dashboard）但该账号没有仪表盘权限：改去它第一个有权限的页面
+  if (pathname === HOME_PATH) return <Navigate to={home as never} replace />
   return <Navigate to="/errors/403" replace />
 }

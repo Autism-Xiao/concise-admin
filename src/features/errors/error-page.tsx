@@ -18,7 +18,8 @@ export function ErrorPage({ code, title, description }: ErrorPageProps) {
           返回上一页
         </Button>
         <Button asChild>
-          <Link to="/dashboard">回到首页</Link>
+          {/* 走 "/" 由首页解析逻辑决定落地页：没有仪表盘权限的账号不会又被弹回 403 */}
+          <Link to="/">回到首页</Link>
         </Button>
       </div>
     </div>

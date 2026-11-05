@@ -1,5 +1,7 @@
 import { ErrorPage } from './error-page'
 
+export { NoMenuAccess } from './no-menu-access'
+
 export function UnauthorizedError() {
   return <ErrorPage code="401" title="未授权" description="请先登录后再访问该页面。" />
 }

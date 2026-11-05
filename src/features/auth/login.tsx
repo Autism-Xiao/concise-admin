@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useLocale } from '@/context/locale-provider'
 import { login, setMenuTree, setPermissions, setTokens } from '@/lib/auth'
-import { notifyPermissionsChanged } from '@/lib/permissions'
+import { resolveHomePath } from '@/lib/home-path'
+import { computePermittedPaths, notifyPermissionsChanged } from '@/lib/permissions'
 import { fetchCaptcha, fetchPermissions, loginRequest, type CaptchaData } from './api'
 import { CaptchaBox } from './components/captcha'
 
@@ -92,18 +93,20 @@ export function LoginPage() {
       // 后端 roles 是对象数组（[{ roleCode }]），取第一个角色的 code
       const firstRole = Array.isArray(user.roles) ? user.roles[0] : undefined
       const roleCode = typeof firstRole === 'string' ? firstRole : (firstRole?.roleCode ?? user.role ?? 'viewer')
-      login({ username, name: user.nickname ?? user.name ?? username, role: roleCode })
-      // 登录后拉一次权限汇总（角色/按钮权限/菜单树），失败不阻塞进入系统（回退 mock）
+      login({ username, name: user.nickname ?? user.realname ?? user.name ?? username, role: roleCode })
+      // 登录后拉一次权限汇总（角色/按钮权限/菜单树），失败不阻塞进入系统（无菜单权限，进 403）
       try {
         const perm = await fetchPermissions()
         setPermissions(perm.permissions ?? [])
         setMenuTree(perm.menus ?? [])
       } catch {
-        // 权限接口异常时保留空值，permissions.ts 会回退到 mock 数据
+        // 权限接口异常时不写入菜单，permissions.ts 按「无可见菜单」处理
       }
       notifyPermissionsChanged()
       toast.success(t('login.success'))
-      void navigate({ to: '/dashboard' })
+      // 落地页跟随权限：只授权了业务菜单的账号没有 /dashboard，硬跳会被权限守卫拦到 403
+      const home = resolveHomePath(computePermittedPaths())
+      void navigate({ to: (home ?? '/dashboard') as never })
     } catch (err) {
       // 后端 message 直接透出（如：验证码错误 / 用户名或密码错误）
       toast.error(err instanceof Error ? err.message : t('login.credentialsError'))

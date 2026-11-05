@@ -41,7 +41,7 @@ function collectPaths(items: PermissionMenu[], out: Set<string>): void {
  * - 有菜单数组（哪怕是空数组）→ 以它为准。空数组代表「一个菜单都没授权」，必须过滤到空。
  * - 从未写入过菜单数据（null）→ 同样视为无任何可见菜单，不再回退本地 mock。
  */
-async function loadPermittedPaths(): Promise<Set<string> | null> {
+export function computePermittedPaths(): Set<string> | null {
   // 超管判定只认后端下发的 '*'（ROLE_KEY 由前端存储，可被篡改，不能作为放行依据）
   if (getPermissions().includes('*')) return null
   const tree = getMenuTree<PermissionMenu[]>()
@@ -57,13 +57,12 @@ export function usePermittedPaths(): Set<string> | null {
   useEffect(() => {
     let alive = true
     const reload = () => {
-      loadPermittedPaths()
-        .then(p => {
-          if (alive) setPaths(p)
-        })
-        .catch(() => {
-          // 加载失败时保持不过滤，避免侧边栏闪烁
-        })
+      try {
+        const next = computePermittedPaths()
+        if (alive) setPaths(next)
+      } catch {
+        // 解析失败时保持不过滤，避免侧边栏闪烁
+      }
     }
     reload()
     listeners.add(reload)

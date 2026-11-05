@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from '@tanstack/react-router'
-import { HOME_PATH, isRegisteredPage } from '@/config/page-registry'
+import { isRegisteredPage } from '@/config/page-registry'
+import { resolveHomePath } from '@/lib/home-path'
+import { computePermittedPaths } from '@/lib/permissions'
 
 const STORAGE_KEY = 'concise-tabs'
 const MAX_TABS = 12
@@ -25,12 +27,13 @@ interface TabsContextValue {
 
 const TabsContext = createContext<TabsContextValue | null>(null)
 
-function loadPersistedTabs(): TabItem[] {
+function loadPersistedTabs(permitted: Set<string> | null): TabItem[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw) as { tabs?: TabItem[] }
-    return (parsed.tabs ?? []).filter(t => t && isRegisteredPage(t.path))
+    // 恢复时同时按当前权限过滤：换账号登录后不能把上一个会话无权访问的页签带回来
+    return (parsed.tabs ?? []).filter(t => t && isRegisteredPage(t.path) && (!permitted || permitted.has(t.path)))
   } catch {
     return []
   }
@@ -39,10 +42,14 @@ function loadPersistedTabs(): TabItem[] {
 export function TabsProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const pathname = useLocation({ select: location => location.pathname })
+  // 固定「首页」标签跟随权限：后端菜单里没有仪表盘时落到第一个有权限的业务页面
+  const homePath = useMemo(() => resolveHomePath(computePermittedPaths()), [])
   const [tabs, setTabs] = useState<TabItem[]>(() => {
-    const restored = loadPersistedTabs()
-    const home: TabItem = { path: HOME_PATH, pinned: true }
-    return restored.some(t => t.path === HOME_PATH) ? restored.map(t => (t.path === HOME_PATH ? { ...t, pinned: true } : t)) : [home, ...restored]
+    const permitted = computePermittedPaths()
+    const home = resolveHomePath(permitted)
+    const restored = loadPersistedTabs(permitted)
+    if (!home) return restored
+    return restored.some(t => t.path === home) ? restored.map(t => (t.path === home ? { ...t, pinned: true } : t)) : [{ path: home, pinned: true }, ...restored]
   })
   const [nonces, setNonces] = useState<Record<string, number>>({})
   // 供 navigate 副作用读取最新 tabs
@@ -52,8 +59,9 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   }, [tabs])
 
   // 路由变化时自动开标签；超上限时关掉最早的非固定、非当前标签
+  // 错误页（403/404…）不占标签位：否则没权限的账号会看到一排打不开的 403 标签
   useEffect(() => {
-    if (!isRegisteredPage(pathname)) return
+    if (!isRegisteredPage(pathname) || pathname.startsWith('/errors')) return
     setTabs(prev => {
       if (prev.some(t => t.path === pathname)) return prev
       let next = [...prev, { path: pathname }]
@@ -122,8 +130,8 @@ export function TabsProvider({ children }: { children: ReactNode }) {
 
   const closeAll = useCallback(() => {
     setTabs(prev => prev.filter(t => t.pinned))
-    if (pathname !== HOME_PATH) goto(HOME_PATH)
-  }, [pathname, goto])
+    if (homePath && pathname !== homePath) goto(homePath)
+  }, [homePath, pathname, goto])
 
   const refreshTab = useCallback((path: string) => {
     setNonces(prev => ({ ...prev, [path]: (prev[path] ?? 0) + 1 }))

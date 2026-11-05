@@ -35,6 +35,7 @@ import { useLocale } from '@/context/locale-provider'
 import { navGroups, type NavGroup, type NavItem } from '@/config/nav'
 import { PAGE_REGISTRY } from '@/config/page-registry'
 import { menuPath, useMenuTree, usePermittedPaths } from '@/lib/permissions'
+import { resolveHomePath } from '@/lib/home-path'
 import type { PermissionMenu } from '@/features/auth/api'
 import { cn } from '@/lib/utils'
 
@@ -94,7 +95,7 @@ function toDynItem(node: PermissionMenu): DynItem | null {
  * menuType 0（目录）带 children → 侧边栏分组；menuType 1 → 组内菜单项，
  * 组内支持二级折叠（如 系统管理 > 日志管理 > 登录日志/操作日志）；
  * menuType 2（按钮权限）、hidden=1、status='0'（停用）不显示；顶层无子级但有路由的收进无标题分组。
- * 字段兼容真实后端（name/url/sortNo）与旧 mock（title/path/sort）。
+ * 字段兼容真实后端（name/url/sortNo）与旧字段（title/path/sort）。
  */
 function treeToGroups(tree: PermissionMenu[]): DynGroup[] {
   const groups: DynGroup[] = []
@@ -134,6 +135,8 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
 
   // 按当前角色的菜单权限过滤侧边栏（仅过滤业务分组，页面/其他分组始终显示）
   const permitted = usePermittedPaths()
+  // Logo 回首页同样跟随权限，避免点了 Logo 反而被甩到 403
+  const homePath = resolveHomePath(permitted) ?? '/dashboard'
   const visibleGroups = useMemo<NavGroup[]>(() => {
     if (!permitted) return navGroups
     return navGroups
@@ -162,13 +165,13 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="/dashboard" className="group-data-[collapsible=icon]:justify-center" onClick={closeMobileSidebar}>
+              <Link to={homePath as never} className="group-data-[collapsible=icon]:justify-center" onClick={closeMobileSidebar}>
                 <Logo className="text-sidebar-primary size-8! shrink-0" />
                 <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
                   <span className="font-medium">{import.meta.env.VITE_APP_NAME}</span>
                   <span className="text-muted-foreground text-xs">v1.0.0</span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
