@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { saveBlobFile } from '@/lib/download'
+import { humanizeImportError } from '@/lib/import-error'
 import { downloadUserTemplate, importUsers, type UserImportResult } from '../api'
 
 interface UserImportDialogProps {
@@ -79,6 +80,10 @@ export function UserImportDialog({ open, onOpenChange, onImported }: UserImportD
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* 覆盖提示：后端按「登录账号」判定已存在即更新，含密码/角色/状态，误传会把账号改坏 */}
+          <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            已存在的「登录账号」会被<b className="font-medium">覆盖</b>（含密码、角色、状态与部门），不是只跳过。导入前请核对文件里有没有误填系统账号。
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" variant="outline" size="sm" onClick={handleTemplate} disabled={downloading}>
               <Download className="size-4" />
@@ -124,7 +129,7 @@ export function UserImportDialog({ open, onOpenChange, onImported }: UserImportD
                 <ul className="text-muted-foreground max-h-40 space-y-1 overflow-auto text-xs">
                   {report.errors.slice(0, MAX_ERROR_ROWS).map(item => (
                     <li key={`${item.row}-${item.username}`}>
-                      第 {item.row} 行{item.username ? `（${item.username}）` : ''}：{item.message}
+                      第 {item.row} 行{item.username ? `（${item.username}）` : ''}：{humanizeImportError(item.message)}
                     </li>
                   ))}
                   {report.errors.length > MAX_ERROR_ROWS && <li>…另有 {report.errors.length - MAX_ERROR_ROWS} 条未展示</li>}

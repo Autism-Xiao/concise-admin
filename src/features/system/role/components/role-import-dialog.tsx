@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { saveBlobFile } from '@/lib/download'
+import { humanizeImportError } from '@/lib/import-error'
 import { downloadRoleTemplate, importRoles, type RoleImportResult } from '../api'
 
 interface RoleImportDialogProps {
@@ -79,6 +80,10 @@ export function RoleImportDialog({ open, onOpenChange, onImported }: RoleImportD
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* 覆盖提示：后端按「角色编码」判定已存在即覆盖名称与描述 */}
+          <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            已存在的「角色编码」会覆盖名称与描述（不影响已授权菜单）。示例写在模板的第二张工作表里，不会参与导入。
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" variant="outline" size="sm" onClick={handleTemplate} disabled={downloading}>
               <Download className="size-4" />
@@ -124,7 +129,7 @@ export function RoleImportDialog({ open, onOpenChange, onImported }: RoleImportD
                 <ul className="text-muted-foreground max-h-40 space-y-1 overflow-auto text-xs">
                   {report.errors.slice(0, MAX_ERROR_ROWS).map(item => (
                     <li key={`${item.row}-${item.roleCode}`}>
-                      第 {item.row} 行{item.roleCode ? `（${item.roleCode}）` : ''}：{item.message}
+                      第 {item.row} 行{item.roleCode ? `（${item.roleCode}）` : ''}：{humanizeImportError(item.message)}
                     </li>
                   ))}
                   {report.errors.length > MAX_ERROR_ROWS && <li>…另有 {report.errors.length - MAX_ERROR_ROWS} 条未展示</li>}
