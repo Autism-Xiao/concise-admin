@@ -6,6 +6,7 @@ const TOKEN_KEY = 'concise-token'
 const REFRESH_TOKEN_KEY = 'concise-refresh-token'
 const PERMS_KEY = 'concise-perms'
 const MENUS_KEY = 'concise-menus'
+const TABS_KEY = 'concise-tabs'
 
 export interface LoginAccount {
   username: string
@@ -61,6 +62,8 @@ export function logout(): void {
   localStorage.removeItem(REFRESH_TOKEN_KEY)
   localStorage.removeItem(PERMS_KEY)
   localStorage.removeItem(MENUS_KEY)
+  // 清掉多标签页缓存，避免下个账号登录后恢复上一个会话打开的页面
+  localStorage.removeItem(TABS_KEY)
 }
 
 /** 保存后端下发的令牌 */

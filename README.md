@@ -64,8 +64,8 @@ src/
 │   └── data-table/           # 表格封装（排序/筛选/分页/列显隐）
 │
 ├── features/                 # 业务模块（核心目录，按领域划分，模块内部自治）
-│   ├── auth/                 # 登录（api.ts 校验 accounts.json）
-│   ├── users/                # 用户管理（与用户登录账号双向同步）
+│   ├── auth/                 # 登录（验证码/登录/权限汇总均走真实后端）
+│   ├── users/                # 用户管理
 │   └── system/               # menu / role / dept / dict / file / calendar / log
 │
 ├── config/                   # 常量配置：nav.ts 侧边栏、i18n.ts 中英文、page-registry.ts 标签页登记
@@ -74,51 +74,46 @@ src/
 ├── assets/                   # 静态资源（Logo 等）
 └── index.css                 # 全局样式 + 主题变量（浅色/深色 CSS 变量都在这里）
 
-public/mock/                  # mock 数据（所有页面的"数据库"）
+public/mock/                  # 仅剩「仪表盘/任务/日历/文件/地区/租户」等未接后端的本地数据
 settings.json                 # 应用设置（字号/主题色/布局等），由 dev server 读写
 ```
 
-## Mock API 约定
+## 接口约定
 
-每个业务模块有一个 `api.ts`，读数据统一走 `getJson('/mock/xxx.json')`：
+绝大多数模块已接真实后端：统一走 `src/lib/http.ts` 的 `getApiResult`，地址前缀 `/backend-api`
+（vite 开发代理转发到 `BACKEND_URL`，生产由网关/Nginx 转发），响应解包 `{ code, message, result }`。
 
 ```ts
 // features/system/role/api.ts
-export function fetchRoles(): Promise<Role[]> {
-  return getJson<Role[]>('/mock/roles.json')
+export function fetchRoles(query: RoleQuery): Promise<PageResult<Role>> {
+  return getApiResult<PageResult<Role>>('/backend-api/v1/roles?...')
 }
 ```
 
-**开发环境的写操作**由 `vite.config.ts` 里的中间件落盘到对应 JSON（原子写入，失败自动回退页面数据）：
+仍是本地数据的模块：仪表盘、任务、日历、文件、地区、租户。它们各有 `api.ts`，
+读 `public/mock/*.json`，写操作由 `vite.config.ts` 的 `jsonWriteApi` 中间件落盘：
 
-| 接口                       | 写入文件                   | 类型      | 用途                 |
-| -------------------------- | -------------------------- | --------- | -------------------- |
-| `POST /api/menus`          | `mock/menus.json`          | 整体覆盖  | 菜单管理             |
-| `POST /api/roles`          | `mock/roles.json`          | 整体覆盖  | 角色与权限分配       |
-| `POST /api/depts`          | `mock/depts.json`          | 整体覆盖  | 部门树               |
-| `POST /api/users`          | `mock/users.json`          | 整体覆盖  | 用户管理             |
-| `POST /api/accounts`       | `mock/accounts.json`       | 整体覆盖  | 登录账号             |
-| `POST /api/dicts`          | `mock/dicts.json`          | 整体覆盖  | 字典管理             |
-| `POST /api/files`          | `mock/files.json`          | 整体覆盖  | 文件管理             |
-| `POST /api/logs/login`     | `mock/logs-login.json`     | 头部追加  | 登录日志（自动记录） |
-| `POST /api/logs/operation` | `mock/logs-operation.json` | 头部插入  | 操作日志（自动记录） |
-| `GET/POST /api/settings`   | `settings.json`            | 读取/合并 | 应用设置             |
+| 接口                 | 写入文件            | 类型     | 用途     |
+| -------------------- | ------------------- | -------- | -------- |
+| `POST /api/files`    | `mock/files.json`   | 整体覆盖 | 文件管理 |
+| `POST /api/regions`  | `mock/regions.json` | 整体覆盖 | 地区管理 |
+| `POST /api/tenants`  | `mock/tenants.json` | 整体覆盖 | 租户管理 |
+| `GET/POST /api/settings` | `settings.json` | 读取/合并 | 应用设置 |
 
-**接真实后端**：逐个把 `api.ts` 里的 URL 换成真实接口即可，页面代码不用动；`withOperationLog` / `reportLogin` 同理换地址。
+接后端时把对应 `api.ts` 的 URL 换成真实接口即可，页面代码不用动。
 
 ## 权限体系
 
-- 角色（`roles.json`）通过 `menus` 字段记录可见菜单 id，在「系统管理 → 角色权限」里勾选分配，写回后即时生效
-- 侧边栏按当前登录角色的权限过滤；直接输入无权限的 URL 会被 `_authenticated` 布局的守卫拦截并跳 `/errors/403`
-- 右上角头像下拉可临时切换角色（演示用），真实身份由登录账号决定
-- 用户管理的角色（superadmin/admin/manager/cashier）会映射到权限角色码，见 `features/users/api.ts` 的 `mapUserRoleToCode`
+- 权限数据全部来自后端：登录后调 `GET /backend-api/v1/auth/permissions` 拿按钮权限与菜单树，存本地后驱动侧边栏与路由守卫
+- 侧边栏按后端下发的菜单树渲染；无权限的 URL 会被 `_authenticated` 布局的守卫拦截并跳 `/errors/403`
+- 超管判定只认后端下发的 `*` 权限编码，前端存储的角色码不作为放行依据
 
 ## 开发约定
 
 1. **路由薄、feature 厚**：`routes/` 里只做路由声明，页面实现写在 `features/` 对应模块里
 2. **就近原则**：组件只被某个模块使用时放在模块内部（如 `features/users/components/`），被 2 个以上模块用到才提升到 `components/`
 3. **`components/ui/` 是不可变区**：只通过 `pnpm dlx shadcn add <组件名>` 增删；要定制就在 `components/` 里包一层
-4. **加新页面**：在 `src/routes/_authenticated/` 下新建文件即可，路由树自动生成；若要进多标签页，在 `config/page-registry.ts` 登记；若要进侧边栏，在 `config/nav.ts` 和 `mock/menus.json` 各加一条
+4. **加新页面**：在 `src/routes/_authenticated/` 下新建文件即可，路由树自动生成；若要进多标签页，在 `config/page-registry.ts` 登记；若要进侧边栏，在「系统管理 → 菜单管理」里加一条并给角色授权
 5. **主题变量**：改配色、调暗黑模式（比如觉得不够黑）都改 `src/index.css` 里的 `:root` 和 `.dark` 两个代码块
 6. **提交规范**：`git commit` 时 Husky 会自动对暂存文件跑 ESLint 修复 + Prettier 格式化，检查不过会被拒绝提交
 

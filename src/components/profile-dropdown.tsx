@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { Check, LogOut, Settings, ShieldCheck, User } from 'lucide-react'
-import { toast } from 'sonner'
+import { LogOut, Settings, User } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,37 +12,11 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { useLocale } from '@/context/locale-provider'
-import { getName, getRoleCode, getUsername, logout, setRoleCode } from '@/lib/auth'
-import { notifyPermissionsChanged } from '@/lib/permissions'
-
-/** 旧 mock 角色结构（/mock/roles.json），仅用于"切换角色"演示 */
-interface MockRole {
-  code: string
-  name: string
-  status: string
-}
+import { getName, getUsername, logout } from '@/lib/auth'
 
 export function ProfileDropdown() {
   const navigate = useNavigate()
   const { t } = useLocale()
-  const [roles, setRoles] = useState<MockRole[]>([])
-  const [roleCode, setCurrentRole] = useState(getRoleCode())
-
-  useEffect(() => {
-    fetch('/mock/roles.json')
-      .then(r => r.json() as Promise<MockRole[]>)
-      .then(setRoles)
-      .catch(() => {
-        // 角色列表加载失败时不展示切换项
-      })
-  }, [])
-
-  const switchRole = (role: MockRole) => {
-    setRoleCode(role.code)
-    setCurrentRole(role.code)
-    notifyPermissionsChanged()
-    toast.success(`已切换为角色「${role.name}」，侧边栏按权限重新过滤`)
-  }
 
   return (
     <DropdownMenu>
@@ -72,21 +44,6 @@ export function ProfileDropdown() {
             <Settings />
             {t('profile.settings')}
           </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-muted-foreground flex items-center gap-2 text-xs font-normal">
-          <ShieldCheck className="size-3.5" />
-          切换角色（演示权限过滤）
-        </DropdownMenuLabel>
-        <DropdownMenuGroup>
-          {roles
-            .filter(r => r.status === '正常')
-            .map(role => (
-              <DropdownMenuItem key={role.code} onClick={() => switchRole(role)}>
-                <Check className={`size-4 ${roleCode === role.code ? 'opacity-100' : 'opacity-0'}`} />
-                {role.name}
-              </DropdownMenuItem>
-            ))}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem

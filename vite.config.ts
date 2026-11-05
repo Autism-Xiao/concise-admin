@@ -9,22 +9,12 @@ import { buildFilterCss, buildThemeColorCss } from './src/lib/theme-presets.ts'
 // 应用设置持久化到项目根目录 settings.json（开发环境由 dev server 读写，
 // 生产环境可替换为后端接口，前端代码不变）
 const SETTINGS_FILE = path.resolve(__dirname, 'settings.json')
-const MENUS_FILE = path.resolve(__dirname, 'public/mock/menus.json')
-const DEPTS_FILE = path.resolve(__dirname, 'public/mock/depts.json')
-const ROLES_FILE = path.resolve(__dirname, 'public/mock/roles.json')
-const ACCOUNTS_FILE = path.resolve(__dirname, 'public/mock/accounts.json')
-const USERS_FILE = path.resolve(__dirname, 'public/mock/users.json')
-const DICTS_FILE = path.resolve(__dirname, 'public/mock/dicts.json')
+// 仍是本地数据文件的模块（其余模块已接真实后端，不再有 mock 文件）
 const FILES_FILE = path.resolve(__dirname, 'public/mock/files.json')
-const LEVELS_FILE = path.resolve(__dirname, 'public/mock/levels.json')
-const POSTS_FILE = path.resolve(__dirname, 'public/mock/posts.json')
 const TENANTS_FILE = path.resolve(__dirname, 'public/mock/tenants.json')
-const NOTICES_FILE = path.resolve(__dirname, 'public/mock/notices.json')
 const REGIONS_FILE = path.resolve(__dirname, 'public/mock/regions.json')
 // Go 后端地址：开发环境通过 /backend-api 代理访问，规避 CORS（生产环境由网关/Nginx 转发）
 const BACKEND_URL = 'http://192.168.1.12:3459'
-const LOGIN_LOGS_FILE = path.resolve(__dirname, 'public/mock/logs-login.json')
-const OPERATION_LOGS_FILE = path.resolve(__dirname, 'public/mock/logs-operation.json')
 const DEFAULT_SETTINGS = {
   fontSize: 'default',
   themeColor: 'default',
@@ -133,46 +123,6 @@ function jsonWriteApi(name: string, route: string, file: string): Plugin {
   }
 }
 
-// 日志追加接口：POST 单条对象，服务端分配自增 id 并插到最前
-function jsonAppendApi(name: string, route: string, file: string): Plugin {
-  return {
-    name,
-    configureServer(server) {
-      server.middlewares.use(route, (req, res) => {
-        if (req.method === 'POST') {
-          let body = ''
-          req.on('data', chunk => (body += chunk))
-          req.on('end', () => {
-            try {
-              const entry = JSON.parse(body)
-              if (Array.isArray(entry) || entry == null || typeof entry !== 'object') throw new Error('expect object')
-              let list: { id?: number }[] = []
-              try {
-                list = JSON.parse(fs.readFileSync(file, 'utf-8'))
-              } catch {
-                // 文件不存在或损坏时从空数组开始
-              }
-              const id = list.reduce((max, item) => Math.max(max, item.id ?? 0), 0) + 1
-              const record = { id, ...entry }
-              const tmp = file + '.tmp'
-              fs.writeFileSync(tmp, JSON.stringify([record, ...list], null, 2))
-              fs.renameSync(tmp, file)
-              res.setHeader('Content-Type', 'application/json')
-              res.end(JSON.stringify(record))
-            } catch {
-              res.statusCode = 400
-              res.end(JSON.stringify({ error: 'invalid json' }))
-            }
-          })
-          return
-        }
-        res.statusCode = 405
-        res.end()
-      })
-    }
-  }
-}
-
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -183,20 +133,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     settingsApi(),
-    jsonWriteApi('concise-menus-api', '/api/menus', MENUS_FILE),
-    jsonWriteApi('concise-depts-api', '/api/depts', DEPTS_FILE),
-    jsonWriteApi('concise-roles-api', '/api/roles', ROLES_FILE),
-    jsonWriteApi('concise-accounts-api', '/api/accounts', ACCOUNTS_FILE),
-    jsonWriteApi('concise-users-api', '/api/users', USERS_FILE),
-    jsonWriteApi('concise-dicts-api', '/api/dicts', DICTS_FILE),
     jsonWriteApi('concise-files-api', '/api/files', FILES_FILE),
-    jsonWriteApi('concise-levels-api', '/api/levels', LEVELS_FILE),
-    jsonWriteApi('concise-posts-api', '/api/posts', POSTS_FILE),
     jsonWriteApi('concise-tenants-api', '/api/tenants', TENANTS_FILE),
-    jsonWriteApi('concise-notices-api', '/api/notices', NOTICES_FILE),
-    jsonWriteApi('concise-regions-api', '/api/regions', REGIONS_FILE),
-    jsonAppendApi('concise-login-logs-api', '/api/logs/login', LOGIN_LOGS_FILE),
-    jsonAppendApi('concise-operation-logs-api', '/api/logs/operation', OPERATION_LOGS_FILE)
+    jsonWriteApi('concise-regions-api', '/api/regions', REGIONS_FILE)
   ],
   server: {
     proxy: {
@@ -208,23 +147,7 @@ export default defineConfig({
     },
     watch: {
       // settings.json / mock 写回文件由接口写入，变化不应触发页面刷新
-      ignored: [
-        '**/settings.json',
-        '**/public/mock/menus.json',
-        '**/public/mock/depts.json',
-        '**/public/mock/roles.json',
-        '**/public/mock/accounts.json',
-        '**/public/mock/users.json',
-        '**/public/mock/dicts.json',
-        '**/public/mock/files.json',
-        '**/public/mock/levels.json',
-        '**/public/mock/posts.json',
-        '**/public/mock/tenants.json',
-        '**/public/mock/notices.json',
-        '**/public/mock/regions.json',
-        '**/public/mock/logs-login.json',
-        '**/public/mock/logs-operation.json'
-      ]
+      ignored: ['**/settings.json', '**/public/mock/files.json', '**/public/mock/tenants.json', '**/public/mock/regions.json']
     }
   },
   resolve: {

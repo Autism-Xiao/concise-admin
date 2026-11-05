@@ -1,9 +1,0 @@
-[
-  { "id": 1, "name": "前端工程师", "code": "FE", "dept": "研发部", "status": "正常", "remark": "Web / 客户端方向" },
-  { "id": 2, "name": "后端工程师", "code": "BE", "dept": "研发部", "status": "正常", "remark": "服务端与中间件" },
-  { "id": 3, "name": "测试工程师", "code": "QA", "dept": "研发部", "status": "正常", "remark": "功能与自动化测试" },
-  { "id": 4, "name": "产品经理", "code": "PM", "dept": "产品部", "status": "正常", "remark": "" },
-  { "id": 5, "name": "UI 设计师", "code": "UI", "dept": "设计部", "status": "正常", "remark": "" },
-  { "id": 6, "name": "市场专员", "code": "MKT", "dept": "市场部", "status": "正常", "remark": "" },
-  { "id": 7, "name": "会计", "code": "ACC", "dept": "财务部", "status": "停用", "remark": "外包后停用" }
-]

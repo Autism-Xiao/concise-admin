@@ -1,28 +1,4 @@
-import { getApiResult, getJson } from '@/lib/http'
-import type { LoginAccount } from '@/lib/auth'
-
-export type AccountStatus = 'active' | 'disabled'
-
-export type Account = LoginAccount & {
-  password: string
-  /** disabled 时禁止登录 */
-  status: AccountStatus
-}
-
-// 开发环境走 public/mock 下的静态 JSON；接真实后端时换成登录接口
-export function fetchAccounts(): Promise<Account[]> {
-  return getJson<Account[]>('/mock/accounts.json')
-}
-
-// 开发环境由 vite 中间件写入 public/mock/accounts.json；生产环境换成真实接口
-export async function saveAccounts(accounts: Account[]): Promise<void> {
-  const res = await fetch('/api/accounts', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(accounts)
-  })
-  if (!res.ok) throw new Error('保存失败')
-}
+import { getApiResult } from '@/lib/http'
 
 /* ---------- 真实后端（Go）：/backend-api 由 vite 代理到 BACKEND_URL ---------- */
 
@@ -51,6 +27,7 @@ export interface LoginResult {
   userInfo?: {
     username?: string
     nickname?: string
+    realname?: string
     name?: string
     role?: string
     /** 后端实际返回角色对象数组 [{ roleCode }] */
@@ -59,6 +36,7 @@ export interface LoginResult {
   user?: {
     username?: string
     nickname?: string
+    realname?: string
     name?: string
     role?: string
     roles?: Array<string | { roleCode?: string }>
@@ -80,11 +58,11 @@ export interface PermissionMenu {
   parentId?: string | null
   /** 菜单名（真实后端字段） */
   name?: string
-  /** 兼容 mock 的标题字段 */
+  /** 兼容旧字段（title） */
   title?: string
   /** 路由地址（真实后端字段，按钮节点为 null） */
   url?: string | null
-  /** 兼容 mock 的路由字段 */
+  /** 兼容旧字段（path） */
   path?: string | null
   /** 菜单类型：0 目录 / 1 菜单 / 2 按钮权限 */
   menuType?: number
@@ -94,7 +72,7 @@ export interface PermissionMenu {
   status?: string
   /** 同级排序（真实后端字段），越小越靠前 */
   sortNo?: number
-  /** 兼容 mock 的排序字段 */
+  /** 兼容旧字段（sort） */
   sort?: number
   /** 后端图标名（可选，前端优先按路由从 PAGE_REGISTRY 取图标） */
   icon?: string | null

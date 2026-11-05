@@ -1,9 +1,0 @@
-[
-  { "id": 1, "name": "P5", "rank": 1, "status": "正常", "remark": "初级工程师" },
-  { "id": 2, "name": "P6", "rank": 2, "status": "正常", "remark": "中级工程师" },
-  { "id": 3, "name": "P7", "rank": 3, "status": "正常", "remark": "高级工程师" },
-  { "id": 4, "name": "P8", "rank": 4, "status": "正常", "remark": "资深工程师 / 架构师" },
-  { "id": 5, "name": "M1", "rank": 5, "status": "正常", "remark": "一线主管" },
-  { "id": 6, "name": "M2", "rank": 6, "status": "正常", "remark": "部门经理" },
-  { "id": 7, "name": "M3", "rank": 7, "status": "停用", "remark": "总监（职级体系调整中）" }
-]
