@@ -1,28 +1,10 @@
 import { useEffect, useState } from 'react'
-import { getMenuTree, getPermissions, getRoleCode } from '@/lib/auth'
+import { getMenuTree, getPermissions } from '@/lib/auth'
 import type { PermissionMenu } from '@/features/auth/api'
-
-/** 旧 mock 菜单结构（/mock/menus.json，数字 id + path），仅作真实接口异常时的兜底 */
-interface MockMenu {
-  id: number
-  name: string
-  path: string
-  sort: number
-  status: string
-}
-
-/** 旧 mock 角色结构（/mock/roles.json，数字菜单 id 列表），同上仅兜底用 */
-interface MockRole {
-  code: string
-  menus: number[]
-}
 
 const listeners = new Set<() => void>()
 
-/**
- * 统一取菜单节点的路由地址：真实后端用 url，旧 mock 用 path。
- * 顺带把后端与前端路由不一致的地址映射到前端实际路由。
- */
+/** 统一取菜单节点的路由地址，顺带把后端与前端路由不一致的地址映射到前端实际路由。 */
 export const MENU_URL_ALIAS: Record<string, string> = {
   '/system/user': '/system/users',
   '/system/task': '/tasks',
@@ -53,29 +35,20 @@ function collectPaths(items: PermissionMenu[], out: Set<string>): void {
 
 /**
  * 当前角色可见的菜单路径集合。
- * 返回 null 表示不做过滤（超级管理员 / 加载中 / 加载失败），避免闪烁。
- * 优先用登录后 GET /v1/auth/permissions 存下的真实菜单树，无则回退 mock。
+ * 返回 null 表示不做过滤（超级管理员 / 加载中），避免闪烁。
+ *
+ * 数据只认后端：
+ * - 有菜单数组（哪怕是空数组）→ 以它为准。空数组代表「一个菜单都没授权」，必须过滤到空。
+ * - 从未写入过菜单数据（null）→ 同样视为无任何可见菜单，不再回退本地 mock。
  */
 async function loadPermittedPaths(): Promise<Set<string> | null> {
-  const code = getRoleCode()
-  if (code === 'superadmin') return null
-  // 真实后端：按钮权限里带 '*' 表示超管
+  // 超管判定只认后端下发的 '*'（ROLE_KEY 由前端存储，可被篡改，不能作为放行依据）
   if (getPermissions().includes('*')) return null
   const tree = getMenuTree<PermissionMenu[]>()
-  if (tree?.length) {
-    const paths = new Set<string>()
-    collectPaths(tree, paths)
-    return paths
-  }
-  // 旧 mock 兜底（真实接口异常或未接入时）
-  const [menus, roles] = await Promise.all([
-    fetch('/mock/menus.json').then(r => r.json() as Promise<MockMenu[]>),
-    fetch('/mock/roles.json').then(r => r.json() as Promise<MockRole[]>)
-  ])
-  const role = roles.find(r => r.code === code)
-  if (!role) return null
-  const ids = new Set(role.menus)
-  return new Set(menus.filter(m => ids.has(m.id)).map(m => m.path))
+  if (!tree) return new Set<string>()
+  const paths = new Set<string>()
+  collectPaths(tree, paths)
+  return paths
 }
 
 export function usePermittedPaths(): Set<string> | null {
@@ -111,7 +84,8 @@ export function isSuperRoleCode(code?: string | null): boolean {
   return !!code && SUPER_ROLE_CODES.includes(code)
 }
 
-/** 响应式读取登录后存下的后端菜单树；null 表示回退静态菜单（mock / 接口异常） */export function useMenuTree(): PermissionMenu[] | null {
+/** 响应式读取登录后存下的后端菜单树；null 表示本地没有菜单数据（未登录 / 权限接口未返回） */
+export function useMenuTree(): PermissionMenu[] | null {
   const [tree, setTree] = useState<PermissionMenu[] | null>(() => getMenuTree<PermissionMenu[]>())
 
   useEffect(() => {
@@ -122,7 +96,8 @@ export function isSuperRoleCode(code?: string | null): boolean {
     }
   }, [])
 
-  return tree?.length ? tree : null
+  // 空数组必须原样返回：调用方要靠它把侧边栏渲染成「无菜单」，不能当成 null 去回退静态菜单
+  return tree
 }
 
 /** 始终放行的路径前缀：错误页、设置、帮助中心不参与权限拦截 */

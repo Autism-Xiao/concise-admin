@@ -1,5 +1,5 @@
 import { getApiResult } from '@/lib/http'
-import { fetchRoles, type Role } from '@/features/system/role/api'
+import { fetchRoleOptions, type Role } from '@/features/system/role/api'
 
 /** 后端 sys_user（对齐 JeecgBoot），只保留页面需要的字段 */
 export interface User {
@@ -79,7 +79,7 @@ export function deleteUsers(ids: string[]): Promise<PromiseSettledResult<unknown
   return Promise.allSettled(ids.map(id => deleteUser(id)))
 }
 
-export { fetchRoles }
+export { fetchRoleOptions }
 export type { Role }
 
 /** 后端部门列表（/api/v1/depts 扁平结构，供用户表单部门下拉使用） */

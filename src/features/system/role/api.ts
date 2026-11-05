@@ -22,6 +22,14 @@ export function fetchRoles(keyword = ''): Promise<Role[]> {
   return getApiResult<Role[]>(`/backend-api/v1/roles${qs}`)
 }
 
+/**
+ * 角色下拉选项：只含 id/名称/编码，登录即可用（不需要 system:role:list）。
+ * 用户表单分配角色、用户列表筛选等跨模块下拉统一走这里，避免被角色管理权限卡住。
+ */
+export function fetchRoleOptions(): Promise<Role[]> {
+  return getApiResult<Role[]>('/backend-api/v1/roles/options')
+}
+
 export interface RoleWritePayload {
   roleName?: string
   roleCode?: string

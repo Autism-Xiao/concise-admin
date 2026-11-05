@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   fetchBackendDepts,
-  fetchRoles,
+  fetchRoleOptions,
   type Role,
   type User,
   type UserWritePayload
@@ -84,7 +84,7 @@ export function UserFormDialog({ open, onOpenChange, user, onSubmit }: UserFormD
 
   // 弹窗打开时拉角色/部门下拉数据（每次挂载拉一次，数据量小）
   useEffect(() => {
-    Promise.all([fetchRoles(), fetchBackendDepts()])
+    Promise.all([fetchRoleOptions(), fetchBackendDepts()])
       .then(([r, d]) => {
         setRoles(r)
         setDepts(d)

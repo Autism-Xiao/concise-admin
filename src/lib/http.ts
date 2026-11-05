@@ -47,6 +47,11 @@ export async function getApiResult<T>(url: string, init?: RequestInit): Promise<
   if (json.code === 401 && !isLoginRequest) {
     handleUnauthorized()
   }
+  // 403：登录有效但缺少该接口对应的权限码，给出可操作提示，避免误以为是"没有数据"
+  if (res.status === 403) {
+    const detail = json.message && json.message !== '禁止访问' ? `${json.message}：` : ''
+    throw new Error(`${detail}当前角色没有该功能的访问权限，请在「角色权限」中勾选对应菜单/按钮后重新登录`)
+  }
   const ok = json.success ?? json.code === 0
   if (!ok) {
     throw new Error(json.message || `请求失败: ${res.status}`)
