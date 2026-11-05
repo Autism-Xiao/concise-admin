@@ -113,3 +113,40 @@ export function publishNotice(id: string): Promise<Notice> {
 export function revokeNotice(id: string): Promise<Notice> {
   return getApiResult<Notice>(`/backend-api/v1/notices/${id}/revoke`, { method: 'PUT' })
 }
+
+/* ---------- 导入（/api/v1/notices/import | import-template） ---------- */
+
+/** 导入结果：后端逐行统计 + 失败明细（row 为 Excel 真实行号） */
+export interface NoticeImportResult {
+  total: number
+  created: number
+  updated: number
+  skipped: number
+  failed: number
+  errors: Array<{ row: number; title: string; message: string }>
+}
+
+/** 文件下载走原生 fetch：需要 blob 与 Content-Disposition 里的中文文件名，不走 JSON 外壳 */
+async function downloadFile(path: string, fallbackName: string): Promise<{ filename: string; blob: Blob }> {
+  const token = localStorage.getItem('concise-token') ?? ''
+  const res = await fetch(`/backend-api${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  })
+  if (!res.ok) throw new Error(`下载失败: ${res.status}`)
+  const disposition = res.headers.get('content-disposition') ?? ''
+  const utf8Name = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1]
+  const filename = utf8Name ? decodeURIComponent(utf8Name) : (/filename="?([^";]+)"?/.exec(disposition)?.[1] ?? fallbackName)
+  return { filename, blob: await res.blob() }
+}
+
+/** 下载公告导入模板（首表为说明+表头，次表为填写示例） */
+export function downloadNoticeTemplate(): Promise<{ filename: string; blob: Blob }> {
+  return downloadFile('/v1/notices/import-template', 'notices-import-template.xlsx')
+}
+
+/** 导入公告（multipart，字段名 file；支持 .xlsx/.csv，标题已存在则更新） */
+export function importNotices(file: File): Promise<NoticeImportResult> {
+  const form = new FormData()
+  form.append('file', file)
+  return getApiResult<NoticeImportResult>('/backend-api/v1/notices/import', { method: 'POST', body: form })
+}

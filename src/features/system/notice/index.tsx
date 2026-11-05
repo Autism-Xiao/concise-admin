@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BellRing, Megaphone, Pencil, Plus, Search, Send, Trash2, Undo2 } from 'lucide-react'
+import { BellRing, Megaphone, Pencil, Plus, Search, Send, Trash2, Undo2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,7 @@ import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { NoticeFormDialog } from './components/notice-form-dialog'
+import { NoticeImportDialog } from './components/notice-import-dialog'
 import {
   NOTICE_CATEGORY_LABEL,
   NOTICE_PRIORITY_LABEL,
@@ -56,6 +57,7 @@ export function NoticePage() {
   const [statusFilter, setStatusFilter] = useState<'all' | NoticeSendStatus>('all')
   const [categoryFilter, setCategoryFilter] = useState<'all' | NoticeCategory>('all')
   const [formOpen, setFormOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [editing, setEditing] = useState<Notice | null>(null)
   const [deleting, setDeleting] = useState<Notice | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -293,6 +295,12 @@ export function NoticePage() {
               批量删除（{selectedCount}）
             </Button>
           )}
+          {hasPermission('system:notice:import') && (
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload />
+              导入
+            </Button>
+          )}
           {hasPermission('system:notice:add') && (
             <Button onClick={openCreate}>
               <Plus />
@@ -365,6 +373,8 @@ export function NoticePage() {
       )}
 
       {formOpen && <NoticeFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} notice={editing} onSubmit={handleSubmit} />}
+
+      <NoticeImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={load} />
 
       <ConfirmDeleteDialog
         open={!!deleting}
