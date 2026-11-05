@@ -11,7 +11,7 @@ import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { UserFormDialog } from './components/user-form-dialog'
-import { createUser, deleteUser, fetchUsers, updateUser, userStatusMap, type User, type UserWritePayload } from './api'
+import { createUser, deleteUser, deleteUsers, fetchUsers, updateUser, userStatusMap, type User, type UserWritePayload } from './api'
 import { withOperationLog } from '@/features/system/log/api'
 
 const columnLabels: Record<string, string> = {
@@ -62,6 +62,33 @@ export function UsersPage() {
 
   const columns = useMemo<ColumnDef<User>[]>(
     () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <input
+            type="checkbox"
+            className="accent-primary size-4 cursor-pointer align-middle"
+            aria-label="全选本页"
+            checked={table.getIsAllPageRowsSelected()}
+            ref={el => {
+              if (el) el.indeterminate = table.getIsSomePageRowsSelected()
+            }}
+            onChange={table.getToggleAllPageRowsSelectedHandler()}
+          />
+        ),
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            className="accent-primary size-4 cursor-pointer align-middle"
+            aria-label={`选择「${row.original.realname || row.original.username}」`}
+            checked={row.getIsSelected()}
+            disabled={!row.getCanSelect()}
+            onChange={row.getToggleSelectedHandler()}
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false
+      },
       {
         accessorKey: 'username',
         header: ({ column }) => <DataTableColumnHeader column={column} title="账号" />,
@@ -131,11 +158,34 @@ export function UsersPage() {
   )
 
   const columnFilters = useMemo(() => (statusFilter === 'all' ? [] : [{ id: 'status', value: statusFilter }]), [statusFilter])
-  const statusItems = useMemo(
-    () => ({ all: '全部状态', ...Object.fromEntries(Object.entries(userStatusMap).map(([value, { label }]) => [value, label])) }),
-    []
-  )
-  const { table, keyword, setKeyword } = useDataTable({ data: users, columns, columnFilters })
+  const statusItems = useMemo(() => ({ all: '全部状态', ...Object.fromEntries(Object.entries(userStatusMap).map(([value, { label }]) => [value, label])) }), [])
+  const { table, keyword, setKeyword, rowSelection, setRowSelection } = useDataTable({
+    data: users,
+    columns,
+    columnFilters,
+    getRowId: user => user.id
+  })
+  const selectedCount = Object.keys(rowSelection).filter(key => rowSelection[key]).length
+  const [batchDeleting, setBatchDeleting] = useState(false)
+  const [batchBusy, setBatchBusy] = useState(false)
+
+  const handleBatchDelete = async () => {
+    const targets = table.getSelectedRowModel().rows.map(row => row.original)
+    if (!targets.length || batchBusy) return
+    setBatchBusy(true)
+    try {
+      const results = await withOperationLog(`批量删除 ${targets.length} 个用户`, () => deleteUsers(targets.map(user => user.id)))
+      const succeeded = results.filter(result => result.status === 'fulfilled').length
+      const failed = results.length - succeeded
+      if (succeeded) toast.success(`已删除 ${succeeded} 个用户`)
+      if (failed) toast.error(`${failed} 个用户删除失败，请检查是否包含不可删除的账号`)
+      setBatchDeleting(false)
+      setRowSelection({})
+      load()
+    } finally {
+      setBatchBusy(false)
+    }
+  }
 
   const handleSubmit = (values: UserWritePayload) => {
     const request = editing ? withOperationLog('更新用户', () => updateUser(editing.id, values)) : withOperationLog('新增用户', () => createUser(values))
@@ -166,12 +216,20 @@ export function UsersPage() {
           <h1 className="text-2xl font-bold">用户管理</h1>
           <p className="text-muted-foreground text-sm">共 {total} 个用户</p>
         </div>
-        {hasPermission('system:user:add') && (
-          <Button onClick={openCreate}>
-            <Plus />
-            新增用户
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {hasPermission('system:user:delete') && selectedCount > 0 && (
+            <Button variant="outline" onClick={() => setBatchDeleting(true)} disabled={batchBusy}>
+              <Trash2 />
+              批量删除（{selectedCount}）
+            </Button>
+          )}
+          {hasPermission('system:user:add') && (
+            <Button onClick={openCreate}>
+              <Plus />
+              新增用户
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -227,6 +285,18 @@ export function UsersPage() {
         onOpenChange={v => !v && setDeleting(null)}
         description={<>即将删除用户「{deleting?.realname || deleting?.username}」，该操作为软删除，可联系管理员恢复。</>}
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDeleteDialog
+        open={batchDeleting}
+        onOpenChange={v => !batchBusy && setBatchDeleting(v)}
+        title="批量删除用户"
+        description={
+          <>
+            即将删除勾选的 {selectedCount} 个用户，该操作为软删除，可联系管理员恢复。{batchBusy ? '正在删除，请稍候…' : ''}
+          </>
+        }
+        onConfirm={handleBatchDelete}
       />
     </div>
   )

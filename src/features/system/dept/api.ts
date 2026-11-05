@@ -55,3 +55,8 @@ export function updateDept(id: string, payload: DeptWritePayload): Promise<Dept>
 export function deleteDept(id: string): Promise<void> {
   return getApiResult<null>(`/backend-api/v1/depts/${id}`, { method: 'DELETE' }).then(() => undefined)
 }
+
+/** 批量删除逐条结算，单个部门删除失败不阻断其他请求 */
+export function deleteDepts(ids: string[]): Promise<PromiseSettledResult<void>[]> {
+  return Promise.allSettled(ids.map(id => deleteDept(id)))
+}

@@ -1,3 +1,5 @@
+import { logout } from '@/lib/auth'
+
 // 轻量 HTTP 封装：统一 JSON 请求、错误处理
 // 之后接真实后端时，在这里加 baseURL、鉴权头、错误码处理即可
 export async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -17,6 +19,14 @@ export interface ApiEnvelope<T> {
   timestamp?: number
 }
 
+function handleUnauthorized(): never {
+  logout()
+  if (window.location.pathname !== '/login') {
+    window.location.assign('/login')
+  }
+  throw new Error('登录已过期，请重新登录')
+}
+
 /**
  * 请求真实后端并解包 result：
  * - /backend-api 由 vite 代理转发到后端 /api
@@ -25,11 +35,18 @@ export interface ApiEnvelope<T> {
  */
 export async function getApiResult<T>(url: string, init?: RequestInit): Promise<T> {
   const token = localStorage.getItem('concise-token') ?? ''
+  const isLoginRequest = /\/v1\/auth\/login(?:$|\?)/.test(url)
   const res = await fetch(url, {
     ...init,
     headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init?.headers }
   })
+  if (res.status === 401 && !isLoginRequest) {
+    handleUnauthorized()
+  }
   const json = (await res.json()) as ApiEnvelope<T>
+  if (json.code === 401 && !isLoginRequest) {
+    handleUnauthorized()
+  }
   const ok = json.success ?? json.code === 0
   if (!ok) {
     throw new Error(json.message || `请求失败: ${res.status}`)

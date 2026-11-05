@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DeptFormDialog } from './components/dept-form-dialog'
-import { createDept, deleteDept, fetchDepts, updateDept, type Dept, type DeptWritePayload } from './api'
+import { createDept, deleteDept, deleteDepts, fetchDepts, updateDept, type Dept, type DeptWritePayload } from './api'
 import { withOperationLog } from '@/features/system/log/api'
 
 interface DeptNode extends Dept {
@@ -68,6 +68,9 @@ export function DeptPage() {
   const [editing, setEditing] = useState<Dept | null>(null)
   const [createParentId, setCreateParentId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<Dept | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [batchDeleting, setBatchDeleting] = useState(false)
+  const [batchBusy, setBatchBusy] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -126,6 +129,50 @@ export function DeptPage() {
       .filter(d => !kw || d.departName.toLowerCase().includes(kw) || (d.description ?? '').toLowerCase().includes(kw))
       .sort((a, b) => a.departOrder - b.departOrder)
   }, [depts, keyword])
+
+  const selectableDepts = filtering ? flatList : depts
+  const selectedCount = depts.filter(dept => selectedIds.has(dept.id)).length
+  const visibleSelectedCount = selectableDepts.filter(dept => selectedIds.has(dept.id)).length
+  const allVisibleSelected = selectableDepts.length > 0 && visibleSelectedCount === selectableDepts.length
+  const someVisibleSelected = visibleSelectedCount > 0 && !allVisibleSelected
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleVisibleSelection = () => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      for (const dept of selectableDepts) {
+        if (allVisibleSelected) next.delete(dept.id)
+        else next.add(dept.id)
+      }
+      return next
+    })
+  }
+
+  const handleBatchDelete = async () => {
+    const targets = depts.filter(dept => selectedIds.has(dept.id))
+    if (!targets.length || batchBusy) return
+    setBatchBusy(true)
+    try {
+      const results = await withOperationLog(`批量删除 ${targets.length} 个部门`, () => deleteDepts(targets.map(dept => dept.id)))
+      const succeeded = results.filter(result => result.status === 'fulfilled').length
+      const failed = results.length - succeeded
+      if (succeeded) toast.success(`已删除 ${succeeded} 个部门`)
+      if (failed) toast.error(`${failed} 个部门删除失败（有子部门或挂用户时会被拒绝）`)
+      setBatchDeleting(false)
+      setSelectedIds(new Set())
+      load()
+    } finally {
+      setBatchBusy(false)
+    }
+  }
 
   const toggle = (id: string) =>
     setCollapsed(prev => {
@@ -263,6 +310,16 @@ export function DeptPage() {
                 : undefined
           }
         >
+          <TableCell className="w-10">
+            <input
+              type="checkbox"
+              className="accent-primary size-4 cursor-pointer align-middle"
+              aria-label={`选择「${node.departName}」`}
+              checked={selectedIds.has(node.id)}
+              disabled={batchBusy}
+              onChange={() => toggleSelection(node.id)}
+            />
+          </TableCell>
           <TableCell>
             <div className="flex items-center gap-1" style={{ paddingInlineStart: depth * 20 }}>
               {!filtering && <GripVertical className="text-muted-foreground size-4 shrink-0 cursor-grab" />}
@@ -310,10 +367,18 @@ export function DeptPage() {
             {saving && '（保存中…）'}
           </p>
         </div>
-        <Button onClick={() => openCreate(null)}>
-          <Plus />
-          新增部门
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {selectedCount > 0 && (
+            <Button variant="outline" onClick={() => setBatchDeleting(true)} disabled={batchBusy}>
+              <Trash2 />
+              批量删除（{selectedCount}）
+            </Button>
+          )}
+          <Button onClick={() => openCreate(null)}>
+            <Plus />
+            新增部门
+          </Button>
+        </div>
       </div>
       {loading ? (
         <Card>
@@ -344,6 +409,19 @@ export function DeptPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <input
+                      type="checkbox"
+                      className="accent-primary size-4 cursor-pointer align-middle"
+                      aria-label={filtering ? '全选筛选结果' : '全选部门'}
+                      checked={allVisibleSelected}
+                      disabled={batchBusy || selectableDepts.length === 0}
+                      ref={el => {
+                        if (el) el.indeterminate = someVisibleSelected
+                      }}
+                      onChange={toggleVisibleSelection}
+                    />
+                  </TableHead>
                   <TableHead>部门名称</TableHead>
                   <TableHead className="w-40">部门编码</TableHead>
                   <TableHead className="w-20">排序</TableHead>
@@ -359,7 +437,7 @@ export function DeptPage() {
                     )
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-muted-foreground py-10 text-center">
+                      <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
                         没有匹配的部门
                       </TableCell>
                     </TableRow>
@@ -368,7 +446,7 @@ export function DeptPage() {
                   renderRows(tree, 0)
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-muted-foreground py-10 text-center">
+                    <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
                       暂无部门，点击右上角「新增部门」创建
                     </TableCell>
                   </TableRow>
@@ -384,6 +462,19 @@ export function DeptPage() {
         onOpenChange={v => !v && setDeleting(null)}
         description={<>即将删除部门「{deleting?.departName}」。存在子部门或部门下仍有用户时后端会拒绝删除；删除为软删除。</>}
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDeleteDialog
+        open={batchDeleting}
+        onOpenChange={v => !batchBusy && setBatchDeleting(v)}
+        title="批量删除部门"
+        description={
+          <>
+            即将删除勾选的 {selectedCount} 个部门。存在子部门或部门下仍有用户时后端会拒绝删除；删除为软删除。
+            {batchBusy ? '正在删除，请稍候…' : ''}
+          </>
+        }
+        onConfirm={handleBatchDelete}
       />
 
       {formOpen && (

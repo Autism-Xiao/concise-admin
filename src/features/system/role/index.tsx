@@ -35,6 +35,7 @@ export function RolePage() {
   const [deleting, setDeleting] = useState<Role | null>(null)
   /** 授权弹窗：角色 + 打开时回显的已授权 id */
   const [permRole, setPermRole] = useState<{ role: Role; menuIds: string[] } | null>(null)
+  const [permLoading, setPermLoading] = useState(false)
   const [permSaving, setPermSaving] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -66,15 +67,15 @@ export function RolePage() {
     setFormOpen(true)
   }
 
-  /** 打开授权弹窗：先拉角色当前已授权 id 用于回显 */
+  /** 先取得真实授权 id 再挂载弹窗，避免空初始值覆盖已有权限 */
   const openPerm = (role: Role) => {
-    setPermRole({ role, menuIds: [] })
+    setPermLoading(true)
     fetchRoleMenuIds(role.id)
       .then(menuIds => setPermRole({ role, menuIds }))
       .catch(e => {
         toast.error(e instanceof Error ? e.message : '加载角色权限失败')
-        setPermRole(null)
       })
+      .finally(() => setPermLoading(false))
   }
 
   const columns = useMemo<ColumnDef<Role>[]>(
@@ -143,8 +144,7 @@ export function RolePage() {
         enableHiding: false,
         cell: ({ row }) => (
           <div className="text-end">
-            <Button variant="ghost" size="icon" title="分配权限" onClick={() => openPerm(row.original)}>
-              {' '}
+            <Button variant="ghost" size="icon" title="分配权限" disabled={permLoading} onClick={() => openPerm(row.original)}>
               <ShieldCheck className="size-4" />
               <span className="sr-only">分配权限</span>
             </Button>
@@ -160,7 +160,7 @@ export function RolePage() {
         )
       }
     ],
-    []
+    [permLoading]
   )
 
   const { table, keyword, setKeyword, rowSelection, setRowSelection } = useDataTable({ data: roles, columns, getRowId: role => role.id })

@@ -74,6 +74,11 @@ export function deleteUser(id: string): Promise<unknown> {
   return getApiResult<unknown>(`/backend-api/v1/users/${id}`, { method: 'DELETE' })
 }
 
+/** 批量删除逐条结算，单个用户删除失败不阻断其他请求 */
+export function deleteUsers(ids: string[]): Promise<PromiseSettledResult<unknown>[]> {
+  return Promise.allSettled(ids.map(id => deleteUser(id)))
+}
+
 export { fetchRoles }
 export type { Role }
 
