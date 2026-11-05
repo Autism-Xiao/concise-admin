@@ -232,3 +232,79 @@
 [data-scroll='tabs']::-webkit-scrollbar-thumb:hover {
   background: color-mix(in oklch, var(--muted-foreground) 55%, transparent);
 }
+
+/* ---------- 登录页滑动验证码（rc-slider-captcha）视觉对齐设计系统 ----------
+ * 颜色 / 圆角 / 高度由 features/auth/login.tsx 通过 --rcsc-* 变量注入，
+ * 这里只处理变量覆盖不到的细节（阴影、图标按钮、悬停态）。
+ * 尺寸保持 320x160 与后端出图一致，缩放会让 x 轴校验错位，切勿改动。
+ */
+.captcha-slider {
+  /* 固定 320px 与后端出图一致，居中与表单列对齐 */
+  margin-inline: auto;
+}
+
+.captcha-slider .rc-slider-captcha-panel {
+  padding-bottom: 10px;
+}
+
+/* 图片区：细边框 + 极轻投影，避免「贴上去」的生硬感 */
+.captcha-slider .rc-slider-captcha-panel-inner {
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+
+/* 右上角刷新：毛玻璃圆形按钮，替代默认的裸白色图标 */
+.captcha-slider .rc-slider-captcha-jigsaw-refresh {
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 999px;
+  background-color: rgb(0 0 0 / 0.38);
+  backdrop-filter: blur(4px);
+  font-size: 14px;
+  opacity: 1;
+  transition: background-color 0.2s ease;
+}
+
+.captcha-slider .rc-slider-captcha-jigsaw-refresh:hover {
+  background-color: rgb(0 0 0 / 0.55);
+}
+
+/* 滑块按钮：细边框 + 柔和阴影，替换默认的硬阴影和 22px 大箭头 */
+.captcha-slider .rc-slider-captcha-button {
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+  font-size: 18px;
+}
+
+/* 拖动 / 验证中 / 成功 / 失败：交给主题色填充，去掉边框与灰影 */
+.captcha-slider .rc-slider-captcha-button-active,
+.captcha-slider .rc-slider-captcha-button-verify,
+.captcha-slider .rc-slider-captcha-button-success,
+.captcha-slider .rc-slider-captcha-button-error,
+.captcha-slider .rc-slider-captcha-button-pc:hover,
+.captcha-slider .rc-slider-captcha-button:active {
+  border-color: transparent;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
+}
+
+/* 悬停时边框给出主题色暗示，提示「可拖动」 */
+.captcha-slider .rc-slider-captcha-control {
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.captcha-slider .rc-slider-captcha-control:hover {
+  border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+}
+
+.captcha-slider .rc-slider-captcha-control-tips {
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
