@@ -18,7 +18,8 @@ export function CaptchaBox({ captcha, loading, onRefresh, refreshTitle }: Captch
         type="button"
         onClick={onRefresh}
         title={refreshTitle}
-        className="border-input bg-muted/30 hover:bg-muted/60 flex h-9 w-[110px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md border transition-colors [&>svg]:h-full [&>svg]:w-full"
+        // 验证码 SVG 是深灰字符，固定白底保证暗色主题下可读（后端也会注入白底 rect，这里是兜底）
+        className="border-input flex h-9 w-[110px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md border bg-white transition-colors hover:bg-white/85 [&>svg]:h-full [&>svg]:w-full"
       >
         {loading ? (
           <Loader2 className="text-muted-foreground size-4 animate-spin" />
