@@ -103,8 +103,15 @@ export function usePermittedPaths(): Set<string> | null {
   return paths
 }
 
-/** 响应式读取登录后存下的后端菜单树；null 表示回退静态菜单（mock / 接口异常） */
-export function useMenuTree(): PermissionMenu[] | null {
+/** 内置超级管理员角色编码：后端对这两个 code 直接放通全部菜单与按钮，不读角色授权表 */
+export const SUPER_ROLE_CODES = ['admin', 'superadmin']
+
+/** 判断角色编码是否为内置超管（授权对其无效，UI 需禁用分配入口） */
+export function isSuperRoleCode(code?: string | null): boolean {
+  return !!code && SUPER_ROLE_CODES.includes(code)
+}
+
+/** 响应式读取登录后存下的后端菜单树；null 表示回退静态菜单（mock / 接口异常） */export function useMenuTree(): PermissionMenu[] | null {
   const [tree, setTree] = useState<PermissionMenu[] | null>(() => getMenuTree<PermissionMenu[]>())
 
   useEffect(() => {

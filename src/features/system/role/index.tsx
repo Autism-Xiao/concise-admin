@@ -10,7 +10,7 @@ import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { saveBlobFile } from '@/lib/download'
-import { notifyPermissionsChanged } from '@/lib/permissions'
+import { notifyPermissionsChanged, isSuperRoleCode } from '@/lib/permissions'
 import { fetchMenuTree } from '@/features/system/menu/api'
 import type { MenuTreeNode } from './components/role-permission-dialog'
 import { RoleFormDialog, type RoleFormValues } from './components/role-form-dialog'
@@ -135,29 +135,44 @@ export function RolePage() {
         id: 'permCount',
         header: () => <div>已授权</div>,
         enableSorting: false,
-        cell: ({ row }) => <span>{row.original.permissions?.length ?? 0} 项</span>
+        cell: ({ row }) =>
+          // 超管权限是内置全量，不来自授权表，显示项数会误导
+          isSuperRoleCode(row.original.roleCode) ? (
+            <span className="text-muted-foreground">全部（内置）</span>
+          ) : (
+            <span>{row.original.permissions?.length ?? 0} 项</span>
+          )
       },
       {
         id: 'actions',
         header: () => <div className="text-end">操作</div>,
         enableSorting: false,
         enableHiding: false,
-        cell: ({ row }) => (
-          <div className="text-end">
-            <Button variant="ghost" size="icon" title="分配权限" disabled={permLoading} onClick={() => openPerm(row.original)}>
-              <ShieldCheck className="size-4" />
-              <span className="sr-only">分配权限</span>
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
-              <Pencil className="size-4" />
-              <span className="sr-only">编辑</span>
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setDeleting(row.original)}>
-              <Trash2 className="text-destructive size-4" />
-              <span className="sr-only">删除</span>
-            </Button>
-          </div>
-        )
+        cell: ({ row }) => {
+          const builtin = isSuperRoleCode(row.original.roleCode)
+          return (
+            <div className="text-end">
+              <Button
+                variant="ghost"
+                size="icon"
+                title={builtin ? '内置超级管理员拥有全部权限，授权不生效' : '分配权限'}
+                disabled={permLoading || builtin}
+                onClick={() => openPerm(row.original)}
+              >
+                <ShieldCheck className="size-4" />
+                <span className="sr-only">分配权限</span>
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
+                <Pencil className="size-4" />
+                <span className="sr-only">编辑</span>
+              </Button>
+              <Button variant="ghost" size="icon" title={builtin ? '内置管理员角色不允许删除' : '删除'} disabled={builtin} onClick={() => setDeleting(row.original)}>
+                <Trash2 className="text-destructive size-4" />
+                <span className="sr-only">删除</span>
+              </Button>
+            </div>
+          )
+        }
       }
     ],
     [permLoading]
