@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { AppWindow, Eye, EyeOff, Loader2, Lock, Palette, ScanLine, ShieldCheck, User } from 'lucide-react'
+import { AppWindow, Eye, EyeOff, Loader2, Lock, Palette, ShieldCheck, User } from 'lucide-react'
 import { toast } from 'sonner'
+import SliderCaptcha, { type ActionType, type VerifyParam } from 'rc-slider-captcha'
 import { Logo } from '@/assets/logo'
 import { LanguageToggle } from '@/components/language-toggle'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -12,8 +13,7 @@ import { useLocale } from '@/context/locale-provider'
 import { login, setMenuTree, setPermissions, setTokens } from '@/lib/auth'
 import { resolveHomePath } from '@/lib/home-path'
 import { computePermittedPaths, notifyPermissionsChanged } from '@/lib/permissions'
-import { fetchCaptcha, fetchPermissions, loginRequest, type CaptchaData } from './api'
-import { CaptchaBox } from './components/captcha'
+import { fetchCaptcha, fetchPermissions, loginRequest, verifyCaptcha } from './api'
 
 const APP_NAME = import.meta.env.VITE_APP_NAME
 
@@ -29,14 +29,17 @@ export function LoginPage() {
   const [account, setAccount] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [captchaInput, setCaptchaInput] = useState('')
-  const [captcha, setCaptcha] = useState<CaptchaData | null>(null)
-  const [captchaLoading, setCaptchaLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   // 字段级非空校验（Element Plus 风格：错误红字内联显示，输入即清除）
-  const [errors, setErrors] = useState<{ account?: string; password?: string; captcha?: string }>({})
+  const [errors, setErrors] = useState<{ account?: string; password?: string }>({})
 
-  const validateField = (field: 'account' | 'password' | 'captcha', value: string) => {
+  // 滑块验证码：captchaId / ticket 放 ref（request/onVerify 回调闭包要拿最新值），ticket 另存 state 供提交判断
+  const sliderRef = useRef<ActionType | undefined>(undefined)
+  const captchaIdRef = useRef('')
+  const ticketRef = useRef('')
+  const [captchaTicket, setCaptchaTicket] = useState('')
+
+  const validateField = (field: 'account' | 'password', value: string) => {
     const msg = value.trim() ? undefined : t(`login.${field}Required`)
     setErrors(prev => ({ ...prev, [field]: msg }))
     return !msg
@@ -45,37 +48,37 @@ export function LoginPage() {
   const validateForm = () => {
     const next = {
       account: account.trim() ? undefined : t('login.accountRequired'),
-      password: password.trim() ? undefined : t('login.passwordRequired'),
-      captcha: captchaInput.trim() ? undefined : t('login.captchaRequired')
+      password: password.trim() ? undefined : t('login.passwordRequired')
     }
     setErrors(next)
-    return !next.account && !next.password && !next.captcha
+    return !next.account && !next.password
   }
 
-  // 加载/刷新后端验证码（进入页面时自动加载一次）
-  const refreshCaptcha = useCallback(async () => {
-    setCaptchaLoading(true)
-    setCaptchaInput('')
-    try {
-      setCaptcha(await fetchCaptcha())
-    } catch {
-      setCaptcha(null)
-      toast.error(t('login.captchaLoadError'))
-    } finally {
-      setCaptchaLoading(false)
-    }
-  }, [t])
+  // 拉取滑块挑战（组件挂载/刷新时自动调用）；加载失败由组件展示「加载失败」状态
+  const requestCaptcha = useCallback(async () => {
+    const data = await fetchCaptcha()
+    captchaIdRef.current = data.captchaId
+    return { bgUrl: data.bgUrl, puzzleUrl: data.puzzleUrl }
+  }, [])
 
-  useEffect(() => {
-    void refreshCaptcha()
-  }, [refreshCaptcha])
+  // 拖拽结束：把位移 x 交给后端校验，通过则拿到一次性 ticket；reject（抛错）= 验证失败，组件自动刷新
+  const handleCaptchaVerify = useCallback(async (data: VerifyParam) => {
+    const { ticket } = await verifyCaptcha(captchaIdRef.current, Math.round(data.x))
+    ticketRef.current = ticket
+    setCaptchaTicket(ticket)
+  }, [])
+
+  const resetCaptcha = useCallback(() => {
+    ticketRef.current = ''
+    setCaptchaTicket('')
+    sliderRef.current?.refresh()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validateForm()) return
-    if (!captcha) {
-      toast.error(t('login.captchaLoadError'))
-      void refreshCaptcha()
+    if (!captchaTicket) {
+      toast.error(t('login.captchaRequired'))
       return
     }
     setSubmitting(true)
@@ -83,8 +86,7 @@ export function LoginPage() {
       const data = await loginRequest({
         username: account.trim(),
         password,
-        captchaId: captcha.captchaId,
-        captchaCode: captchaInput.trim()
+        captchaTicket: ticketRef.current
       })
       // 宽松兼容后端返回的 token / 用户字段
       const user = data.userInfo ?? data.user ?? {}
@@ -108,9 +110,9 @@ export function LoginPage() {
       const home = resolveHomePath(computePermittedPaths())
       void navigate({ to: (home ?? '/dashboard') as never })
     } catch (err) {
-      // 后端 message 直接透出（如：验证码错误 / 用户名或密码错误）
+      // 后端 message 直接透出（如：验证码错误 / 用户名或密码错误）；票据一次性，失败后重置滑块
       toast.error(err instanceof Error ? err.message : t('login.credentialsError'))
-      void refreshCaptcha()
+      resetCaptcha()
     } finally {
       setSubmitting(false)
     }
@@ -230,26 +232,22 @@ export function LoginPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="captcha">{t('login.captcha')}</Label>
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <ScanLine className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-                  <Input
-                    id="captcha"
-                    placeholder={t('login.captchaPlaceholder')}
-                    className="pl-9"
-                    value={captchaInput}
-                    onChange={e => {
-                      setCaptchaInput(e.target.value)
-                      if (errors.captcha) validateField('captcha', e.target.value)
-                    }}
-                    onBlur={e => validateField('captcha', e.target.value)}
-                    aria-invalid={!!errors.captcha}
-                    maxLength={4}
-                  />
-                </div>
-                <CaptchaBox captcha={captcha} loading={captchaLoading} onRefresh={() => void refreshCaptcha()} refreshTitle={t('login.captchaRefresh')} />
-              </div>
-              {errors.captcha && <p className="text-destructive text-xs">{errors.captcha}</p>}
+              {/* 图像尺寸与后端生成尺寸（320x160 / 拼图 60）一致，避免缩放引入 x 轴误差 */}
+              <SliderCaptcha
+                actionRef={sliderRef}
+                request={requestCaptcha}
+                onVerify={handleCaptchaVerify}
+                tipText={{
+                  default: t('login.sliderTip'),
+                  loading: t('login.sliderLoading'),
+                  moving: t('login.sliderMoving'),
+                  verifying: t('login.sliderVerifying'),
+                  success: t('login.sliderSuccess'),
+                  error: t('login.sliderError'),
+                  errors: t('login.sliderError'),
+                  loadFailed: t('login.sliderLoadFailed')
+                }}
+              />
             </div>
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting && <Loader2 className="animate-spin" />}

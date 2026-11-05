@@ -2,21 +2,33 @@ import { getApiResult } from '@/lib/http'
 
 /* ---------- 真实后端（Go）：/backend-api 由 vite 代理到 BACKEND_URL ---------- */
 
-export interface CaptchaData {
+/** 滑块验证码挑战：图片为后端程序化生成的 PNG dataURL */
+export interface CaptchaChallenge {
   captchaId: string
-  /** SVG 字符串，直接渲染 */
-  svg: string
+  /** 带缺口的背景图 */
+  bgUrl: string
+  /** 拼图条 */
+  puzzleUrl: string
 }
 
-export function fetchCaptcha(): Promise<CaptchaData> {
-  return getApiResult<CaptchaData>('/backend-api/v1/auth/captcha')
+export function fetchCaptcha(): Promise<CaptchaChallenge> {
+  return getApiResult<CaptchaChallenge>('/backend-api/v1/auth/captcha')
+}
+
+/** 校验滑块位置，通过后返回一次性 ticket（2 分钟有效），登录时作为 captchaTicket 传入 */
+export function verifyCaptcha(captchaId: string, x: number): Promise<{ ticket: string }> {
+  return getApiResult<{ ticket: string }>('/backend-api/v1/auth/captcha/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ captchaId, x })
+  })
 }
 
 export interface LoginPayload {
   username: string
   password: string
-  captchaId: string
-  captchaCode: string
+  /** 滑块验证通过后换取的一次性票据 */
+  captchaTicket?: string
 }
 
 /** 登录成功返回的 data：字段名做宽松兼容，接后端联调后再收紧 */

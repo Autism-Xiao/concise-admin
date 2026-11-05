@@ -35,6 +35,9 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      rc-slider-captcha:
+        specifier: ^1.9.0
+        version: 1.9.0(react@19.3.1)
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -931,6 +934,9 @@ packages:
     resolution: {integrity: sha512-DdH81/zPLVS11EUgWq3tEu/xn+EzljlMYooDNdzWEnFha3R3NBMpMV1UqYIpjYHV/SgpFKMIX1Oh7o06SjM/oA==}
     engines: {node: '>=18'}
 
+  cache2@3.1.6:
+    resolution: {integrity: sha512-zN2VD/5Wsrr5MbE0wfnKcGeZ83yZm3MY5InCPr/MoC8Cc3GlkhQQ0RGsd8e5K0iLu6XUDmcXkoTx30vrgoLrIg==}
+
   cacheable@2.5.0:
     resolution: {integrity: sha512-60cyAOytib/OzBw1JNSoSV/boK1AtHryDIjvVBk7XbN4ugfkM3+Sry7fEjNgPMGgOjuaZPAp8ruZ0Cxafwyq9g==}
 
@@ -947,6 +953,9 @@ packages:
 
   class-variance-authority@0.7.1:
     resolution: {integrity: sha512-Ka+9Trutv7G8M6WT6SeiRWz792K5qEqIGEGzXKhAE6xOWAY6pPH8U+9IY3oCMv6kqTmLsv7Xh/2w2RigkePMsg==}
+
+  classnames@2.5.1:
+    resolution: {integrity: sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow==}
 
   cli-cursor@5.0.0:
     resolution: {integrity: sha512-aCj4O5wKyszjMmDT4tZj93kxyydN/K5zPWSCe6/0AV/AA1pqe5ZBIw0a2ZfPQV7lL5/yb5HsUreJ6UFAF1tEQw==}
@@ -1116,6 +1125,9 @@ packages:
 
   electron-to-chromium@1.5.472:
     resolution: {integrity: sha512-s4+nfT29b0FKpVKoaIxl2pWsoNcn7A/nMPSrxayw4T3BsmPeV2lF9Y06BsAQeMGhCTQ4nYJ5XST7jkqe4ZEqFw==}
+
+  emitter-pro@1.2.4:
+    resolution: {integrity: sha512-8E1XCG4qNIxOI2SRK+zsf7P7/7VG4XFbiDYbx9+StynbNYPbDvt70yrdUpFAWM06o0c8EmbF4KRnXRdyfFH+PA==}
 
   emoji-regex@10.6.0:
     resolution: {integrity: sha512-toUI84YS5YmxW219erniWD0CIVOo46xGKColeNQRgOzDorgBi1v4D71/OFzgD9GO2UGKIv1C3Sp8DAn0+j5w7A==}
@@ -1931,6 +1943,16 @@ packages:
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
 
+  rc-hooks@3.4.0:
+    resolution: {integrity: sha512-LJ2X8AlXVuLLg7abUAN7+Owa7jANUfrz5TKs29S5WuSG+BBDjFIni6ziMi0A8NNu7B1n5ySprVpCyZW8AzAQfg==}
+    peerDependencies:
+      react: '>= 16.8.6'
+
+  rc-slider-captcha@1.9.0:
+    resolution: {integrity: sha512-wds3KDrsoTeF4oKC2Ej6xoAFFcYYN2mSIDoWXeDMgQLv4/Au2MdE1H40KcU5aRhg1tr2VSgn+uFSH3zGhGoUeQ==}
+    peerDependencies:
+      react: '>=16.9.0'
+
   react-dom@19.3.1:
     resolution: {integrity: sha512-Y0bARz53lhEC1NMCASs0/j+faB/zqt3R8hpvg1e8+61ZVJ4UL0UdC4cBbXfZMcIuhrfgeILTLe+ZeBCavQPtKQ==}
     peerDependencies:
@@ -2254,8 +2276,15 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
+  ut2@1.21.5:
+    resolution: {integrity: sha512-13b26tbtWQDJqYYtK0iUJSG+1AEXAlxi3ii/OuAOG5Y69+U4IQIB5VcEXPPW6wT1D2lqnCp4totJVCUQToqtuw==}
+    engines: {node: '>=10'}
+
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
+
+  util-helpers@5.8.1:
+    resolution: {integrity: sha512-NfdDaQJCzDeBCcA7ACIcWeOL0ZJa2e9uwugFzH6gkby4AsFrmx/wsntjfP95qEfsnZyKD3EbPoEepGzFgRLGHA==}
 
   validate-npm-package-name@7.0.2:
     resolution: {integrity: sha512-hVDIBwsRruT73PbK7uP5ebUt+ezEtCmzZz3F59BSr2F6OVFnJ/6h8liuvdLrQ88Xmnk6/+xGGuq+pG9WwTuy3A==}
@@ -3210,6 +3239,11 @@ snapshots:
     dependencies:
       run-applescript: 7.1.0
 
+  cache2@3.1.6:
+    dependencies:
+      emitter-pro: 1.2.4
+      tslib: 2.9.1
+
   cacheable@2.5.0:
     dependencies:
       '@cacheable/memory': 2.2.0
@@ -3229,6 +3263,8 @@ snapshots:
   class-variance-authority@0.7.1:
     dependencies:
       clsx: 2.1.1
+
+  classnames@2.5.1: {}
 
   cli-cursor@5.0.0:
     dependencies:
@@ -3353,6 +3389,8 @@ snapshots:
   dotenv@17.4.2: {}
 
   electron-to-chromium@1.5.472: {}
+
+  emitter-pro@1.2.4: {}
 
   emoji-regex@10.6.0: {}
 
@@ -4003,6 +4041,21 @@ snapshots:
 
   queue-microtask@1.2.3: {}
 
+  rc-hooks@3.4.0(react@19.3.1):
+    dependencies:
+      cache2: 3.1.6
+      react: 19.3.1
+      tslib: 2.9.1
+      ut2: 1.21.5
+      util-helpers: 5.8.1
+
+  rc-slider-captcha@1.9.0(react@19.3.1):
+    dependencies:
+      classnames: 2.5.1
+      rc-hooks: 3.4.0(react@19.3.1)
+      react: 19.3.1
+      tslib: 2.9.1
+
   react-dom@19.3.1(react@19.3.1):
     dependencies:
       react: 19.3.1
@@ -4300,7 +4353,17 @@ snapshots:
     dependencies:
       react: 19.3.1
 
+  ut2@1.21.5:
+    dependencies:
+      tslib: 2.9.1
+
   util-deprecate@1.0.2: {}
+
+  util-helpers@5.8.1:
+    dependencies:
+      cache2: 3.1.6
+      tslib: 2.9.1
+      ut2: 1.21.5
 
   validate-npm-package-name@7.0.2: {}
 
