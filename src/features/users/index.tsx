@@ -1,9 +1,25 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Droplets, Download, Pencil, Plus, Search, Trash2, Upload } from 'lucide-react'
+import {
+  Archive,
+  Droplets,
+  Download,
+  KeyRound,
+  LogOut,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Search,
+  ShieldBan,
+  ShieldCheck,
+  Trash2,
+  Unlock,
+  Upload
+} from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -12,9 +28,25 @@ import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOpt
 import { hasPermission } from '@/lib/auth'
 import { UserFormDialog } from './components/user-form-dialog'
 import { UserWatermarkDialog } from './components/user-watermark-dialog'
+import { ResetPasswordResultDialog } from './components/reset-password-result-dialog'
+import { RecycleBinDialog } from './components/recycle-bin-dialog'
 import { saveBlobFile } from '@/lib/download'
 import { UserImportDialog } from './components/user-import-dialog'
-import { createUser, deleteUser, deleteUsers, exportUsers, fetchUsers, updateUser, userStatusMap, type User, type UserWritePayload } from './api'
+import {
+  createUser,
+  deleteUser,
+  deleteUsers,
+  exportUsers,
+  fetchUsers,
+  forceOfflineUser,
+  resetUserPassword,
+  unlockUser,
+  updateUser,
+  updateUserStatus,
+  userStatusMap,
+  type User,
+  type UserWritePayload
+} from './api'
 import { withOperationLog } from '@/features/system/log/api'
 import { toastBatchResult } from '@/lib/batch-delete'
 
@@ -41,6 +73,13 @@ export function UsersPage() {
   const [watermarkTarget, setWatermarkTarget] = useState<User | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
+  /** 重置密码结果：非空时弹一次性明文展示框 */
+  const [resetResult, setResetResult] = useState<{ username: string; password: string } | null>(null)
+  /** 冻结/解冻二次确认目标 */
+  const [statusTarget, setStatusTarget] = useState<{ user: User; next: 1 | 2 } | null>(null)
+  /** 强制下线二次确认目标 */
+  const [kickTarget, setKickTarget] = useState<User | null>(null)
+  const [recycleOpen, setRecycleOpen] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -161,28 +200,69 @@ export function UsersPage() {
         header: () => <div className="text-end">操作</div>,
         enableSorting: false,
         enableHiding: false,
-        cell: ({ row }) => (
-          <div className="text-end">
-            {hasPermission('system:user:update') && (
-              <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
-                <Pencil className="size-4" />
-                <span className="sr-only">编辑</span>
-              </Button>
-            )}
-            {hasPermission('system:user:update') && (
-              <Button variant="ghost" size="icon" onClick={() => setWatermarkTarget(row.original)} title="水印设置">
-                <Droplets className="size-4" />
-                <span className="sr-only">水印设置</span>
-              </Button>
-            )}
-            {hasPermission('system:user:delete') && (
-              <Button variant="ghost" size="icon" onClick={() => setDeleting(row.original)}>
-                <Trash2 className="text-destructive size-4" />
-                <span className="sr-only">删除</span>
-              </Button>
-            )}
-          </div>
-        )
+        cell: ({ row }) => {
+          const user = row.original
+          const frozen = user.status === 2
+          return (
+            <div className="flex items-center justify-end">
+              {hasPermission('system:user:update') && (
+                <Button variant="ghost" size="icon" onClick={() => openEdit(user)}>
+                  <Pencil className="size-4" />
+                  <span className="sr-only">编辑</span>
+                </Button>
+              )}
+              {hasPermission('system:user:update') && (
+                <Button variant="ghost" size="icon" onClick={() => setWatermarkTarget(user)} title="水印设置">
+                  <Droplets className="size-4" />
+                  <span className="sr-only">水印设置</span>
+                </Button>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" title="更多操作">
+                    <MoreHorizontal className="size-4" />
+                    <span className="sr-only">更多操作</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  {hasPermission('system:user:reset-password') && (
+                    <DropdownMenuItem onClick={() => handleResetPassword(user)}>
+                      <KeyRound className="size-4" />
+                      重置密码
+                    </DropdownMenuItem>
+                  )}
+                  {hasPermission('system:user:update') && (
+                    <DropdownMenuItem onClick={() => setStatusTarget({ user, next: frozen ? 1 : 2 })}>
+                      {frozen ? <ShieldCheck className="size-4" /> : <ShieldBan className="size-4" />}
+                      {frozen ? '解冻' : '冻结'}
+                    </DropdownMenuItem>
+                  )}
+                  {hasPermission('system:online:kick') && (
+                    <DropdownMenuItem onClick={() => setKickTarget(user)}>
+                      <LogOut className="size-4" />
+                      强制下线
+                    </DropdownMenuItem>
+                  )}
+                  {hasPermission('system:user:update') && (
+                    <DropdownMenuItem onClick={() => handleUnlock(user)}>
+                      <Unlock className="size-4" />
+                      解锁登录
+                    </DropdownMenuItem>
+                  )}
+                  {hasPermission('system:user:delete') && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem variant="destructive" onClick={() => setDeleting(user)}>
+                        <Trash2 className="size-4" />
+                        删除
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )
+        }
       }
     ],
     []
@@ -249,6 +329,46 @@ export function UsersPage() {
     setDeleting(null)
   }
 
+  /** 重置密码：成功后弹一次性明文展示框（明文只在本次响应里，后端不落库） */
+  const handleResetPassword = (user: User) => {
+    withOperationLog(`重置用户「${user.realname || user.username}」的密码`, () => resetUserPassword(user.id))
+      .then(result => setResetResult({ username: user.username, password: result.password }))
+      .catch(e => toast.error(e instanceof Error ? e.message : '重置失败'))
+  }
+
+  /** 解锁登录：清零失败计数，幂等（未锁定时也提示成功无妨） */
+  const handleUnlock = (user: User) => {
+    withOperationLog(`解锁用户「${user.realname || user.username}」的登录`, () => unlockUser(user.id))
+      .then(() => toast.success(`账号「${user.username}」已解锁`))
+      .catch(e => toast.error(e instanceof Error ? e.message : '解锁失败'))
+  }
+
+  /** 冻结/解冻确认：冻结会踢掉该用户全部在线会话 */
+  const handleStatusChange = () => {
+    const target = statusTarget
+    if (!target) return
+    const { user, next } = target
+    withOperationLog(`${next === 2 ? '冻结' : '解冻'}用户「${user.realname || user.username}」`, () => updateUserStatus(user.id, next))
+      .then(result =>
+        toast.success(
+          next === 2 ? `已冻结「${user.username}」，并下线其 ${result.kicked} 个在线会话` : `已解冻「${user.username}」`
+        )
+      )
+      .catch(e => toast.error(e instanceof Error ? e.message : '操作失败'))
+      .finally(() => load())
+    setStatusTarget(null)
+  }
+
+  /** 强制下线确认 */
+  const handleKick = () => {
+    if (!kickTarget) return
+    const user = kickTarget
+    withOperationLog(`强制下线用户「${user.realname || user.username}」`, () => forceOfflineUser(user.id))
+      .then(result => toast.success(`已下线「${user.username}」的 ${result.kicked} 个在线会话`))
+      .catch(e => toast.error(e instanceof Error ? e.message : '操作失败'))
+    setKickTarget(null)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -267,6 +387,12 @@ export function UsersPage() {
             <Button variant="outline" onClick={() => setImportOpen(true)}>
               <Upload />
               导入
+            </Button>
+          )}
+          {hasPermission('system:user:restore') && (
+            <Button variant="outline" onClick={() => setRecycleOpen(true)}>
+              <Archive />
+              回收站
             </Button>
           )}
           {hasPermission('system:user:delete') && selectedCount > 0 && (
@@ -350,7 +476,7 @@ export function UsersPage() {
       <ConfirmDeleteDialog
         open={!!deleting}
         onOpenChange={v => !v && setDeleting(null)}
-        description={<>即将删除用户「{deleting?.realname || deleting?.username}」，该操作为软删除，可联系管理员恢复。</>}
+        description={<>即将删除用户「{deleting?.realname || deleting?.username}」，该操作为软删除，可在「回收站」恢复。</>}
         onConfirm={handleDelete}
       />
 
@@ -360,11 +486,37 @@ export function UsersPage() {
         title="批量删除用户"
         description={
           <>
-            即将删除勾选的 {selectedCount} 个用户，该操作为软删除，可联系管理员恢复。{batchBusy ? '正在删除，请稍候…' : ''}
+            即将删除勾选的 {selectedCount} 个用户，该操作为软删除，可在「回收站」恢复。{batchBusy ? '正在删除，请稍候…' : ''}
           </>
         }
         onConfirm={handleBatchDelete}
       />
+
+      <ResetPasswordResultDialog open={!!resetResult} onOpenChange={v => !v && setResetResult(null)} username={resetResult?.username} password={resetResult?.password} />
+
+      <ConfirmDeleteDialog
+        open={!!statusTarget}
+        onOpenChange={v => !v && setStatusTarget(null)}
+        title={statusTarget?.next === 2 ? '确认冻结该账号？' : '确认解冻该账号？'}
+        description={
+          statusTarget?.next === 2 ? (
+            <>即将冻结用户「{statusTarget?.user.realname || statusTarget?.user.username}」：登录立即被拒，其全部在线会话将被强制下线。解冻可随时在此操作。</>
+          ) : (
+            <>即将解冻用户「{statusTarget?.user.realname || statusTarget?.user.username}」，解冻后可正常登录。</>
+          )
+        }
+        onConfirm={handleStatusChange}
+      />
+
+      <ConfirmDeleteDialog
+        open={!!kickTarget}
+        onOpenChange={v => !v && setKickTarget(null)}
+        title="确认强制下线？"
+        description={<>即将把用户「{kickTarget?.realname || kickTarget?.username}」的全部在线会话踢下线，其令牌立即失效，可重新登录。</>}
+        onConfirm={handleKick}
+      />
+
+      <RecycleBinDialog open={recycleOpen} onOpenChange={setRecycleOpen} onRestored={load} />
     </div>
   )
 }

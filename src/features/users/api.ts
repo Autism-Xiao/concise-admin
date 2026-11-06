@@ -1,6 +1,6 @@
 import { batchDeleteRequest, type BatchDeleteResult } from '@/lib/batch-delete'
 import { downloadFromApi } from '@/lib/download'
-import { getApiResult } from '@/lib/http'
+import { getApiResult, type PageResult } from '@/lib/http'
 import { updateUserWatermark, type UserWatermarkPatch, type WatermarkDensity } from '@/lib/watermark'
 import { fetchRoleOptions, type Role } from '@/features/system/role/api'
 
@@ -19,6 +19,8 @@ export interface User {
   /** 1 正常 / 2 冻结 */
   status: number
   createTime?: string
+  /** 回收站行用：软删时间（update_time） */
+  updateTime?: string
   roles?: Pick<Role, 'id' | 'roleName' | 'roleCode'>[]
   depts?: Array<{ id: string; departName: string }>
   /** 主部门 id（后端兼容字段 = depts[0].id） */
@@ -98,6 +100,63 @@ export type { Role }
 export async function fetchBackendDepts(): Promise<Array<{ id: string; departName: string; parentId?: string | null }>> {
   const page = await getApiResult<{ records: Array<{ id: string; departName: string; parentId?: string | null }> }>('/backend-api/v1/depts')
   return page.records
+}
+
+/* ---------- 管理操作：重置密码 / 冻结 / 强制下线 / 解锁 / 回收站 ---------- */
+
+/** 重置密码：password 留空则后端生成 12 位随机口令；明文仅在本次返回，务必立即展示给管理员 */
+export function resetUserPassword(id: string, password?: string): Promise<{ password: string }> {
+  return getApiResult<{ password: string }>(`/backend-api/v1/users/${id}/password`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: password || undefined })
+  })
+}
+
+/** 冻结/解冻：status 1 正常 / 2 冻结（冻结自动踢掉全部在线会话），返回踢掉会话数 */
+export function updateUserStatus(id: string, status: 1 | 2): Promise<{ status: number; kicked: number }> {
+  return getApiResult<{ status: number; kicked: number }>(`/backend-api/v1/users/${id}/status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status })
+  })
+}
+
+/** 强制下线：踢掉该用户全部在线会话，返回踢掉会话数 */
+export function forceOfflineUser(id: string): Promise<{ kicked: number }> {
+  return getApiResult<{ kicked: number }>(`/backend-api/v1/users/${id}/force-offline`, { method: 'POST' })
+}
+
+/** 解锁账号：清零登录失败计数（幂等） */
+export function unlockUser(id: string): Promise<{ unlocked: true }> {
+  return getApiResult<{ unlocked: true }>(`/backend-api/v1/users/${id}/lock`, { method: 'DELETE' })
+}
+
+/** 回收站：已软删用户分页列表 */
+export function fetchRecycledUsers(params: { keyword?: string; page?: number; pageSize?: number } = {}): Promise<PageResult<User>> {
+  const qs = new URLSearchParams()
+  if (params.keyword) qs.set('keyword', params.keyword)
+  qs.set('page', String(params.page ?? 1))
+  qs.set('pageSize', String(params.pageSize ?? 10))
+  return getApiResult<PageResult<User>>(`/backend-api/v1/users/recycled?${qs.toString()}`)
+}
+
+/** 恢复软删用户：可顺带重绑角色/部门；用户名被占用时后端拒绝 */
+export function restoreUser(id: string, payload: { roleIds?: string[]; deptIds?: string[] } = {}): Promise<User> {
+  return getApiResult<User>(`/backend-api/v1/users/${id}/restore`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+}
+
+/** 自助修改密码：验旧密码；成功后其他端全部下线，当前会话保留 */
+export function changeMyPassword(oldPassword: string, newPassword: string): Promise<{ changed: true }> {
+  return getApiResult<{ changed: true }>('/backend-api/v1/auth/password', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ oldPassword, newPassword })
+  })
 }
 
 /* ---------- 导入导出（/api/v1/users/export | import | import-template） ---------- */
