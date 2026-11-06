@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { MarkdownEditor } from '@/components/markdown-editor'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -69,7 +70,7 @@ export function NoticeFormDialog({ open, onOpenChange, notice, onSubmit }: Notic
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{notice ? '编辑公告' : '新增公告'}</DialogTitle>
           <DialogDescription>{notice ? '修改后保存，状态切到已发布会自动记录发布时间' : '填写信息创建公告，选「已发布」会立即上线'}</DialogDescription>
@@ -158,12 +159,11 @@ export function NoticeFormDialog({ open, onOpenChange, notice, onSubmit }: Notic
 
           <div className="space-y-2">
             <Label htmlFor="notice-content">内容</Label>
-            <textarea
-              id="notice-content"
-              className="border-input bg-background placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 min-h-32 w-full rounded-md border px-3 py-2 text-sm outline-none focus-visible:ring-[3px]"
+            <MarkdownEditor
               value={form.msgContent}
-              onChange={e => set('msgContent', e.target.value)}
-              placeholder="公告正文，支持纯文本"
+              onChange={v => set('msgContent', v)}
+              placeholder="公告正文，支持 Markdown（**加粗**、列表、表格、代码块等）"
+              maxLength={20000}
             />
           </div>
 
