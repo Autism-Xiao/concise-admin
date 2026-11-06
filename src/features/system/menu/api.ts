@@ -1,5 +1,5 @@
 import { downloadFromApi } from '@/lib/download'
-import { getApiResult } from '@/lib/http'
+import { getApiResult, type PageResult } from '@/lib/http'
 
 /** 后端 sys_permission（对齐 JeecgBoot），菜单管理页用的完整结构 */
 export interface Menu {
@@ -34,9 +34,10 @@ export type MenuWritePayload = Partial<Omit<Menu, 'id' | 'delFlag' | 'createTime
   menuType: number
 }
 
-/** 菜单全量列表（扁平，前端自行组树） */
-export function fetchMenus(): Promise<Menu[]> {
-  return getApiResult<Menu[]>('/backend-api/v1/menus')
+/** 菜单全量列表（统一分页结构；扁平，前端自行组树） */
+export async function fetchMenus(): Promise<Menu[]> {
+  const page = await getApiResult<PageResult<Menu>>('/backend-api/v1/menus')
+  return page.records
 }
 
 /** 菜单树（后端组好层级） */

@@ -1,6 +1,6 @@
 import { batchDeleteRequest, type BatchDeleteResult } from '@/lib/batch-delete'
 import { downloadFromApi } from '@/lib/download'
-import { getApiResult } from '@/lib/http'
+import { getApiResult, type PageResult } from '@/lib/http'
 
 /** 后端 sys_depart（部门），只保留页面需要的字段 */
 export interface Dept {
@@ -25,10 +25,11 @@ export interface DeptWritePayload {
   description?: string | null
 }
 
-/** 部门扁平列表（keyword 模糊匹配名称），前端自行组树 */
-export function fetchDepts(keyword = ''): Promise<Dept[]> {
+/** 部门扁平列表（统一分页结构，全量返回；keyword 模糊匹配名称），前端自行组树 */
+export async function fetchDepts(keyword = ''): Promise<Dept[]> {
   const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
-  return getApiResult<Dept[]>(`/backend-api/v1/depts${qs}`)
+  const page = await getApiResult<PageResult<Dept>>(`/backend-api/v1/depts${qs}`)
+  return page.records
 }
 
 /** 部门树（后端组好层级） */

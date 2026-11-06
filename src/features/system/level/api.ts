@@ -1,7 +1,7 @@
 import { batchDeleteRequest, type BatchDeleteResult } from '@/lib/batch-delete'
 import { downloadFromApi } from '@/lib/download'
 import type { ImportResult } from '@/components/excel-import-dialog'
-import { getApiResult } from '@/lib/http'
+import { getApiResult, type PageResult } from '@/lib/http'
 
 /** 后端职级（level_rank 降序 = 级别从高到低） */
 export interface Level {
@@ -23,10 +23,11 @@ export interface LevelWritePayload {
   remark?: string | null
 }
 
-/** 职级列表（keyword 模糊匹配名称/备注） */
-export function fetchLevels(keyword = ''): Promise<Level[]> {
+/** 职级列表（统一分页结构，全量返回；keyword 模糊匹配名称/备注） */
+export async function fetchLevels(keyword = ''): Promise<Level[]> {
   const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
-  return getApiResult<Level[]>(`/backend-api/v1/levels${qs}`)
+  const page = await getApiResult<PageResult<Level>>(`/backend-api/v1/levels${qs}`)
+  return page.records
 }
 
 export function createLevel(payload: LevelWritePayload): Promise<Level> {

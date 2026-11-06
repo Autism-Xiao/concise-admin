@@ -1,7 +1,7 @@
 import { batchDeleteRequest, type BatchDeleteResult } from '@/lib/batch-delete'
 import { downloadFromApi } from '@/lib/download'
 import type { ImportResult } from '@/components/excel-import-dialog'
-import { getApiResult } from '@/lib/http'
+import { getApiResult, type PageResult } from '@/lib/http'
 
 /** 后端岗位（post_sort 升序，列表每条带所属部门对象） */
 export interface Post {
@@ -28,13 +28,14 @@ export interface PostWritePayload {
   description?: string | null
 }
 
-/** 岗位列表（keyword 模糊匹配名称/编码/描述，可按部门过滤） */
-export function fetchPosts(keyword = '', deptId = ''): Promise<Post[]> {
+/** 岗位列表（统一分页结构，全量返回；keyword 模糊匹配名称/编码/描述，可按部门过滤） */
+export async function fetchPosts(keyword = '', deptId = ''): Promise<Post[]> {
   const params = new URLSearchParams()
   if (keyword) params.set('keyword', keyword)
   if (deptId) params.set('deptId', deptId)
   const qs = params.toString()
-  return getApiResult<Post[]>(`/backend-api/v1/posts${qs ? `?${qs}` : ''}`)
+  const page = await getApiResult<PageResult<Post>>(`/backend-api/v1/posts${qs ? `?${qs}` : ''}`)
+  return page.records
 }
 
 export function createPost(payload: PostWritePayload): Promise<Post> {

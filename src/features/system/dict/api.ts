@@ -1,7 +1,7 @@
 import { batchDeleteRequest, type BatchDeleteResult } from '@/lib/batch-delete'
 import { downloadFromApi } from '@/lib/download'
 import type { ImportResult } from '@/components/excel-import-dialog'
-import { getApiResult } from '@/lib/http'
+import { getApiResult, type PageResult } from '@/lib/http'
 
 /** 字典（对齐后端 sys_dict，JeecgBoot 字段） */
 export interface Dict {
@@ -50,22 +50,14 @@ export interface DictItemFormValues {
   description?: string
 }
 
-/** 分页返回（后端 Pagination 结构，对齐 jeecg IPage） */
-export interface PageResult<T> {
-  records: T[]
-  total: number
-  current: number
-  size: number
-  pages: number
-}
-
 const DICT_BASE = '/backend-api/v1/dicts'
 const ITEM_BASE = '/backend-api/v1/dict-items'
 
-/** 字典列表（全量不分页，keyword 模糊匹配名称/编码） */
-export function fetchDicts(keyword?: string): Promise<Dict[]> {
+/** 字典列表（统一分页结构，全量返回；keyword 模糊匹配名称/编码） */
+export async function fetchDicts(keyword?: string): Promise<Dict[]> {
   const search = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
-  return getApiResult<Dict[]>(`${DICT_BASE}${search}`)
+  const page = await getApiResult<PageResult<Dict>>(`${DICT_BASE}${search}`)
+  return page.records
 }
 
 export function createDict(values: DictFormValues): Promise<Dict> {

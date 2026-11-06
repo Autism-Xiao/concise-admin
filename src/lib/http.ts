@@ -19,6 +19,23 @@ export interface ApiEnvelope<T> {
   timestamp?: number
 }
 
+/**
+ * 统一分页结构（后端 Pagination，对齐 jeecg IPage）
+ *
+ * 后端已经把所有列表接口统一成这个形状：即使是角色/部门/职级这类
+ * 数据量小、一次全量返回的接口，也放在 records 里（size = total、pages = 1），
+ * 前端只需一套读取方式，不用再逐个确认"这个接口返回的是数组还是分页对象"。
+ *
+ * 下拉数据源类接口（tree / options / code/:code）仍然返回数组，因为它们不是「列表查询」。
+ */
+export interface PageResult<T> {
+  records: T[]
+  total: number
+  current: number
+  size: number
+  pages: number
+}
+
 function handleUnauthorized(): never {
   logout()
   if (window.location.pathname !== '/login') {

@@ -1,5 +1,5 @@
 import { batchDeleteRequest, type BatchDeleteResult } from '@/lib/batch-delete'
-import { getApiResult } from '@/lib/http'
+import { getApiResult, type PageResult } from '@/lib/http'
 
 /** 后端 RoleEntity（sys_role，字符串主键） */
 export interface Role {
@@ -17,10 +17,11 @@ export interface Role {
 
 /* ---------- 角色增删改查（/api/v1/roles） ---------- */
 
-/** 角色列表（全量不分页，含已授权菜单；keyword 模糊匹配名称/编码） */
-export function fetchRoles(keyword = ''): Promise<Role[]> {
+/** 角色列表（统一分页结构，全量返回；keyword 模糊匹配名称/编码） */
+export async function fetchRoles(keyword = ''): Promise<Role[]> {
   const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
-  return getApiResult<Role[]>(`/backend-api/v1/roles${qs}`)
+  const page = await getApiResult<PageResult<Role>>(`/backend-api/v1/roles${qs}`)
+  return page.records
 }
 
 /**
