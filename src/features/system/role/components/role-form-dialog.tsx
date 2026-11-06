@@ -3,12 +3,14 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { Role } from '../api'
 
 export interface RoleFormValues {
   roleName: string
   roleCode: string
   description?: string
+  dataScope?: number
 }
 
 interface RoleFormDialogProps {
@@ -19,12 +21,17 @@ interface RoleFormDialogProps {
   onSubmit: (values: RoleFormValues) => void
 }
 
-const emptyForm = { roleName: '', roleCode: '', description: '' }
+const emptyForm = { roleName: '', roleCode: '', description: '', dataScope: 1 }
+
+/** 数据范围档位（与后端 sys_role.data_scope 对齐） */
+const DATA_SCOPE_ITEMS = { 1: '全部数据', 2: '本部门及以下', 3: '仅本部门', 4: '仅本人' }
 
 /** 由父组件按 key 控制重挂载，保证打开时表单初始化为对应角色 */
 export function RoleFormDialog({ open, onOpenChange, role, onSubmit }: RoleFormDialogProps) {
   const [form, setForm] = useState(() =>
-    role ? { roleName: role.roleName ?? '', roleCode: role.roleCode, description: role.description ?? '' } : emptyForm
+    role
+      ? { roleName: role.roleName ?? '', roleCode: role.roleCode, description: role.description ?? '', dataScope: role.dataScope ?? 1 }
+      : emptyForm
   )
 
   const set = <K extends keyof typeof emptyForm>(key: K, value: (typeof emptyForm)[K]) => setForm(prev => ({ ...prev, [key]: value }))
@@ -68,6 +75,22 @@ export function RoleFormDialog({ open, onOpenChange, role, onSubmit }: RoleFormD
               onChange={e => set('description', e.target.value)}
               placeholder="选填"
             />
+          </div>
+          <div className="space-y-2">
+            <Label>数据范围</Label>
+            <Select value={String(form.dataScope)} onValueChange={v => set('dataScope', Number(v))} items={DATA_SCOPE_ITEMS}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(DATA_SCOPE_ITEMS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-muted-foreground text-xs">控制该角色下用户能看到的业务数据范围（如用户列表只显示权限内的人）；超管角色不受限</p>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

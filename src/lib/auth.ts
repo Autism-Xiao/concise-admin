@@ -7,6 +7,8 @@ const REFRESH_TOKEN_KEY = 'concise-refresh-token'
 const PERMS_KEY = 'concise-perms'
 const MENUS_KEY = 'concise-menus'
 const TABS_KEY = 'concise-tabs'
+/** 强制改密标记：sessionStorage（关标签页即失效，改完密码清除） */
+const MUST_CHANGE_PWD_KEY = 'concise-must-change-pwd'
 
 export interface LoginAccount {
   username: string
@@ -64,6 +66,8 @@ export function logout(): void {
   localStorage.removeItem(MENUS_KEY)
   // 清掉多标签页缓存，避免下个账号登录后恢复上一个会话打开的页面
   localStorage.removeItem(TABS_KEY)
+  // 强制改密标记同样不能跨账号残留
+  clearMustChangePassword()
 }
 
 /** 保存后端下发的令牌 */
@@ -113,4 +117,20 @@ export function getMenuTree<T>(): T | null {
 export function hasPermission(perm: string): boolean {
   const perms = getPermissions()
   return perms.includes('*') || perms.includes(perm)
+}
+
+/* ---------- 强制改密标记（密码过期 / 管理员标记下次登录必须改密） ---------- */
+
+export function setMustChangePassword(flag: boolean): void {
+  if (flag) sessionStorage.setItem(MUST_CHANGE_PWD_KEY, '1')
+  else sessionStorage.removeItem(MUST_CHANGE_PWD_KEY)
+}
+
+export function needsPasswordChange(): boolean {
+  return sessionStorage.getItem(MUST_CHANGE_PWD_KEY) === '1'
+}
+
+/** 强制改密成功后调用（也挂在登出时清掉） */
+export function clearMustChangePassword(): void {
+  sessionStorage.removeItem(MUST_CHANGE_PWD_KEY)
 }

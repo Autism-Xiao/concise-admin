@@ -3,17 +3,20 @@ import {
   Archive,
   Droplets,
   Download,
+  FileClock,
   KeyRound,
   LogOut,
   MoreHorizontal,
   Pencil,
   Plus,
+  RefreshCcw,
   Search,
   ShieldBan,
   ShieldCheck,
   Trash2,
   Unlock,
-  Upload
+  Upload,
+  UserCog
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -32,13 +35,19 @@ import { ResetPasswordResultDialog } from './components/reset-password-result-di
 import { RecycleBinDialog } from './components/recycle-bin-dialog'
 import { saveBlobFile } from '@/lib/download'
 import { UserImportDialog } from './components/user-import-dialog'
+import { UserLoginLogDialog } from './components/user-login-log-dialog'
+import { BatchRolesDialog } from './components/batch-roles-dialog'
 import {
+  batchAssignRoles,
+  batchUpdateUsersStatus,
+  clearUserPermissionCache,
   createUser,
   deleteUser,
   deleteUsers,
   exportUsers,
   fetchUsers,
   forceOfflineUser,
+  resetUserAvatar,
   resetUserPassword,
   unlockUser,
   updateUser,
@@ -57,6 +66,7 @@ const columnLabels: Record<string, string> = {
   phone: '手机号',
   status: '状态',
   roleNames: '角色',
+  postNames: '岗位',
   watermark: '水印',
   createTime: '创建时间'
 }
@@ -80,6 +90,12 @@ export function UsersPage() {
   /** 强制下线二次确认目标 */
   const [kickTarget, setKickTarget] = useState<User | null>(null)
   const [recycleOpen, setRecycleOpen] = useState(false)
+  /** 登录日志弹窗目标（按用户过滤） */
+  const [logTarget, setLogTarget] = useState<User | null>(null)
+  /** 批量分配角色弹窗开关（目标用户取当前勾选行） */
+  const [batchRolesOpen, setBatchRolesOpen] = useState(false)
+  /** 批量启停确认框：非空时待执行 */
+  const [batchStatusTarget, setBatchStatusTarget] = useState<1 | 2 | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -174,6 +190,12 @@ export function UsersPage() {
         cell: ({ row }) => row.getValue('roleNames') || '-'
       },
       {
+        id: 'postNames',
+        accessorFn: row => (row.posts ?? []).map(p => p.postName || p.postCode).join('、'),
+        header: ({ column }) => <DataTableColumnHeader column={column} title="岗位" />,
+        cell: ({ row }) => row.getValue('postNames') || '-'
+      },
+      {
         id: 'watermark',
         accessorFn: row => (row.watermarkEffective ? '已开启' : '已关闭'),
         header: ({ column }) => <DataTableColumnHeader column={column} title="水印" />,
@@ -249,6 +271,37 @@ export function UsersPage() {
                       解锁登录
                     </DropdownMenuItem>
                   )}
+                  {hasPermission('system:user:update') && (
+                    <DropdownMenuItem
+                      onClick={() =>
+                        withOperationLog(`清除用户「${user.realname || user.username}」的权限缓存`, () => clearUserPermissionCache(user.id))
+                          .then(result => toast.success(`已清除 ${result.cleared} 个角色的权限缓存，下次操作即生效`))
+                          .catch(e => toast.error(e instanceof Error ? e.message : '清除失败'))
+                      }
+                    >
+                      <RefreshCcw className="size-4" />
+                      清除权限缓存
+                    </DropdownMenuItem>
+                  )}
+                  {hasPermission('system:user:update') && (
+                    <DropdownMenuItem
+                      onClick={() =>
+                        withOperationLog(`重置用户「${user.realname || user.username}」的头像`, () => resetUserAvatar(user.id))
+                          .then(() => toast.success('头像已重置为系统默认'))
+                          .catch(e => toast.error(e instanceof Error ? e.message : '重置失败'))
+                          .finally(() => load())
+                      }
+                    >
+                      <UserCog className="size-4" />
+                      重置头像
+                    </DropdownMenuItem>
+                  )}
+                  {hasPermission('system:log:login') && (
+                    <DropdownMenuItem onClick={() => setLogTarget(user)}>
+                      <FileClock className="size-4" />
+                      登录日志
+                    </DropdownMenuItem>
+                  )}
                   {hasPermission('system:user:delete') && (
                     <>
                       <DropdownMenuSeparator />
@@ -292,6 +345,40 @@ export function UsersPage() {
       load()
     } finally {
       setBatchBusy(false)
+    }
+  }
+
+  /** 批量启用/停用：复用单条规则（admin 跳过、停用踢会话），逐条返回跳过原因 */
+  const handleBatchStatus = (next: 1 | 2) => {
+    const targets = table.getSelectedRowModel().rows.map(row => row.original)
+    if (!targets.length) return
+    setBatchBusy(true)
+    withOperationLog(`批量${next === 2 ? '停用' : '启用'} ${targets.length} 个用户`, () =>
+      batchUpdateUsersStatus(targets.map(user => user.id), next, '管理员批量操作')
+    )
+      .then(result => {
+        toast.success(
+          `已${next === 2 ? '停用' : '启用'} ${result.updated} 个用户${result.kicked ? `，强制下线 ${result.kicked} 个在线会话` : ''}`
+        )
+        result.skipped?.forEach(item => toast.warning(`「${item.username}」已跳过：${item.reason}`))
+        setRowSelection({})
+        setBatchStatusTarget(null)
+        load()
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '批量操作失败'))
+      .finally(() => setBatchBusy(false))
+  }
+
+  /** 批量分配角色提交 */
+  const handleBatchRoles = async (ids: string[], roleIds: string[]) => {
+    try {
+      const result = await withOperationLog(`为 ${ids.length} 个用户批量分配角色`, () => batchAssignRoles(ids, roleIds))
+      toast.success(`已更新 ${result.updated} 个用户的角色`)
+      setBatchRolesOpen(false)
+      setRowSelection({})
+      load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '批量分配失败')
     }
   }
 
@@ -400,6 +487,22 @@ export function UsersPage() {
               <Trash2 />
               批量删除（{selectedCount}）
             </Button>
+          )}
+          {hasPermission('system:user:update') && selectedCount > 0 && (
+            <>
+              <Button variant="outline" onClick={() => setBatchStatusTarget(1)} disabled={batchBusy}>
+                <ShieldCheck />
+                批量启用（{selectedCount}）
+              </Button>
+              <Button variant="outline" onClick={() => setBatchStatusTarget(2)} disabled={batchBusy}>
+                <ShieldBan />
+                批量停用（{selectedCount}）
+              </Button>
+              <Button variant="outline" onClick={() => setBatchRolesOpen(true)} disabled={batchBusy}>
+                <UserCog />
+                批量分配角色（{selectedCount}）
+              </Button>
+            </>
           )}
           {hasPermission('system:user:add') && (
             <Button onClick={openCreate}>
@@ -517,6 +620,37 @@ export function UsersPage() {
       />
 
       <RecycleBinDialog open={recycleOpen} onOpenChange={setRecycleOpen} onRestored={load} />
+
+      {logTarget && (
+        <UserLoginLogDialog key={logTarget.id} open={!!logTarget} onOpenChange={v => !v && setLogTarget(null)} user={logTarget} />
+      )}
+
+      {batchRolesOpen && selectedCount > 0 && (
+        <BatchRolesDialog
+          open={batchRolesOpen}
+          onOpenChange={v => {
+            if (!v) setBatchRolesOpen(false)
+          }}
+          targets={table.getSelectedRowModel().rows.map(row => row.original)}
+          onSubmit={handleBatchRoles}
+        />
+      )}
+
+      <ConfirmDeleteDialog
+        open={!!batchStatusTarget}
+        onOpenChange={v => {
+          if (!batchBusy) setBatchStatusTarget(v ? batchStatusTarget : null)
+        }}
+        title={batchStatusTarget === 2 ? `确认批量停用 ${selectedCount} 个账号？` : `确认批量启用 ${selectedCount} 个账号？`}
+        description={
+          batchStatusTarget === 2 ? (
+            <>停用后这些用户立即无法登录，全部在线会话将被强制下线；内置管理员会被自动跳过并在结果中说明。</>
+          ) : (
+            <>启用后这些用户可正常登录。</>
+          )
+        }
+        onConfirm={() => batchStatusTarget && handleBatchStatus(batchStatusTarget)}
+      />
     </div>
   )
 }

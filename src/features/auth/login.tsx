@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useLocale } from '@/context/locale-provider'
-import { login, setMenuTree, setPermissions, setTokens } from '@/lib/auth'
+import { login, setMenuTree, setMustChangePassword, setPermissions, setTokens } from '@/lib/auth'
 import { resolveHomePath } from '@/lib/home-path'
 import { computePermittedPaths, notifyPermissionsChanged } from '@/lib/permissions'
 import { fetchCaptcha, fetchPermissions, loginRequest, verifyCaptcha } from './api'
@@ -165,6 +165,8 @@ export function LoginPage() {
       const firstRole = Array.isArray(user.roles) ? user.roles[0] : undefined
       const roleCode = typeof firstRole === 'string' ? firstRole : (firstRole?.roleCode ?? user.role ?? 'viewer')
       login({ username, name: user.nickname ?? user.realname ?? user.name ?? username, role: roleCode })
+      // 密码过期 / 管理员标记强制改密：进系统前由布局层弹不可关闭的改密框
+      setMustChangePassword(!!data.mustChangePassword)
       // 登录后拉一次权限汇总（角色/按钮权限/菜单树），失败不阻塞进入系统（无菜单权限，进 403）
       try {
         const perm = await fetchPermissions()

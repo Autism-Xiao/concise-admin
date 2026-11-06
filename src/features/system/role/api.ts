@@ -7,6 +7,8 @@ export interface Role {
   roleName?: string
   roleCode: string
   description?: string
+  /** 数据范围：1 全部 / 2 本部门及以下 / 3 本部门 / 4 仅本人 */
+  dataScope?: number
   createBy?: string
   createTime?: string
   updateBy?: string
@@ -36,6 +38,8 @@ export interface RoleWritePayload {
   roleName?: string
   roleCode?: string
   description?: string
+  /** 数据范围：1 全部 / 2 本部门及以下 / 3 本部门 / 4 仅本人 */
+  dataScope?: number
   /** 传入即全量覆盖授权（创建/更新都支持） */
   menuIds?: string[]
 }

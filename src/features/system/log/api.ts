@@ -56,9 +56,10 @@ function formatDateTime(iso: string): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
 }
 
-/** 登录日志（GET /api/v1/logs/login，取最近 100 条倒序；后端 pageSize 上限 100） */
-export async function fetchLoginLogs(): Promise<LoginLog[]> {
-  const page = await getApiResult<{ records: BackendSysLog[] }>('/backend-api/v1/logs/login?page=1&pageSize=100')
+/** 登录日志（GET /api/v1/logs/login，取最近 100 条倒序；后端 pageSize 上限 100）；userId 用于用户管理页按人过滤 */
+export async function fetchLoginLogs(userId?: string): Promise<LoginLog[]> {
+  const qs = userId ? `&userId=${encodeURIComponent(userId)}` : ''
+  const page = await getApiResult<{ records: BackendSysLog[] }>(`/backend-api/v1/logs/login?page=1&pageSize=100${qs}`)
   return (page.records ?? []).map(row => ({
     id: row.id,
     user: row.operateUserName,

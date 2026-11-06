@@ -36,6 +36,8 @@ export interface LoginResult {
   token?: string
   accessToken?: string
   refreshToken?: string
+  /** 密码已过期或被管理员标记：前端必须先引导改密，改完才放行进入系统 */
+  mustChangePassword?: boolean
   userInfo?: {
     username?: string
     nickname?: string

@@ -5,6 +5,7 @@ import { PageTabs } from '@/components/layout/page-tabs'
 import { SiteHeader } from '@/components/layout/site-header'
 import { TabPageRenderer } from '@/components/layout/tab-page-renderer'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { ForceChangePasswordDialog } from '@/components/forced-change-password-dialog'
 import { Watermark } from '@/components/watermark'
 import { TabsProvider } from '@/context/tabs-provider'
 import { WatermarkProvider, useWatermark } from '@/context/watermark-provider'
@@ -12,7 +13,7 @@ import { LockProvider } from '@/context/lock-provider'
 import { useSettings } from '@/context/settings-provider'
 import { HOME_PATH, isRegisteredPage } from '@/config/page-registry'
 import { NoMenuAccess } from '@/features/errors'
-import { isAuthenticated } from '@/lib/auth'
+import { isAuthenticated, needsPasswordChange } from '@/lib/auth'
 import { resolveHomePath } from '@/lib/home-path'
 import { isPathAllowed, usePermittedPaths } from '@/lib/permissions'
 import type { WatermarkDensity } from '@/lib/watermark'
@@ -49,6 +50,8 @@ function AuthenticatedLayout() {
 
   return (
     <SidebarProvider key={settings.layout} defaultOpen={settings.layout === 'default'}>
+      {/* 密码过期/管理员标记强制改密：盖在所有内容之上，改完才放行（存 sessionStorage，刷新不丢） */}
+      {needsPasswordChange() && <ForceChangePasswordDialog />}
       <TabsProvider>
         <AppSidebar variant={settings.sidebarVariant} collapsible={collapsible} direction={settings.direction} />
         <SidebarInset className="h-svh overflow-hidden">

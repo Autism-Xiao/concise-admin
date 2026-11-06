@@ -146,6 +146,11 @@ export default defineConfig({
         target: BACKEND_URL,
         changeOrigin: true,
         rewrite: p => p.replace(/^\/backend-api/, '/api')
+      },
+      // 上传文件的静态地址（后端 public/upload 以 {host}/upload/... 访问），开发环境同样代理过去
+      '/upload': {
+        target: BACKEND_URL,
+        changeOrigin: true
       }
     },
     watch: {

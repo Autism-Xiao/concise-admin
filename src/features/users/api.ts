@@ -23,6 +23,12 @@ export interface User {
   updateTime?: string
   roles?: Pick<Role, 'id' | 'roleName' | 'roleCode'>[]
   depts?: Array<{ id: string; departName: string }>
+  /** 岗位列表（sys_user_post） */
+  posts?: Array<{ id: string; postName?: string; postCode?: string }>
+  /** 密码过期时间（ISO 字符串；空 = 不限制） */
+  passwordExpireAt?: string | null
+  /** 下次登录强制改密：1 是 / 0 否 */
+  mustChangePassword?: number
   /** 主部门 id（后端兼容字段 = depts[0].id） */
   deptId?: string | null
   /** 水印原始设置：1 开 / 0 关 / null 继承全局（列表由后端批量组装） */
@@ -50,6 +56,11 @@ export interface UserWritePayload {
   status?: number
   roleIds?: string[]
   deptIds?: string[]
+  postIds?: string[]
+  /** 密码过期时间（YYYY-MM-DD 或 ISO；不传表示不改，传空串清除） */
+  passwordExpireAt?: string | null
+  /** 下次登录强制改密：1 是 / 0 否 */
+  mustChangePassword?: number
 }
 
 export interface UserListResult {
@@ -91,6 +102,43 @@ export function deleteUser(id: string): Promise<unknown> {
 /** 批量删除用户：走后端统一接口，逐条结算（内置管理员会返回失败原因） */
 export function deleteUsers(ids: string[]): Promise<BatchDeleteResult> {
   return batchDeleteRequest('users', ids)
+}
+
+/** 批量启用/停用：与单条同规则（admin 不可停用、停用踢会话），单条失败不阻断 */
+export function batchUpdateUsersStatus(ids: string[], status: 1 | 2, reason?: string): Promise<{ updated: number; kicked: number; skipped: Array<{ id: string; username: string; reason: string }> }> {
+  return getApiResult('/backend-api/v1/users/batch-status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids, status, reason: reason || undefined })
+  })
+}
+
+/** 批量分配角色：对列表内每个用户全量覆盖绑定同一组角色 */
+export function batchAssignRoles(ids: string[], roleIds: string[]): Promise<{ updated: number }> {
+  return getApiResult('/backend-api/v1/users/batch-roles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids, roleIds })
+  })
+}
+
+/** 清除用户权限缓存：按用户挂的角色逐个失效（改角色/权限后未生效时用） */
+export function clearUserPermissionCache(id: string): Promise<{ cleared: number }> {
+  return getApiResult(`/backend-api/v1/users/${id}/permission-cache`, { method: 'DELETE' })
+}
+
+/** 管理员重置用户头像：清除自定义头像，恢复系统默认 */
+export function resetUserAvatar(id: string): Promise<{ avatar: string | null }> {
+  return getApiResult(`/backend-api/v1/users/${id}/avatar`, { method: 'DELETE' })
+}
+
+/** 设置我的头像：avatar 传上传接口返回的相对路径；空串/null 清除 */
+export function setMyAvatar(avatar: string | null): Promise<{ avatar: string | null }> {
+  return getApiResult('/backend-api/v1/users/me/avatar', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ avatar: avatar ?? '' })
+  })
 }
 
 export { fetchRoleOptions }
