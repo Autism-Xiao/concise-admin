@@ -14,7 +14,8 @@ const FILES_FILE = path.resolve(__dirname, 'public/mock/files.json')
 const TENANTS_FILE = path.resolve(__dirname, 'public/mock/tenants.json')
 const REGIONS_FILE = path.resolve(__dirname, 'public/mock/regions.json')
 // Go 后端地址：开发环境通过 /backend-api 代理访问，规避 CORS（生产环境由网关/Nginx 转发）
-const BACKEND_URL = 'http://192.168.1.12:3459'
+// 可用环境变量覆盖（真机调试时设 BACKEND_URL=http://<局域网IP>:3000），默认指向本机后端
+const BACKEND_URL = process.env.BACKEND_URL ?? 'http://127.0.0.1:3000'
 const DEFAULT_SETTINGS = {
   fontSize: 'default',
   themeColor: 'default',
