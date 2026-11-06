@@ -16,6 +16,13 @@ const MODE_LABELS: Record<WatermarkMode, string> = {
   off: '全站关闭（所有人无水印）'
 }
 
+/** 触发器上显示的短标签（items 映射），下拉列表里展示完整描述 */
+const MODE_ITEMS: Record<WatermarkMode, string> = {
+  optional: '用户可自选',
+  forced: '强制开启',
+  off: '全站关闭'
+}
+
 /** 全局水印策略：默认开关、默认文案与样式参数只有这里能改，用户侧样式不可覆盖 */
 export function WatermarkSettingPage() {
   const [setting, setSetting] = useState<Awaited<ReturnType<typeof fetchWatermarkSetting>> | null>(null)
@@ -98,7 +105,7 @@ export function WatermarkSettingPage() {
 
         <div className="space-y-1.5">
           <Label>管控模式</Label>
-          <Select value={setting.mode} disabled={!editable || saving} onValueChange={value => void save({ mode: value as WatermarkMode })}>
+          <Select value={setting.mode} items={MODE_ITEMS} disabled={!editable || saving} onValueChange={value => void save({ mode: value as WatermarkMode })}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>

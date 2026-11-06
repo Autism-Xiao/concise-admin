@@ -83,7 +83,7 @@ export function UserWatermarkDialog({ open, onOpenChange, user, onSaved }: UserW
 
           <div className="space-y-1.5">
             <Label>管控方式</Label>
-            <Select value={String(enforced)} onValueChange={value => setEnforced(Number(value))}>
+            <Select value={String(enforced)} items={{ 0: '按全局策略', 1: '强制开启', 2: '强制关闭' }} onValueChange={value => setEnforced(Number(value))}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -110,7 +110,7 @@ export function UserWatermarkDialog({ open, onOpenChange, user, onSaved }: UserW
 
           <div className="space-y-1.5">
             <Label>密度（留空跟随全局）</Label>
-            <Select value={density} onValueChange={value => setDensity(value as WatermarkDensity | 'inherit')}>
+            <Select value={density} items={{ inherit: '跟随全局', compact: '紧凑', default: '标准', loose: '宽松' }} onValueChange={value => setDensity(value as WatermarkDensity | 'inherit')}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

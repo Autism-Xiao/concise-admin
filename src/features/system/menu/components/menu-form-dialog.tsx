@@ -82,6 +82,8 @@ export function MenuFormDialog({ open, onOpenChange, menu, parentId, menus, onSu
 
   // 可选上级：目录/菜单才能当父级；编辑时排除自身及后代，避免形成环
   const parentOptions = menus.filter(m => m.menuType !== 2 && (!menu || !descendantIds(menu, menus).has(m.id)))
+  // Base UI 的触发器文本取自 items 映射（value→label），缺失会直接显示原始 id
+  const parentItems: Record<string, string> = { _root: '顶级', ...Object.fromEntries(parentOptions.map(m => [m.id, m.name])) }
   const isButton = form.menuType === 2
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -126,7 +128,7 @@ export function MenuFormDialog({ open, onOpenChange, menu, parentId, menus, onSu
             </div>
             <div className="space-y-2">
               <Label>上级菜单</Label>
-              <Select value={form.parentId || '_root'} onValueChange={v => set('parentId', v === '_root' ? '' : v)} items={{}}>
+              <Select value={form.parentId || '_root'} onValueChange={v => set('parentId', v === '_root' ? '' : v)} items={parentItems}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
