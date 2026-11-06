@@ -1,16 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
-import { MapPin, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { MapPin, Pencil, Plus, RefreshCw, Search, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { RegionFormDialog } from './components/region-form-dialog'
-import { fetchRegions, saveRegions, type Region } from './api'
-import { withOperationLog } from '@/features/system/log/api'
+import { RegionImportDialog } from './components/region-import-dialog'
+import { deleteRegion, fetchRegions, type Region } from './api'
 
 const columnLabels: Record<string, string> = {
   id: 'ID',
@@ -23,26 +24,36 @@ const columnLabels: Record<string, string> = {
   lng: '经纬度'
 }
 
+const LEVEL_ITEMS: Record<string, string> = { '': '全部层级', '0': '省份', '1': '城市', '2': '区县', '3': '街道' }
+
 export function RegionPage() {
-  const [list, setList] = useState<Region[] | null>(null)
+  const [page, setPage] = useState<{ records: Region[]; total: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [keyword, setKeyword] = useState('')
+  const [levelFilter, setLevelFilter] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Region | null>(null)
   const [deleting, setDeleting] = useState<Region | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true)
     setError(null)
-    fetchRegions()
-      .then(setList)
+    fetchRegions({ keyword, level: levelFilter === '' ? undefined : Number(levelFilter) })
+      .then(res => setPage({ records: res.records, total: res.total }))
       .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
       .finally(() => setLoading(false))
-  }
+  }, [keyword, levelFilter])
 
-  useEffect(load, [])
+  // 关键字/层级变化后自动查询（输入防抖 300ms）
+  useEffect(() => {
+    const timer = setTimeout(load, keyword ? 300 : 0)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keyword, levelFilter])
 
-  const regions = useMemo(() => list ?? [], [list])
+  const regions = useMemo(() => page?.records ?? [], [page])
 
   const openCreate = () => {
     setEditing(null)
@@ -82,6 +93,11 @@ export function RegionPage() {
       {
         accessorKey: 'levelText',
         header: ({ column }) => <DataTableColumnHeader column={column} title="层级" />
+      },
+      {
+        accessorKey: 'parentCode',
+        header: '上级代码',
+        cell: ({ row }) => <code className="text-muted-foreground text-xs">{row.getValue('parentCode')}</code>
       },
       {
         accessorKey: 'zipCode',
@@ -126,39 +142,19 @@ export function RegionPage() {
     []
   )
 
-  const { table, keyword, setKeyword } = useDataTable({ data: regions, columns })
+  const { table, setKeyword: setTableKeyword } = useDataTable({ data: regions, columns })
 
-  const handleSubmit = (values: Omit<Region, 'id'>) => {
-    if (editing) {
-      persist(
-        regions.map(r => (r.id === editing.id ? { ...r, ...values } : r)),
-        '区划已更新'
-      )
-    } else {
-      const id = regions.length ? Math.max(...regions.map(r => r.id)) + 1 : 1
-      persist([{ ...values, id }, ...regions], '区划已创建')
-    }
-    setFormOpen(false)
-  }
-
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleting) return
-    persist(
-      regions.filter(r => r.id !== deleting.id),
-      `已删除区划「${deleting.name}」`
-    )
+    const target = deleting
     setDeleting(null)
-  }
-
-  /** 乐观更新 + 写回 regions.json，失败回退重新加载；操作记入操作日志 */
-  const persist = (next: Region[], successMsg: string) => {
-    setList(next)
-    withOperationLog(successMsg, () => saveRegions(next))
-      .then(() => toast.success(successMsg))
-      .catch(() => {
-        toast.error('写入 regions.json 失败，已重新加载')
-        load()
-      })
+    try {
+      await deleteRegion(target.id)
+      toast.success(`已删除区划「${target.name}」`)
+      load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '删除失败')
+    }
   }
 
   return (
@@ -166,12 +162,24 @@ export function RegionPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">行政区划</h1>
-          <p className="text-muted-foreground text-sm">共 {regions.length} 个省级区划（mock 数据）</p>
+          <p className="text-muted-foreground text-sm">
+            共 {page?.total ?? 0} 条区划（省 / 市 / 区县数据通过「导入区划」批量维护）
+          </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus />
-          新增区划
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload />
+            导入区划
+          </Button>
+          <Button variant="outline" onClick={load}>
+            <RefreshCw />
+            刷新
+          </Button>
+          <Button onClick={openCreate}>
+            <Plus />
+            新增区划
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -196,8 +204,28 @@ export function RegionPage() {
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative w-full max-w-xs">
                 <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
-                <Input placeholder="搜索名称 / 代码 / 拼音" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
+                <Input
+                  placeholder="搜索名称 / 代码 / 拼音"
+                  className="ps-8"
+                  value={keyword}
+                  onChange={e => {
+                    setKeyword(e.target.value)
+                    setTableKeyword('')
+                  }}
+                />
               </div>
+              <Select value={levelFilter} onValueChange={setLevelFilter} items={LEVEL_ITEMS}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(LEVEL_ITEMS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 
@@ -207,12 +235,20 @@ export function RegionPage() {
         </Card>
       )}
 
-      {formOpen && <RegionFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} region={editing} onSubmit={handleSubmit} />}
+      {formOpen && <RegionFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} region={editing} onSaved={load} />}
+
+      <RegionImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={() => {
+          load()
+        }}
+      />
 
       <ConfirmDeleteDialog
         open={!!deleting}
         onOpenChange={v => !v && setDeleting(null)}
-        description={<>即将删除区划「{deleting?.name}」，该操作不可恢复。</>}
+        description={<>即将删除区划「{deleting?.name}」。存在下级区划时会被拒绝，请先删除下级。</>}
         onConfirm={handleDelete}
       />
     </div>

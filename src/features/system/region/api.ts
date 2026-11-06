@@ -1,14 +1,16 @@
-import { getJson } from '@/lib/http'
+import { getApiResult, type PageResult } from '@/lib/http'
 
 export interface Region {
-  id: number
-  /** 区划代码 */
+  id: number | string
+  /** 城市代码（电话区号，如 00852） */
+  cityCode: string
+  /** 区划代码（全局唯一） */
   areaCode: string
-  /** 上级区划代码，省级为 "0" */
+  /** 上级区划代码，顶级为 "0" */
   parentCode: string
   /** 邮编 */
   zipCode: string
-  /** 层级：0 省份 1 城市 2 区县 */
+  /** 层级：0 省份 1 城市 2 区县 3 街道 */
   level: number
   levelText: string
   name: string
@@ -21,17 +23,88 @@ export interface Region {
   lat: string
 }
 
-// 开发环境走 public/mock 下的静态 JSON；接真实后端时改这里即可
-export function fetchRegions(): Promise<Region[]> {
-  return getJson<Region[]>('/mock/regions.json')
+/** 区划写入参数（新增/更新共用） */
+export interface RegionWritePayload {
+  name: string
+  areaCode: string
+  parentCode: string
+  level: number
+  shortName?: string
+  fullName?: string
+  pinyin?: string
+  cityCode?: string
+  zipCode?: string
+  lng?: string
+  lat?: string
 }
 
-// 开发环境由 vite 中间件写入 public/mock/regions.json；生产环境换成真实接口
-export async function saveRegions(regions: Region[]): Promise<void> {
-  const res = await fetch('/api/regions', {
+/** 导入接口返回的统计 */
+export interface RegionImportResult {
+  inserted: number
+  updated: number
+  skipped: number
+  failed: Array<{ areaCode: string; reason: string }>
+}
+
+export interface RegionListParams {
+  keyword?: string
+  level?: number
+  parentCode?: string
+}
+
+/** 区划列表（分页结构；keyword 匹配名称/简称/拼音/区划代码） */
+export function fetchRegions(params: RegionListParams = {}): Promise<PageResult<Region>> {
+  const qs = new URLSearchParams()
+  if (params.keyword?.trim()) qs.set('keyword', params.keyword.trim())
+  if (params.level !== undefined) qs.set('level', String(params.level))
+  if (params.parentCode) qs.set('parentCode', params.parentCode)
+  const query = qs.toString()
+  return getApiResult<PageResult<Region>>(`/backend-api/v1/regions${query ? `?${query}` : ''}`)
+}
+
+/** 区划树（登录即可访问，级联选择器数据源） */
+export function fetchRegionTree(): Promise<Array<Region & { children: Region[] }>> {
+  return getApiResult('/backend-api/v1/regions/tree')
+}
+
+/** 按上级区划代码查直接子级（懒加载） */
+export function fetchRegionChildren(parentCode: string): Promise<Region[]> {
+  return getApiResult(`/backend-api/v1/regions/children/${encodeURIComponent(parentCode)}`)
+}
+
+/** 按区划代码查详情 */
+export function fetchRegionByCode(areaCode: string): Promise<Region> {
+  return getApiResult(`/backend-api/v1/regions/code/${encodeURIComponent(areaCode)}`)
+}
+
+export function createRegion(payload: RegionWritePayload): Promise<Region> {
+  return getApiResult<Region>('/backend-api/v1/regions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(regions)
+    body: JSON.stringify(payload)
   })
-  if (!res.ok) throw new Error('保存失败')
+}
+
+export function updateRegion(id: number | string, payload: Partial<RegionWritePayload>): Promise<Region> {
+  return getApiResult<Region>(`/backend-api/v1/regions/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+}
+
+export function deleteRegion(id: number | string): Promise<void> {
+  return getApiResult<null>(`/backend-api/v1/regions/${id}`, { method: 'DELETE' }).then(() => undefined)
+}
+
+/**
+ * 批量导入区划：按 areaCode upsert（存在更新/不存在插入），单次最多 5000 条
+ * 直接粘贴第三方区划库的 JSON 数组即可
+ */
+export function importRegions(regions: unknown[]): Promise<RegionImportResult> {
+  return getApiResult<RegionImportResult>('/backend-api/v1/regions/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ regions })
+  })
 }
