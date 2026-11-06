@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { Menu, MenuWritePayload } from '../api'
+import { IconPicker } from './icon-picker'
 
 interface MenuFormDialogProps {
   open: boolean
@@ -170,7 +171,10 @@ export function MenuFormDialog({ open, onOpenChange, menu, parentId, menus, onSu
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="menu-icon">图标（lucide 组件名，可选）</Label>
-              <Input id="menu-icon" value={form.icon} onChange={e => set('icon', e.target.value)} placeholder="Users" />
+              <div className="flex items-center gap-2">
+                <Input id="menu-icon" value={form.icon} onChange={e => set('icon', e.target.value)} placeholder="Users" className="flex-1" />
+                <IconPicker value={form.icon.trim()} onChange={name => set('icon', name)} />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="menu-sort">排序（越小越靠前）</Label>
