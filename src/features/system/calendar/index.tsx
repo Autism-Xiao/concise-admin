@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
-import { fetchCalendarEvents, type CalendarEvent } from './api'
+import { createCalendarEvent, deleteCalendarEvent, ensureDefaultCalendar, fetchCalendarEvents, type CalendarEvent } from './api'
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
 
@@ -23,6 +23,7 @@ function toKey(d: Date): string {
   return `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, '0')}-${`${d.getDate()}`.padStart(2, '0')}`
 }
 
+
 /** 生成 42 格（6 周）月视图，周一开头 */
 function buildMonth(year: number, month: number): DayCell[] {
   const today = toKey(new Date())
@@ -36,6 +37,16 @@ function buildMonth(year: number, month: number): DayCell[] {
   })
 }
 
+/** 默认日历缓存（模块级，避免重复 ensure） */
+let defaultCalendarId: number | null = null
+
+async function getDefaultCalendarId(): Promise<number> {
+  if (defaultCalendarId) return defaultCalendarId
+  const cal = await ensureDefaultCalendar()
+  defaultCalendarId = Number(cal.id)
+  return defaultCalendarId
+}
+
 export function CalendarPage() {
   const now = new Date()
   const [cursor, setCursor] = useState({ year: now.getFullYear(), month: now.getMonth() })
@@ -45,17 +56,21 @@ export function CalendarPage() {
   const [adding, setAdding] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [time, setTime] = useState('')
+  const [remind, setRemind] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true)
     setError(null)
-    fetchCalendarEvents()
+    const first = new Date(cursor.year, cursor.month, 1)
+    const last = new Date(cursor.year, cursor.month + 1, 0)
+    fetchCalendarEvents(toKey(first), toKey(last))
       .then(setEvents)
       .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
       .finally(() => setLoading(false))
-  }
+  }, [cursor])
 
-  useEffect(load, [])
+  useEffect(load, [load])
 
   const cells = useMemo(() => buildMonth(cursor.year, cursor.month), [cursor])
   const eventsByDay = useMemo(() => {
@@ -84,13 +99,55 @@ export function CalendarPage() {
     setAdding(dayKey)
     setTitle('')
     setTime('')
+    setRemind(false)
   }
 
-  const handleAdd = () => {
-    if (!adding || !title.trim()) return
-    setEvents(prev => [...prev, { id: prev.length ? Math.max(...prev.map(e => e.id)) + 1 : 1, date: adding, title: title.trim(), time: time || undefined }])
-    toast.success(`已在 ${adding} 添加日程「${title.trim()}」`)
-    setAdding(null)
+  const handleAdd = async () => {
+    if (!adding || !title.trim() || saving) return
+    setSaving(true)
+    try {
+      const calendarId = await getDefaultCalendarId()
+      const [h, m] = (time || '09:00').split(':').map(Number)
+      const startISO = `${adding}T${`${h}`.padStart(2, '0')}:${`${m ?? 0}`.padStart(2, '0')}:00+08:00`
+      const end = time ? new Date(new Date(startISO).getTime() + 3600000) : new Date(`${adding}T18:00:00+08:00`)
+      const pad = (n: number) => `${n}`.padStart(2, '0')
+      const endISO = `${toKey(end)}T${pad(end.getHours())}:${pad(end.getMinutes())}:00+08:00`
+      const created = await createCalendarEvent({
+        calendarId,
+        title: title.trim(),
+        startTime: startISO,
+        endTime: endISO,
+        category: '待办',
+        remindAt: remind ? new Date(new Date(startISO).getTime() - 15 * 60000).toISOString() : undefined
+      })
+      setEvents(prev => [
+        ...prev,
+        {
+          ...created,
+          id: Number(created.id),
+          calendarId: Number(created.calendarId),
+          date: adding,
+          time: time || undefined
+        }
+      ])
+      toast.success(remind ? `已添加日程「${title.trim()}」，开始前 15 分钟站内提醒` : `已在 ${adding} 添加日程「${title.trim()}」`)
+      setAdding(null)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '添加失败')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (ev: CalendarEvent) => {
+    if (!window.confirm(`删除日程「${ev.title}」？`)) return
+    try {
+      await deleteCalendarEvent(ev.id)
+      setEvents(prev => prev.filter(e => e.id !== ev.id))
+      toast.success('日程已删除')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '删除失败')
+    }
   }
 
   return (
@@ -98,7 +155,7 @@ export function CalendarPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">日历管理</h1>
-          <p className="text-muted-foreground text-sm">点击任意日期添加日程（mock 数据）</p>
+          <p className="text-muted-foreground text-sm">点击任意日期添加日程，点日程可删除；日程开始前可收到站内提醒</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => shiftMonth(-1)}>
@@ -159,9 +216,28 @@ export function CalendarPage() {
                       {cell.day}
                     </span>
                     {dayEvents.slice(0, 2).map(ev => (
-                      <span key={ev.id} className="bg-primary/10 text-primary truncate rounded px-1.5 py-0.5 text-xs">
-                        {ev.time ? `${ev.time} ` : ''}
-                        {ev.title}
+                      <span
+                        key={ev.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={e => {
+                          e.stopPropagation()
+                          void handleDelete(ev)
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.stopPropagation()
+                            void handleDelete(ev)
+                          }
+                        }}
+                        title="点击删除"
+                        className="group/chip bg-primary/10 text-primary hover:bg-destructive/10 hover:text-destructive flex items-center gap-1 truncate rounded px-1.5 py-0.5 text-xs"
+                      >
+                        <span className="truncate">
+                          {ev.time ? `${ev.time} ` : ''}
+                          {ev.title}
+                        </span>
+                        <X className="hidden size-3 shrink-0 group-hover/chip:block" />
                       </span>
                     ))}
                     {dayEvents.length > 2 && <span className="text-muted-foreground px-1 text-xs">还有 {dayEvents.length - 2} 项…</span>}
@@ -185,7 +261,7 @@ export function CalendarPage() {
             className="space-y-4"
             onSubmit={e => {
               e.preventDefault()
-              handleAdd()
+              void handleAdd()
             }}
           >
             <div className="space-y-2">
@@ -193,14 +269,25 @@ export function CalendarPage() {
               <Input id="event-title" value={title} onChange={e => setTitle(e.target.value)} placeholder="请输入日程标题" required autoFocus />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="event-time">时间（可选，留空为全天）</Label>
+              <Label htmlFor="event-time">时间（可选，留空为全天 09:00-18:00）</Label>
               <Input id="event-time" type="time" value={time} onChange={e => setTime(e.target.value)} />
             </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={remind}
+                onChange={e => setRemind(e.target.checked)}
+                className="accent-primary size-4"
+              />
+              开始前 15 分钟站内提醒
+            </label>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setAdding(null)}>
                 取消
               </Button>
-              <Button type="submit">保存</Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? '保存中…' : '保存'}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
