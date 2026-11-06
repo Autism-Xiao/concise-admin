@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import { LogOut, Settings, User } from 'lucide-react'
+import { Lock, LogOut, Settings, User } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,11 +12,18 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { useLocale } from '@/context/locale-provider'
+import { useLock } from '@/context/lock-provider'
+import { useShortcuts } from '@/context/shortcut-provider'
 import { getName, getUsername, logout } from '@/lib/auth'
+import { SHORTCUT_DEFAULTS, displayCombo } from '@/lib/shortcuts'
 
 export function ProfileDropdown() {
   const navigate = useNavigate()
   const { t } = useLocale()
+  const { lock } = useLock()
+  // 菜单里展示锁屏快捷键（跟随用户改绑后的设置，异常时回退默认值）
+  const { shortcuts } = useShortcuts()
+  const lockCombo = shortcuts.lockScreen || SHORTCUT_DEFAULTS.lockScreen
 
   return (
     <DropdownMenu>
@@ -43,6 +50,11 @@ export function ProfileDropdown() {
           <DropdownMenuItem onClick={() => void navigate({ to: '/settings' })}>
             <Settings />
             {t('profile.settings')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={lock}>
+            <Lock />
+            {t('profile.lock')}
+            <span className="text-muted-foreground ml-auto text-xs">{displayCombo(lockCombo)}</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

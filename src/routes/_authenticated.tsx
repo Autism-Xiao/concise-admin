@@ -8,6 +8,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Watermark } from '@/components/watermark'
 import { TabsProvider } from '@/context/tabs-provider'
 import { WatermarkProvider, useWatermark } from '@/context/watermark-provider'
+import { LockProvider } from '@/context/lock-provider'
 import { useSettings } from '@/context/settings-provider'
 import { HOME_PATH, isRegisteredPage } from '@/config/page-registry'
 import { NoMenuAccess } from '@/features/errors'
@@ -30,9 +31,12 @@ export const Route = createFileRoute('/_authenticated')({
     }
   },
   // 水印 Provider 挂在布局外层：登出/切号时随布局卸载，不会闪现上一个人的水印
+  // 锁屏 Provider 同理挂在布局外层：锁定时遮罩覆盖整个工作区（含水印之上）
   component: () => (
     <WatermarkProvider>
-      <AuthenticatedLayout />
+      <LockProvider>
+        <AuthenticatedLayout />
+      </LockProvider>
     </WatermarkProvider>
   )
 })

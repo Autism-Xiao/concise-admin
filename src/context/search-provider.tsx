@@ -1,4 +1,6 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useState, type ReactNode } from 'react'
+
+import { useShortcutAction } from '@/context/shortcut-provider'
 
 interface SearchContextValue {
   open: boolean
@@ -10,16 +12,8 @@ const SearchContext = createContext<SearchContextValue | null>(null)
 export function SearchProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
 
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === 'j' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        setOpen(prev => !prev)
-      }
-    }
-    document.addEventListener('keydown', down)
-    return () => document.removeEventListener('keydown', down)
-  }, [])
+  // 组合键可改绑：统一交给 ShortcutProvider 调度，这里只注册动作
+  useShortcutAction('commandMenu', () => setOpen(prev => !prev))
 
   return <SearchContext.Provider value={{ open, setOpen }}>{children}</SearchContext.Provider>
 }

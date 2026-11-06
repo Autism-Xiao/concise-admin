@@ -5,6 +5,7 @@ import { Collapsible } from '@base-ui/react/collapsible'
 import { Logo } from '@/assets/logo'
 import { NavUser } from '@/components/layout/nav-user'
 import { useSearch } from '@/context/search-provider'
+import { useShortcutAction } from '@/context/shortcut-provider'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -121,8 +122,10 @@ function treeToGroups(tree: PermissionMenu[]): DynGroup[] {
 export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', direction = 'ltr' }: AppSidebarProps) {
   const { setOpen } = useSearch()
   const { t } = useLocale()
-  const { state, isMobile, setOpenMobile } = useSidebar()
+  const { state, isMobile, setOpenMobile, toggleSidebar } = useSidebar()
   const pathname = useLocation({ select: location => location.pathname })
+  // 侧边栏折叠快捷键（默认 Ctrl+B，可在偏好设置改绑）：sidebar.tsx 不再自带监听
+  useShortcutAction('toggleSidebar', () => toggleSidebar())
   // 折叠成图标栏时，带二级菜单的项改为点击弹出浮层（移动端仍保持手风琴展开）
   const collapsed = state === 'collapsed' && !isMobile
 

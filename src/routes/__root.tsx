@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { CommandMenu } from '@/components/command-menu'
 import { NavigationProgress } from '@/components/navigation-progress'
 import { SearchProvider } from '@/context/search-provider'
+import { ShortcutProvider } from '@/context/shortcut-provider'
 import { LocaleProvider } from '@/context/locale-provider'
 import { SettingsProvider } from '@/context/settings-provider'
 import { NotFoundError } from '@/features/errors'
@@ -23,14 +24,16 @@ function RootLayout() {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <LocaleProvider>
         <SettingsProvider>
-          <SearchProvider>
+          <ShortcutProvider>
+            <SearchProvider>
             <TooltipProvider>
               <Outlet />
               <CommandMenu />
               <NavigationProgress />
               <Toaster richColors position="top-center" />
             </TooltipProvider>
-          </SearchProvider>
+            </SearchProvider>
+          </ShortcutProvider>
         </SettingsProvider>
       </LocaleProvider>
       {/* <TanStackRouterDevtools /> */}
