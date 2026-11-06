@@ -32,6 +32,7 @@ import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings/appearance'
 import { Route as AuthenticatedSettingsDisplayRouteImport } from './routes/_authenticated/settings/display'
 import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes/_authenticated/settings/notifications'
+import { Route as AuthenticatedSettingsWatermarkRouteImport } from './routes/_authenticated/settings/watermark'
 import { Route as AuthenticatedSystemCalendarRouteImport } from './routes/_authenticated/system/calendar'
 import { Route as AuthenticatedSystemDeptRouteImport } from './routes/_authenticated/system/dept'
 import { Route as AuthenticatedSystemDictRouteImport } from './routes/_authenticated/system/dict'
@@ -168,6 +169,12 @@ const AuthenticatedSettingsNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthenticatedSettingsRouteRoute,
   } as any)
+const AuthenticatedSettingsWatermarkRoute =
+  AuthenticatedSettingsWatermarkRouteImport.update({
+    id: '/watermark',
+    path: '/watermark',
+    getParentRoute: () => AuthenticatedSettingsRouteRoute,
+  } as any)
 const AuthenticatedSystemCalendarRoute =
   AuthenticatedSystemCalendarRouteImport.update({
     id: '/system/calendar',
@@ -274,6 +281,7 @@ export interface FileRoutesByFullPath {
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
+  '/settings/watermark': typeof AuthenticatedSettingsWatermarkRoute
   '/system/calendar': typeof AuthenticatedSystemCalendarRoute
   '/system/dept': typeof AuthenticatedSystemDeptRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
@@ -312,6 +320,7 @@ export interface FileRoutesByTo {
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
+  '/settings/watermark': typeof AuthenticatedSettingsWatermarkRoute
   '/system/calendar': typeof AuthenticatedSystemCalendarRoute
   '/system/dept': typeof AuthenticatedSystemDeptRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
@@ -353,6 +362,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/_authenticated/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
+  '/_authenticated/settings/watermark': typeof AuthenticatedSettingsWatermarkRoute
   '/_authenticated/system/calendar': typeof AuthenticatedSystemCalendarRoute
   '/_authenticated/system/dept': typeof AuthenticatedSystemDeptRoute
   '/_authenticated/system/dict': typeof AuthenticatedSystemDictRoute
@@ -394,6 +404,7 @@ export interface FileRouteTypes {
     | '/settings/appearance'
     | '/settings/display'
     | '/settings/notifications'
+    | '/settings/watermark'
     | '/system/calendar'
     | '/system/dept'
     | '/system/dict'
@@ -432,6 +443,7 @@ export interface FileRouteTypes {
     | '/settings/appearance'
     | '/settings/display'
     | '/settings/notifications'
+    | '/settings/watermark'
     | '/system/calendar'
     | '/system/dept'
     | '/system/dict'
@@ -472,6 +484,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/appearance'
     | '/_authenticated/settings/display'
     | '/_authenticated/settings/notifications'
+    | '/_authenticated/settings/watermark'
     | '/_authenticated/system/calendar'
     | '/_authenticated/system/dept'
     | '/_authenticated/system/dict'
@@ -659,6 +672,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsNotificationsRouteImport
       parentRoute: typeof AuthenticatedSettingsRouteRoute
     }
+    '/_authenticated/settings/watermark': {
+      id: '/_authenticated/settings/watermark'
+      path: '/watermark'
+      fullPath: '/settings/watermark'
+      preLoaderRoute: typeof AuthenticatedSettingsWatermarkRouteImport
+      parentRoute: typeof AuthenticatedSettingsRouteRoute
+    }
     '/_authenticated/system/calendar': {
       id: '/_authenticated/system/calendar'
       path: '/system/calendar'
@@ -772,6 +792,7 @@ interface AuthenticatedSettingsRouteRouteChildren {
   AuthenticatedSettingsAppearanceRoute: typeof AuthenticatedSettingsAppearanceRoute
   AuthenticatedSettingsDisplayRoute: typeof AuthenticatedSettingsDisplayRoute
   AuthenticatedSettingsNotificationsRoute: typeof AuthenticatedSettingsNotificationsRoute
+  AuthenticatedSettingsWatermarkRoute: typeof AuthenticatedSettingsWatermarkRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
 }
 
@@ -782,6 +803,7 @@ const AuthenticatedSettingsRouteRouteChildren: AuthenticatedSettingsRouteRouteCh
     AuthenticatedSettingsDisplayRoute: AuthenticatedSettingsDisplayRoute,
     AuthenticatedSettingsNotificationsRoute:
       AuthenticatedSettingsNotificationsRoute,
+    AuthenticatedSettingsWatermarkRoute: AuthenticatedSettingsWatermarkRoute,
     AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
   }
 

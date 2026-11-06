@@ -2,7 +2,6 @@ export type FontSize = 'small' | 'default' | 'large'
 export type SidebarVariant = 'sidebar' | 'floating' | 'inset'
 export type LayoutMode = 'default' | 'compact' | 'offcanvas'
 export type Direction = 'ltr' | 'rtl'
-export type WatermarkDensity = 'compact' | 'default' | 'loose'
 
 export interface AppSettings {
   fontSize: FontSize
@@ -20,12 +19,6 @@ export interface AppSettings {
   layout: LayoutMode
   /** 文字方向 */
   direction: Direction
-  /** 全屏安全水印 */
-  watermark: boolean
-  /** 水印自定义内容，支持 {username}、{ip} 占位符，留空则默认显示用户名 + IP */
-  watermarkContent: string
-  /** 水印密度：紧凑 / 标准 / 宽松 */
-  watermarkDensity: WatermarkDensity
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -36,11 +29,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
   colorWeak: false,
   sidebarVariant: 'sidebar',
   layout: 'default',
-  direction: 'ltr',
-  watermark: false,
-  watermarkContent: '',
-  watermarkDensity: 'default'
+  direction: 'ltr'
 }
+
+// 安全水印已改为后端按用户下发（/v1/users/me/watermark），
+// 开关/内容/密度的真相在服务端，不再存本地设置 —— 见 context/watermark-provider.tsx
 
 // 开发环境由 vite dev server 插件读写项目根目录 settings.json；
 // 生产环境把这两个函数换成真实后端接口即可，调用方无需改动

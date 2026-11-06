@@ -8,13 +8,15 @@ interface WatermarkProps {
   rotate?: number
   /** 文字大小 */
   fontSize?: number
+  /** 不透明度（0~1）；样式参数由后端全局策略下发，前端不再各自写死 */
+  opacity?: number
   /** 单个水印区块尺寸 [宽, 高] */
   tileSize?: [number, number]
 }
 
 // 安全水印：canvas 生成斜向平铺底纹，覆盖登录后的整个区域。
 // 带防篡改观察器：节点被删掉或样式被清空时自动恢复
-export function Watermark({ content, rotate = -22, fontSize = 14, tileSize = [250, 140] }: WatermarkProps) {
+export function Watermark({ content, rotate = -22, fontSize = 14, opacity = 0.08, tileSize = [250, 140] }: WatermarkProps) {
   const { resolvedTheme } = useTheme()
   const ref = useRef<HTMLDivElement>(null)
   const lines = Array.isArray(content) ? content : [content]
@@ -50,7 +52,7 @@ export function Watermark({ content, rotate = -22, fontSize = 14, tileSize = [25
     ctx.font = `${fontSize * ratio}px ui-sans-serif, system-ui, sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillStyle = resolvedTheme === 'dark' ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.08)'
+    ctx.fillStyle = resolvedTheme === 'dark' ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`
 
     const drawMark = (x: number, y: number) => {
       ctx.save()
@@ -94,7 +96,7 @@ export function Watermark({ content, rotate = -22, fontSize = 14, tileSize = [25
       attrObserver.disconnect()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [textKey, rotate, fontSize, tileW, tileH, resolvedTheme])
+  }, [textKey, rotate, fontSize, opacity, tileW, tileH, resolvedTheme])
 
   return <div ref={ref} aria-hidden className="pointer-events-none fixed inset-0 z-40" />
 }

@@ -33,6 +33,7 @@ async function main() {
         }
       }
       if (id === '@/features/system/role/api') return {}
+      if (id === '@/lib/watermark') return { updateUserWatermark: async () => null }
       throw new Error(`Unexpected import: ${id}`)
     },
     URLSearchParams,

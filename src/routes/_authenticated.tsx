@@ -6,15 +6,15 @@ import { SiteHeader } from '@/components/layout/site-header'
 import { TabPageRenderer } from '@/components/layout/tab-page-renderer'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Watermark } from '@/components/watermark'
-import { useSettings } from '@/context/settings-provider'
 import { TabsProvider } from '@/context/tabs-provider'
+import { WatermarkProvider, useWatermark } from '@/context/watermark-provider'
+import { useSettings } from '@/context/settings-provider'
 import { HOME_PATH, isRegisteredPage } from '@/config/page-registry'
 import { NoMenuAccess } from '@/features/errors'
-import { getUsername, isAuthenticated } from '@/lib/auth'
+import { isAuthenticated } from '@/lib/auth'
 import { resolveHomePath } from '@/lib/home-path'
 import { isPathAllowed, usePermittedPaths } from '@/lib/permissions'
-import { usePublicIp } from '@/lib/use-public-ip'
-import type { WatermarkDensity } from '@/lib/settings'
+import type { WatermarkDensity } from '@/lib/watermark'
 
 // 水印密度 → 单个平铺区块尺寸，区块越小水印越密
 const WATERMARK_TILE_SIZE: Record<WatermarkDensity, [number, number]> = {
@@ -29,19 +29,19 @@ export const Route = createFileRoute('/_authenticated')({
       throw redirect({ to: '/login' })
     }
   },
-  component: AuthenticatedLayout
+  // 水印 Provider 挂在布局外层：登出/切号时随布局卸载，不会闪现上一个人的水印
+  component: () => (
+    <WatermarkProvider>
+      <AuthenticatedLayout />
+    </WatermarkProvider>
+  )
 })
 
 function AuthenticatedLayout() {
   const { settings } = useSettings()
-  const ip = usePublicIp()
+  const wm = useWatermark()
   const collapsible = settings.layout === 'offcanvas' ? ('offcanvas' as const) : ('icon' as const)
-
-  // 自定义内容支持 {username}、{ip} 占位符；留空则默认显示用户名 + IP 两行
-  const username = getUsername()
-  const watermarkContent = settings.watermarkContent.trim()
-    ? settings.watermarkContent.replaceAll('{username}', username).replaceAll('{ip}', ip)
-    : [username, ip].filter(Boolean)
+  const density = (wm.config?.density ?? 'default') as WatermarkDensity
 
   return (
     <SidebarProvider key={settings.layout} defaultOpen={settings.layout === 'default'}>
@@ -57,7 +57,16 @@ function AuthenticatedLayout() {
           </main>
         </SidebarInset>
       </TabsProvider>
-      {settings.watermark && watermarkContent.length > 0 && <Watermark content={watermarkContent} tileSize={WATERMARK_TILE_SIZE[settings.watermarkDensity]} />}
+      {/* 水印完全由后端下发：开关、内容、样式都来自 /users/me/watermark，前端只负责绘制 */}
+      {wm.config?.enabled && wm.config.lines.length > 0 && (
+        <Watermark
+          content={wm.config.lines}
+          opacity={wm.config.opacity / 100}
+          rotate={wm.config.rotate}
+          fontSize={wm.config.fontSize}
+          tileSize={WATERMARK_TILE_SIZE[density] ?? WATERMARK_TILE_SIZE.default}
+        />
+      )}
     </SidebarProvider>
   )
 }

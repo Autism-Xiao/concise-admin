@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Download, Pencil, Plus, Search, Trash2, Upload } from 'lucide-react'
+import { Droplets, Download, Pencil, Plus, Search, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,7 @@ import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { UserFormDialog } from './components/user-form-dialog'
+import { UserWatermarkDialog } from './components/user-watermark-dialog'
 import { saveBlobFile } from '@/lib/download'
 import { UserImportDialog } from './components/user-import-dialog'
 import { createUser, deleteUser, deleteUsers, exportUsers, fetchUsers, updateUser, userStatusMap, type User, type UserWritePayload } from './api'
@@ -24,6 +25,7 @@ const columnLabels: Record<string, string> = {
   phone: '手机号',
   status: '状态',
   roleNames: '角色',
+  watermark: '水印',
   createTime: '创建时间'
 }
 
@@ -36,6 +38,7 @@ export function UsersPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<User | null>(null)
   const [deleting, setDeleting] = useState<User | null>(null)
+  const [watermarkTarget, setWatermarkTarget] = useState<User | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
 
@@ -132,6 +135,23 @@ export function UsersPage() {
         cell: ({ row }) => row.getValue('roleNames') || '-'
       },
       {
+        id: 'watermark',
+        accessorFn: row => (row.watermarkEffective ? '已开启' : '已关闭'),
+        header: ({ column }) => <DataTableColumnHeader column={column} title="水印" />,
+        cell: ({ row }) => {
+          const user = row.original
+          const enforcedLabel = user.watermarkEnforced === 1 ? '（强制开）' : user.watermarkEnforced === 2 ? '（强制关）' : ''
+          return (
+            <span
+              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${user.watermarkEffective ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-muted text-muted-foreground'}`}
+            >
+              {user.watermarkEffective ? '已开启' : '已关闭'}
+              {enforcedLabel}
+            </span>
+          )
+        }
+      },
+      {
         accessorKey: 'createTime',
         header: ({ column }) => <DataTableColumnHeader column={column} title="创建时间" />,
         cell: ({ row }) => (row.getValue('createTime') as string)?.replace('T', ' ').slice(0, 19) || '-'
@@ -147,6 +167,12 @@ export function UsersPage() {
               <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
                 <Pencil className="size-4" />
                 <span className="sr-only">编辑</span>
+              </Button>
+            )}
+            {hasPermission('system:user:update') && (
+              <Button variant="ghost" size="icon" onClick={() => setWatermarkTarget(row.original)} title="水印设置">
+                <Droplets className="size-4" />
+                <span className="sr-only">水印设置</span>
               </Button>
             )}
             {hasPermission('system:user:delete') && (
@@ -307,6 +333,19 @@ export function UsersPage() {
       {formOpen && <UserFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} user={editing} onSubmit={handleSubmit} />}
 
       {importOpen && <UserImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={load} />}
+
+      {watermarkTarget && (
+        <UserWatermarkDialog
+          key={watermarkTarget.id}
+          open={!!watermarkTarget}
+          onOpenChange={v => !v && setWatermarkTarget(null)}
+          user={watermarkTarget}
+          onSaved={() => {
+            toast.success(`已更新「${watermarkTarget.realname || watermarkTarget.username}」的水印设置`)
+            load()
+          }}
+        />
+      )}
 
       <ConfirmDeleteDialog
         open={!!deleting}

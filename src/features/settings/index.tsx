@@ -1,6 +1,6 @@
 import { Outlet } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
-import { Bell, Monitor, Palette, UserCog, Wrench } from 'lucide-react'
+import { Bell, Droplets, Monitor, Palette, UserCog, Wrench } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { SidebarNav, type SettingsNavItem } from './components/sidebar-nav'
 
@@ -9,7 +9,8 @@ const sidebarNavItems: SettingsNavItem[] = [
   { title: '账户', href: '/settings/account', icon: <Wrench size={18} /> },
   { title: '外观', href: '/settings/appearance', icon: <Palette size={18} /> },
   { title: '通知', href: '/settings/notifications', icon: <Bell size={18} /> },
-  { title: '显示', href: '/settings/display', icon: <Monitor size={18} /> }
+  { title: '显示', href: '/settings/display', icon: <Monitor size={18} /> },
+  { title: '水印策略', href: '/settings/watermark', icon: <Droplets size={18} /> }
 ]
 
 export function SettingsLayout({ children }: { children?: ReactNode }) {

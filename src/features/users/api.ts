@@ -1,6 +1,7 @@
 import { batchDeleteRequest, type BatchDeleteResult } from '@/lib/batch-delete'
 import { downloadFromApi } from '@/lib/download'
 import { getApiResult } from '@/lib/http'
+import { updateUserWatermark, type UserWatermarkPatch, type WatermarkDensity } from '@/lib/watermark'
 import { fetchRoleOptions, type Role } from '@/features/system/role/api'
 
 /** 后端 sys_user（对齐 JeecgBoot），只保留页面需要的字段 */
@@ -22,7 +23,16 @@ export interface User {
   depts?: Array<{ id: string; departName: string }>
   /** 主部门 id（后端兼容字段 = depts[0].id） */
   deptId?: string | null
+  /** 水印原始设置：1 开 / 0 关 / null 继承全局（列表由后端批量组装） */
+  watermarkEnabled?: number | null
+  /** 强管控：0 不强制 / 1 强制开 / 2 强制关 */
+  watermarkEnforced?: number
+  /** 最终是否生效（已合并全局策略） */
+  watermarkEffective?: boolean
 }
+
+export { updateUserWatermark }
+export type { UserWatermarkPatch, WatermarkDensity }
 
 export interface UserWritePayload {
   /** 新增必填；编辑时后端不可改，不下发 */
