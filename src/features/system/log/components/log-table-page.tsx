@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Download, Eraser, Search, Trash2 } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { Download, Eraser, Search, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -8,10 +9,12 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { hasPermission } from '@/lib/auth'
+import { saveBlobFile } from '@/lib/download'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { ExcelImportDialog } from '@/components/excel-import-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
-import { deleteLogs, exportLogs, type LogStatus } from '../api'
+import { deleteLogs, downloadLogTemplate, exportLogs, importLogs, type LogKind, type LogStatus } from '../api'
 
 interface BaseLog {
   id: string
@@ -26,12 +29,16 @@ interface LogTablePageProps<T extends BaseLog> {
   searchPlaceholder: string
   /** 加载数据（真实后端） */
   fetcher: () => Promise<T[]>
-  /** 删除端点类型：login 登录日志 / oper 操作日志 */
-  deleteKind: 'login' | 'oper'
+  /** 端点类型：login 登录日志 / oper 操作日志（导出、导入、删除、模板共用） */
+  deleteKind: LogKind
   /** 插入在「用户」和「IP 地址」之间的业务列 */
   extraColumns: ColumnDef<T>[]
   /** 额外列的列显示名（用于列显示开关） */
   extraColumnLabels: Record<string, string>
+  /** 导入弹窗的判定规则说明 */
+  importDescription: ReactNode
+  /** 导入弹窗的表头提示 */
+  importHint?: ReactNode
 }
 
 const baseColumnLabels: Record<string, string> = {
@@ -42,8 +49,17 @@ const baseColumnLabels: Record<string, string> = {
   status: '状态'
 }
 
-/** 日志页通用骨架：搜索 + 状态筛选 + 表格 + 单条删除/清空（真实后端批量删除接口） */
-export function LogTablePage<T extends BaseLog>({ title, searchPlaceholder, fetcher, deleteKind, extraColumns, extraColumnLabels }: LogTablePageProps<T>) {
+/** 日志页通用骨架：搜索 + 状态筛选 + 表格 + 单条删除/清空 + 导入导出（真实后端） */
+export function LogTablePage<T extends BaseLog>({
+  title,
+  searchPlaceholder,
+  fetcher,
+  deleteKind,
+  extraColumns,
+  extraColumnLabels,
+  importDescription,
+  importHint
+}: LogTablePageProps<T>) {
   const [list, setList] = useState<T[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -51,6 +67,7 @@ export function LogTablePage<T extends BaseLog>({ title, searchPlaceholder, fetc
   const [deleting, setDeleting] = useState<T | null>(null)
   const [clearing, setClearing] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -137,17 +154,15 @@ export function LogTablePage<T extends BaseLog>({ title, searchPlaceholder, fetc
     setClearing(false)
   }
 
-  /** 导出 CSV：后端按当前过滤条件全量导出（上限 5 万行），浏览器触发下载 */
+  /** 导出 Excel：把当前搜索关键字与状态筛选带给后端，导出筛选后的结果（不筛选即全量） */
   const handleExport = () => {
     setExporting(true)
-    exportLogs(deleteKind)
+    exportLogs(deleteKind, {
+      keyword: keyword.trim(),
+      status: statusFilter === 'all' ? undefined : (statusFilter as LogStatus)
+    })
       .then(({ filename, blob }) => {
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = filename
-        a.click()
-        URL.revokeObjectURL(url)
+        saveBlobFile(filename, blob)
         toast.success('日志已导出')
       })
       .catch(e => toast.error(e instanceof Error ? e.message : '导出失败'))
@@ -163,11 +178,17 @@ export function LogTablePage<T extends BaseLog>({ title, searchPlaceholder, fetc
             共 {logs.length} 条日志（已加载最近 {logs.length} 条）
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {hasPermission('system:log:export') && (
             <Button variant="outline" onClick={handleExport} disabled={exporting || logs.length === 0}>
               <Download />
-              {exporting ? '导出中…' : '导出 CSV'}
+              {exporting ? '导出中…' : '导出'}
+            </Button>
+          )}
+          {hasPermission('system:log:import') && (
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload />
+              导入
             </Button>
           )}
           {hasPermission('system:log:delete') && (
@@ -236,6 +257,19 @@ export function LogTablePage<T extends BaseLog>({ title, searchPlaceholder, fetc
         description={<>即将清空全部 {logs.length} 条日志，该操作不可恢复。</>}
         onConfirm={handleClear}
       />
+
+      {importOpen && (
+        <ExcelImportDialog
+          open={importOpen}
+          onOpenChange={setImportOpen}
+          title={`导入${title}`}
+          description={importDescription}
+          templateHint={importHint ?? '模板含填写说明与示例，必填列带 *'}
+          onImported={load}
+          downloadTemplate={() => downloadLogTemplate(deleteKind)}
+          importFile={file => importLogs(deleteKind, file)}
+        />
+      )}
     </div>
   )
 }

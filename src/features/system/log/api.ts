@@ -1,6 +1,11 @@
+import type { ImportResult } from '@/components/excel-import-dialog'
+import { downloadFromApi } from '@/lib/download'
 import { getApiResult } from '@/lib/http'
 
 export type LogStatus = '成功' | '失败'
+
+/** 日志类型：login 登录日志 / oper 操作日志（对应后端 /v1/logs/{login|oper}） */
+export type LogKind = 'login' | 'oper'
 
 export interface LoginLog {
   id: string
@@ -82,7 +87,7 @@ export async function fetchOperationLogs(): Promise<OperationLog[]> {
 }
 
 /** 批量删除日志（DELETE /api/v1/logs/login|oper） */
-export async function deleteLogs(kind: 'login' | 'oper', ids: string[]): Promise<void> {
+export async function deleteLogs(kind: LogKind, ids: string[]): Promise<void> {
   await getApiResult<{ deleted: number }>(`/backend-api/v1/logs/${kind}`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
@@ -90,16 +95,41 @@ export async function deleteLogs(kind: 'login' | 'oper', ids: string[]): Promise
   })
 }
 
-/** 导出日志 CSV（GET /api/v1/logs/login|oper/export，不分页，上限 5 万行） */
-export async function exportLogs(kind: 'login' | 'oper'): Promise<{ filename: string; blob: Blob }> {
-  const token = localStorage.getItem('concise-token') ?? ''
-  const res = await fetch(`/backend-api/v1/logs/${kind}/export`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {}
-  })
-  if (!res.ok) throw new Error(`导出失败: ${res.status}`)
-  const disposition = res.headers.get('content-disposition') ?? ''
-  const filename = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? `${kind}-logs.xlsx`
-  return { filename, blob: await res.blob() }
+export interface LogExportParams {
+  /** 用户名模糊过滤（后端字段名 username） */
+  keyword?: string
+  /** 结果过滤：成功=0 / 失败=1，仅登录日志支持（操作日志 DTO 没有该字段） */
+  status?: LogStatus
+}
+
+/**
+ * 导出日志 Excel（GET /api/v1/logs/login|oper/export，与列表同过滤条件，不分页）
+ *
+ * 走公共 downloadFromApi 拿 blob + Content-Disposition 文件名，与用户/公告导出同一套写法。
+ */
+export function exportLogs(kind: LogKind, params: LogExportParams = {}): Promise<{ filename: string; blob: Blob }> {
+  const qs = new URLSearchParams()
+  if (params.keyword) qs.set('username', params.keyword)
+  // 操作日志的查询 DTO 没有 status 字段，传了会被白名单剥掉，不如不传
+  if (params.status && kind === 'login') qs.set('status', params.status === '成功' ? '0' : '1')
+  const query = qs.toString()
+  return downloadFromApi(`/v1/logs/${kind}/export${query ? `?${query}` : ''}`, `${kind}-logs.xlsx`)
+}
+
+/** 下载日志导入模板 Excel（首个工作表为说明 + 表头，第二个为填写示例） */
+export function downloadLogTemplate(kind: LogKind): Promise<{ filename: string; blob: Blob }> {
+  return downloadFromApi(`/v1/logs/${kind}/import-template`, `${kind}-logs-import-template.xlsx`)
+}
+
+/**
+ * 导入日志（POST /api/v1/logs/login|oper/import，multipart 字段名 file）
+ *
+ * 只新增不覆盖，单行失败不影响其他行；返回结构与用户/字典导入一致，可直接喂给 ExcelImportDialog。
+ */
+export function importLogs(kind: LogKind, file: File): Promise<ImportResult> {
+  const form = new FormData()
+  form.append('file', file)
+  return getApiResult<ImportResult>(`/backend-api/v1/logs/${kind}/import`, { method: 'POST', body: form })
 }
 
 /**

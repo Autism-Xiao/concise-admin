@@ -29,6 +29,8 @@ export function OperationLogPage() {
       deleteKind="oper"
       extraColumns={extraColumns}
       extraColumnLabels={extraColumnLabels}
+      importDescription="只新增不覆盖，可按行返回失败原因。必填列：操作人、模块、操作（模块与操作会拼成日志内容）；「结果」填 成功/失败，留空按成功记录；「耗时」为毫秒整数。支持 .xlsx（推荐）与 .csv，单次最多 2000 行。"
+      importHint="模板含填写说明与示例；操作人 / 模块 / 操作 三列必填"
     />
   )
 }
