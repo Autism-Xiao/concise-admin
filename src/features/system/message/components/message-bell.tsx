@@ -43,7 +43,13 @@ export function MessageBell() {
   useEffect(() => {
     refreshCount()
     const timer = setInterval(refreshCount, POLL_MS)
-    return () => clearInterval(timer)
+    // WebSocket 推送「message:new」时立即刷新（轮询只是 WS 不可用时的兜底）
+    const onPush = () => refreshCount()
+    window.addEventListener('ws:message:new', onPush)
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('ws:message:new', onPush)
+    }
   }, [refreshCount])
 
   const handleOpen = (next: boolean) => {

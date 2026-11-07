@@ -62,7 +62,13 @@ export function ReminderBell() {
   useEffect(() => {
     refreshCount()
     const timer = window.setInterval(refreshCount, POLL_MS)
-    return () => window.clearInterval(timer)
+    // WebSocket 推送「reminder:triggered」时立即刷新（轮询只是 WS 不可用时的兜底）
+    const onPush = () => refreshCount()
+    window.addEventListener('ws:reminder:triggered', onPush)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('ws:reminder:triggered', onPush)
+    }
   }, [refreshCount])
 
   // 每次展开都重拉一次：轮询只刷数字，列表要最新
