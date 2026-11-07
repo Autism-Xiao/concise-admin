@@ -38,6 +38,7 @@ import { HOME_PATH, PAGE_REGISTRY } from '@/config/page-registry'
 import { menuPath, useMenuTree, usePermittedPaths } from '@/lib/permissions'
 import { resolveHomePath } from '@/lib/home-path'
 import type { PermissionMenu } from '@/features/auth/api'
+import { ICON_MAP } from '@/features/system/menu/components/icon-picker'
 import { cn } from '@/lib/utils'
 
 import type { Direction, SidebarVariant } from '@/lib/settings'
@@ -70,7 +71,16 @@ interface DynGroup {
   items: DynItem[]
 }
 
-function menuIcon(path?: string): LucideIcon {
+/**
+ * 菜单图标解析，优先级：后端 icon 字段（菜单管理里用图标选择器配的 lucide 组件名）
+ * → 页面登记表里登记的图标 → 兜底圆点。
+ *
+ * 之前只读 PAGE_REGISTRY，导致「菜单管理 → 图标」配了不生效，目录节点（如系统管理、
+ * 新的数据管理/安全审计/协同办公）一律显示成圆点。ICON_MAP 本来就在包里
+ * （page-registry 静态引了菜单页），复用不增加体积。
+ */
+function menuIcon(iconName?: string | null, path?: string): LucideIcon {
+  if (iconName && iconName in ICON_MAP) return ICON_MAP[iconName]
   return (path && PAGE_REGISTRY[path]?.icon) || Circle
 }
 
@@ -96,7 +106,7 @@ function toDynItem(node: PermissionMenu): DynItem | null {
     .map(toDynItem)
     .filter((x): x is DynItem => x != null)
   const label = nodeLabel(node)
-  if (children.length > 0) return { label, icon: menuIcon(menuPath(node)), children }
+  if (children.length > 0) return { label, icon: menuIcon(node.icon, menuPath(node)), children }
   const url = menuPath(node)
   if (!url) return null
   const external = node.internalOrExternal === 1
@@ -109,7 +119,7 @@ function toDynItem(node: PermissionMenu): DynItem | null {
   return {
     url,
     label: label || url,
-    icon: menuIcon(url),
+    icon: menuIcon(node.icon, url),
     external,
     inner
   }

@@ -8,6 +8,7 @@ import {
   Building2,
   CalendarDays,
   Database,
+  Droplets,
   FolderOpen,
   HelpCircle,
   LayoutDashboard,
@@ -53,6 +54,7 @@ import { ForbiddenError, InternalServerError, MaintenanceError, NotFoundError, U
 import { ProfilePage } from '@/features/settings/profile'
 import { AccountPage } from '@/features/settings/account'
 import { AppearancePage } from '@/features/settings/appearance'
+import { WatermarkSettingPage } from '@/features/settings/watermark'
 import { NotificationsPage } from '@/features/settings/notifications'
 import { DisplayPage } from '@/features/settings/display'
 
@@ -100,6 +102,7 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
   '/settings': { component: ProfilePage, label: '个人资料', icon: UserCog, settings: true },
   '/settings/account': { component: AccountPage, label: '账户', icon: Wrench, settings: true },
   '/settings/appearance': { component: AppearancePage, label: '外观', icon: Palette, settings: true },
+  '/settings/watermark': { component: WatermarkSettingPage, label: '水印策略', icon: Droplets, settings: true },
   '/settings/notifications': { component: NotificationsPage, label: '通知', icon: Bell, settings: true },
   '/settings/display': { component: DisplayPage, label: '显示', icon: Monitor, settings: true }
 }
