@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil, Plus, Search, Trash2, Users } from 'lucide-react'
+import { CircleAlert, Pencil, Plus, Search, Trash2, Users, WifiOff } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
+import { isUnavailableError, userMessageOf } from '@/lib/api-error'
 import { TenantFormDialog } from './components/tenant-form-dialog'
 import { TenantUserDialog } from './components/tenant-user-dialog'
 import { createTenant, deleteTenant, fetchTenants, updateTenant, type Tenant, type TenantPlan } from './api'
@@ -37,7 +38,8 @@ function isExpiringSoon(expireAt: string): boolean {
 
 export function TenantPage() {
   const [list, setList] = useState<Tenant[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  // 区分「服务连不上」和「业务失败」：前者要解释成因并给重试，后者直接显示原因
+  const [error, setError] = useState<{ message: string; unavailable: boolean } | null>(null)
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
   const [formOpen, setFormOpen] = useState(false)
@@ -56,7 +58,7 @@ export function TenantPage() {
     setError(null)
     fetchTenants()
       .then(setList)
-      .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
+      .catch(e => setError({ message: userMessageOf(e, '加载失败'), unavailable: isUnavailableError(e) }))
       .finally(() => setLoading(false))
   }
 
@@ -229,8 +231,18 @@ export function TenantPage() {
         </Card>
       ) : error ? (
         <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-12">
-            <p className="text-muted-foreground text-sm">{error}</p>
+          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+            {error.unavailable ? (
+              <WifiOff className="text-muted-foreground size-8" strokeWidth={1.5} />
+            ) : (
+              <CircleAlert className="text-muted-foreground size-8" strokeWidth={1.5} />
+            )}
+            <div className="space-y-1">
+              <p className="text-sm font-medium">{error.message}</p>
+              <p className="text-muted-foreground text-xs">
+                {error.unavailable ? '请确认网络正常；如果多次重试仍然失败，请联系管理员检查服务状态' : '可以重试，或联系管理员确认数据是否正确'}
+              </p>
+            </div>
             <Button variant="outline" onClick={load}>
               重试
             </Button>

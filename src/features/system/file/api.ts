@@ -1,3 +1,4 @@
+import { ApiError, reportUnavailable } from '@/lib/api-error'
 import { downloadFromApi } from '@/lib/download'
 import { getApiResult, type PageResult } from '@/lib/http'
 
@@ -205,7 +206,11 @@ export function uploadFile(
       try {
         body = JSON.parse(xhr.responseText) as { code?: number; message?: string; result?: UploadResult }
       } catch {
-        reject(new Error(`上传失败（HTTP ${xhr.status}）：后端返回了非 JSON 响应`))
+        // 非 JSON：通常是网关连不上后端（返回 HTML 错误页）。技术细节进控制台，
+        // 页面只说「服务暂时连不上」，不把状态码甩给用户
+        const detail = `POST ${API}/upload → HTTP ${xhr.status} 非 JSON 响应: ${xhr.responseText.slice(0, 120)}`
+        reportUnavailable(detail)
+        reject(new ApiError('unavailable', detail, xhr.status))
         return
       }
       if (body.code === 0 && body.result) {
@@ -213,10 +218,13 @@ export function uploadFile(
         resolve({ ...result, file: result.file ? toNode(result.file as unknown as RawFile) : undefined })
         return
       }
-      reject(new Error(body.message || `上传失败（HTTP ${xhr.status}）`))
+      reject(new ApiError('business', `POST ${API}/upload → HTTP ${xhr.status} ${body.message ?? ''}`, xhr.status, body.message))
     }
-    xhr.onerror = () => reject(new Error('网络异常，上传失败'))
-    xhr.onabort = () => reject(new Error('上传已取消'))
+    xhr.onerror = () => {
+      reportUnavailable(`POST ${API}/upload 请求未发出`)
+      reject(new ApiError('network', `POST ${API}/upload → 请求未发出`))
+    }
+    xhr.onabort = () => reject(new ApiError('unknown', '上传被取消', undefined, '上传已取消'))
     xhr.send(form)
   })
 }

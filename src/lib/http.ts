@@ -1,46 +1,92 @@
+import { ApiError, reportRecovered, reportUnavailable } from '@/lib/api-error'
 import { logout } from '@/lib/auth'
 
+/** 普通接口的超时时间：后端挂了时 fetch 可能一直挂着，用户只看到页面转圈没有任何提示 */
+const REQUEST_TIMEOUT_MS = 20000
+
 /**
- * 安全解析响应体：代理层（vite/Nginx）连不上后端时不会返回 JSON，
- * 而是 502 + text/plain 或干脆空 body。直接 res.json() 只会得到
- * 「Failed to execute 'json' on 'Response': Unexpected end of JSON input」这种
- * 对用户毫无信息量的报错，所以这里统一转成可读提示。
+ * 发请求并区分「请求没发出去」和「后端返回了错误」
+ *
+ * 浏览器在断网/后端进程不在/跨域被拦时，fetch 直接 reject 成
+ * `TypeError: Failed to fetch` —— 这句话对用户毫无意义，所以统一转成 ApiError。
+ */
+async function request(url: string, init?: RequestInit): Promise<Response> {
+  const useOwnTimeout = !init?.signal
+  const controller = useOwnTimeout ? new AbortController() : null
+  const timer = controller
+    ? setTimeout(() => controller.abort(new DOMException('请求超时', 'TimeoutError')), REQUEST_TIMEOUT_MS)
+    : null
+
+  try {
+    return await fetch(url, { ...init, ...(controller ? { signal: controller.signal } : {}) })
+  } catch (error) {
+    const method = init?.method ?? 'GET'
+    if (controller?.signal.aborted) {
+      reportUnavailable(`${method} ${url} 超时（${REQUEST_TIMEOUT_MS}ms 未响应）`)
+      throw new ApiError('timeout', `${method} ${url} 超时 ${REQUEST_TIMEOUT_MS}ms`)
+    }
+    const reason = error instanceof Error ? error.message : String(error)
+    reportUnavailable(`${method} ${url} 请求未发出：${reason}`)
+    throw new ApiError('network', `${method} ${url} → ${reason}`)
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
+}
+
+/**
+ * 安全解析响应体
+ *
+ * 代理层（vite/Nginx）连不上后端时不会返回 JSON：可能是 502 + text/plain，
+ * 也可能是被前端的 SPA 兜底规则返回了一整页 index.html（代理规则没生效时的典型表现）。
+ * 这两种情况对用户来说都是「服务用不了」，统一转成 ApiError('unavailable')，
+ * 而不是把 HTTP 状态码和接口路径甩到页面上。
  */
 export async function parseJsonBody<T>(res: Response, path: string): Promise<T> {
   const text = await res.text()
   const brief = text.trim().slice(0, 160)
-  const gatewayFailed = res.status === 502 || res.status === 503 || res.status === 504
+  const contentType = res.headers.get('content-type') ?? ''
+  const isJson = contentType.includes('json')
+  const looksLikeHtml = /^<(!doctype|html)/i.test(brief)
+
+  const gatewayDown = res.status === 502 || res.status === 503 || res.status === 504
+  if (gatewayDown || (looksLikeHtml && !isJson)) {
+    const detail = [
+      `${path} → HTTP ${res.status}`,
+      looksLikeHtml ? '响应是 HTML 页面（代理未生效 / 被前端路由兜底）' : '代理无法连接后端',
+      brief ? `片段: ${brief.slice(0, 80)}` : ''
+    ]
+      .filter(Boolean)
+      .join('；')
+    reportUnavailable(detail)
+    throw new ApiError('unavailable', detail, res.status)
+  }
 
   if (!brief) {
-    throw new Error(
-      `没有收到后端响应（HTTP ${res.status}）：${path}。请确认后端服务已启动，且 vite 代理 BACKEND_URL 指向正确端口`
-    )
+    // 空响应体：2xx 说明接口没返回内容（少见但不算错）；其它状态归为服务异常
+    if (res.ok) return undefined as T
+    throw new ApiError(res.status >= 500 ? 'server' : 'unknown', `${path} → HTTP ${res.status} 空响应体`, res.status)
   }
-  const isJson = (res.headers.get('content-type') ?? '').includes('json')
   if (!isJson) {
-    throw new Error(
-      gatewayFailed
-        ? `后端服务不可用（HTTP ${res.status}）：${brief}。请检查后端是否启动、代理端口是否与后端 PORT 一致`
-        : `后端返回了非 JSON 响应（HTTP ${res.status}）：${brief}`
-    )
+    throw new ApiError('unknown', `${path} → HTTP ${res.status} 非 JSON 响应: ${brief.slice(0, 80)}`, res.status)
   }
   try {
     return JSON.parse(text) as T
   } catch {
-    throw new Error(`后端返回的 JSON 无法解析（HTTP ${res.status}）：${brief}`)
+    throw new ApiError('unknown', `${path} → JSON 解析失败: ${brief.slice(0, 80)}`, res.status)
   }
 }
 
 // 轻量 HTTP 封装：统一 JSON 请求、错误处理
 // 之后接真实后端时，在这里加 baseURL、鉴权头、错误码处理即可
 export async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, { headers: { Accept: 'application/json' }, ...init })
+  const res = await request(url, { headers: { Accept: 'application/json' }, ...init })
   if (!res.ok) {
-    // 失败时优先用后端给的中文文案；非 JSON（网关错误/空响应）则直接抛出可读提示
-    const body = await parseJsonBody<{ message?: string }>(res, url).catch((error: Error) => error)
-    if (body instanceof Error) throw body
-    throw new Error(body?.message ?? `请求失败: ${res.status} ${res.statusText}`)
+    // 先试着解析后端的中文 message；解析不出来时 parseJsonBody 会抛出可读的 ApiError
+    const body = await parseJsonBody<{ message?: string | string[] }>(res, url)
+    const message = Array.isArray(body?.message) ? body.message.join('；') : body?.message
+    throw new ApiError('business', `${url} → HTTP ${res.status} ${message ?? ''}`, res.status, message || undefined)
   }
+  reportRecovered()
   return parseJsonBody<T>(res, url)
 }
 
@@ -75,7 +121,7 @@ function handleUnauthorized(): never {
   if (window.location.pathname !== '/login') {
     window.location.assign('/login')
   }
-  throw new Error('登录已过期，请重新登录')
+  throw new ApiError('auth')
 }
 
 /**
@@ -89,7 +135,7 @@ export async function getApiResult<T>(url: string, init?: RequestInit): Promise<
   // 当前租户：后端中间件用它做数据隔离（不可信也没关系，服务端会校验归属，越权直接 403）
   const tenantId = localStorage.getItem('concise-tenant') ?? ''
   const isLoginRequest = /\/v1\/auth\/login(?:$|\?)/.test(url)
-  const res = await fetch(url, {
+  const res = await request(url, {
     ...init,
     headers: {
       Accept: 'application/json',
@@ -108,12 +154,15 @@ export async function getApiResult<T>(url: string, init?: RequestInit): Promise<
   // 403：登录有效但缺少该接口对应的权限码，给出可操作提示，避免误以为是"没有数据"
   if (res.status === 403) {
     const detail = json.message && json.message !== '禁止访问' ? `${json.message}：` : ''
-    throw new Error(`${detail}当前角色没有该功能的访问权限，请在「角色权限」中勾选对应菜单/按钮后重新登录`)
+    throw new ApiError('forbidden', `${url} → 403 ${detail}${json.message ?? ''}`, res.status)
   }
   const ok = json.success ?? json.code === 0
   if (!ok) {
-    throw new Error(json.message || `请求失败: ${res.status}`)
+    // 业务失败：后端 message 本身就是给用户看的（如「部门编码已被占用」），直接沿用
+    const message = typeof json.message === 'string' ? json.message : ''
+    throw new ApiError('business', `${url} → code ${json.code} ${message}`, res.status, message || undefined)
   }
+  reportRecovered()
   // 删除等无返回体接口的 result 为 null，属正常成功，不能当失败处理
   return json.result as T
 }

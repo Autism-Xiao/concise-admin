@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Building2, Check, ChevronsUpDown, Globe } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -10,6 +11,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { getTenantId, setTenantId } from '@/lib/auth'
+import { userMessageOf } from '@/lib/api-error'
 import { fetchMyTenants, switchTenant, type MyTenant } from '../api'
 
 /**
@@ -53,7 +55,8 @@ export function TenantSwitcher() {
       window.location.reload()
     } catch (error) {
       setBusy(false)
-      window.alert(error instanceof Error ? error.message : '切换租户失败')
+      // 不用 window.alert：原生弹窗会阻塞整个页面，且样式与系统提示完全脱节
+      toast.error(userMessageOf(error, '切换租户失败'))
     }
   }
 

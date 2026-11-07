@@ -6,6 +6,7 @@ import { SiteHeader } from '@/components/layout/site-header'
 import { TabPageRenderer } from '@/components/layout/tab-page-renderer'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { ForceChangePasswordDialog } from '@/components/forced-change-password-dialog'
+import { ServiceStatusBanner } from '@/components/service-status-banner'
 import { Watermark } from '@/components/watermark'
 import { TabsProvider } from '@/context/tabs-provider'
 import { WatermarkProvider, useWatermark } from '@/context/watermark-provider'
@@ -55,6 +56,8 @@ function AuthenticatedLayout() {
         <AppSidebar variant={settings.sidebarVariant} collapsible={collapsible} direction={settings.direction} />
         <SidebarInset className="h-svh overflow-hidden">
           <SiteHeader />
+          {/* 后端整体不可用时只留一条常驻横幅，避免每个接口各弹一条 toast */}
+          <ServiceStatusBanner />
           <PageTabs />
           <main data-scroll="main" className="flex-1 overflow-y-auto p-6">
             <PermissionGuard>
