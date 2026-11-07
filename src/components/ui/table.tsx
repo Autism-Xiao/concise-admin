@@ -1,9 +1,16 @@
 import * as React from 'react'
 import { cn } from 'cn'
 
-function Table({ className, ...props }: React.ComponentProps<'table'>) {
+/**
+ * 表格容器
+ *
+ * containerClassName 给「固定高度 + 表内滚动」的页面用（如行政区划）：
+ * 竖向滚动必须落在这一层，sticky 表头才能贴住容器顶部；
+ * 若把 overflow-y 加在外层包一层，内层这层 overflow-x 会自己变成滚动容器，表头就粘不住了。
+ */
+function Table({ className, containerClassName, ...props }: React.ComponentProps<'table'> & { containerClassName?: string }) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    <div data-slot="table-container" className={cn('relative w-full overflow-x-auto', containerClassName)}>
       <table data-slot="table" className={cn('w-full caption-bottom text-sm', className)} {...props} />
     </div>
   )

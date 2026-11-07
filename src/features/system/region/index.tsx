@@ -41,6 +41,9 @@ function formatCount(n: number) {
  * 收起再展开不重复请求。
  *
  * 搜索仍然走 flat 列表接口：搜索结果跨层级，平铺（带层级徽标）才看得懂，树形反而藏数据。
+ *
+ * 布局固定一屏：页面 h-full，卡片 flex-1 吃掉剩余高度，表格自带竖向滚动 + 吸顶表头。
+ * 展开/搜索命中再多也只是表内滚动，页面本身不出现第二条滚动条（否则表头滚没了不知道在看哪列）。
  */
 export function RegionPage() {
   const [roots, setRoots] = useState<Region[] | null>(null)
@@ -322,8 +325,8 @@ export function RegionPage() {
   )
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex h-full min-h-0 flex-col gap-6">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold">行政区划</h1>
           <p className="text-muted-foreground text-sm">{statsText}</p>
@@ -344,16 +347,17 @@ export function RegionPage() {
         </div>
       </div>
 
+      {/* 整页只占一屏：卡片吃掉剩余高度，数据超出只在表格内滚动，页面本身不再上下跑 */}
       {loading ? (
-        <Card>
-          <CardContent className="space-y-3 py-6">
-            <Skeleton className="h-9 w-full max-w-md" />
-            <Skeleton className="h-64 w-full" />
+        <Card className="flex min-h-0 flex-1 flex-col">
+          <CardContent className="flex min-h-0 flex-1 flex-col space-y-3 py-6">
+            <Skeleton className="h-9 w-full max-w-md shrink-0" />
+            <Skeleton className="min-h-0 w-full flex-1" />
           </CardContent>
         </Card>
       ) : error ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-12">
+        <Card className="flex min-h-0 flex-1 flex-col">
+          <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 py-12">
             <p className="text-muted-foreground text-sm">{error}</p>
             <Button variant="outline" onClick={() => loadTree()}>
               重试
@@ -361,9 +365,9 @@ export function RegionPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
+        <Card className="flex min-h-0 flex-1 flex-col">
+          <CardContent className="flex min-h-0 flex-1 flex-col gap-4">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               <div className="relative w-full max-w-xs">
                 <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
                 <Input placeholder="搜索名称 / 代码 / 拼音" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
@@ -404,8 +408,8 @@ export function RegionPage() {
               )}
             </div>
 
-            <Table>
-              <TableHeader>
+            <Table containerClassName="min-h-0 flex-1 overflow-y-auto rounded-md border">
+              <TableHeader className="bg-card sticky top-0 z-10">
                 <TableRow>
                   <TableHead>名称</TableHead>
                   <TableHead className="w-40">区划代码</TableHead>
