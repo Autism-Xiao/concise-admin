@@ -20,6 +20,11 @@ import { fetchMyTenants, switchTenant, type MyTenant } from '../api'
  * 数据源是 `GET /v1/tenants/mine`：普通用户只拿到自己归属的租户，
  * 超管拿全部租户 + 一个「平台视角」（不指定租户，不过滤数据）。
  *
+ * 注意：本项目 UI 层是 Base UI（@base-ui/react），不是 Radix ——
+ * DropdownMenuItem **没有 `onSelect` 回调**（那是 Radix 的 API），
+ * 写 onSelect 会被 React 当成文本选择的合成事件挂到 DOM 上，点击永远不触发。
+ * 菜单项的点击处理一律用 `onClick`。
+ *
  * 切换后**整页重载**：租户变了意味着几乎每个列表的数据源都变了，
  * 局部刷新容易留下上一个租户的缓存（表格分页、下拉字典、首页统计），
  * 重载最省心也不会错。
@@ -82,7 +87,7 @@ export function TenantSwitcher() {
           <DropdownMenuItem
             key={item.id}
             disabled={!item.usable || item.id === current}
-            onSelect={() => void handleSwitch(item.id)}
+            onClick={() => void handleSwitch(item.id)}
             className="gap-2"
           >
             <Building2 className="size-4 opacity-60" />
@@ -99,7 +104,7 @@ export function TenantSwitcher() {
         {isSuper ? (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem disabled={current === null} onSelect={() => void handleSwitch(0)} className="gap-2">
+            <DropdownMenuItem disabled={current === null} onClick={() => void handleSwitch(0)} className="gap-2">
               <Globe className="size-4 opacity-60" />
               <div className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate">平台视角</span>
