@@ -62,9 +62,20 @@ export function fetchRegions(params: RegionListParams = {}): Promise<PageResult<
   return getApiResult<PageResult<Region>>(`/backend-api/v1/regions${query ? `?${query}` : ''}`)
 }
 
+/** 区划统计：总数 + 各层级数量（树形视图头部概览，避免为了数字拉全量） */
+export interface RegionStats {
+  total: number
+  byLevel: Record<number, number>
+}
+
 /** 区划树（登录即可访问，级联选择器数据源） */
 export function fetchRegionTree(): Promise<Array<Region & { children: Region[] }>> {
   return getApiResult('/backend-api/v1/regions/tree')
+}
+
+/** 区划统计（总数 + 各层级数量） */
+export function fetchRegionStats(): Promise<RegionStats> {
+  return getApiResult<RegionStats>('/backend-api/v1/regions/stats')
 }
 
 /** 按上级区划代码查直接子级（懒加载） */
