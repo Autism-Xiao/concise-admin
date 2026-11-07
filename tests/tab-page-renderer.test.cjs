@@ -32,6 +32,11 @@ function loadRenderer(pathname) {
             })
           }
         }
+        if (id === '@/context/tenant-scope-provider') {
+          // 租户代次：这里固定 0，只验证首屏只挂当前页；epoch 变化触发全部重挂是运行时行为，
+          // SSR 下等价于再多一个 key 片段，不影响本用例断言
+          return { useTenantScope: () => ({ epoch: 0, switching: false, applySwitch: async () => null }) }
+        }
         if (id === '@/config/page-registry') {
           return {
             isRegisteredPage: () => true,
