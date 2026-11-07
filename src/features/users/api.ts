@@ -21,11 +21,14 @@ export interface User {
   telephone?: string
   workNo?: string
   sex?: number
-  avatar?: string
+  /** 头像相对路径；null / 缺省 = 系统默认头像 */
+  avatar?: string | null
   birthday?: string
   /** 1 正常 / 2 冻结 */
   status: number
   createTime?: string
+  /** 个人简介（个人资料页可自助编辑，255 字符） */
+  bio?: string | null
   /** 回收站行用：软删时间（update_time） */
   updateTime?: string
   roles?: Pick<Role, 'id' | 'roleName' | 'roleCode'>[]
@@ -168,6 +171,38 @@ export function setMyAvatar(avatar: string | null): Promise<{ avatar: string | n
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ avatar: avatar ?? '' })
+  })
+}
+
+/* ---------- 个人资料自助（/v1/users/me） ---------- */
+
+/**
+ * 我的资料可编辑字段：空串 = 清空该字段（后端会归一成 NULL）
+ *
+ * 只有白名单字段能改 —— 账号、工号、状态、角色、部门、密码都不在这个接口里，
+ * 后端也会用 whitelist 把多余键丢掉，前端就算拼错字段名也不会越权。
+ */
+export interface MyProfilePatch {
+  realname?: string
+  email?: string
+  phone?: string
+  telephone?: string
+  sex?: number
+  birthday?: string
+  bio?: string
+}
+
+/** 当前登录用户的完整资料（含角色/部门/岗位/职级）；登录即可调用，不需要 system:user:list */
+export function fetchMyProfile(): Promise<User> {
+  return getApiResult<User>('/backend-api/v1/users/me')
+}
+
+/** 自助更新个人资料：返回更新后的完整资料 */
+export function updateMyProfile(payload: MyProfilePatch): Promise<User> {
+  return getApiResult<User>('/backend-api/v1/users/me', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
   })
 }
 

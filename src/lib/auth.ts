@@ -53,6 +53,17 @@ export function getName(): string {
   return localStorage.getItem(NAME_KEY) || getUsername()
 }
 
+/**
+ * 更新本地缓存的显示名（个人资料改完姓名后用）
+ *
+ * 顺手广播一次登录态变化事件：侧边栏 NavUser 只读一次 localStorage，
+ * 不广播的话头像旁边的名字要等下次整页刷新才变。
+ */
+export function setDisplayName(name: string): void {
+  localStorage.setItem(NAME_KEY, name)
+  notifyAuthChanged()
+}
+
 /** 当前用户角色 code（对应 roles.json 的 code 字段），默认超级管理员 */
 export function getRoleCode(): string {
   return localStorage.getItem(ROLE_KEY) || 'superadmin'

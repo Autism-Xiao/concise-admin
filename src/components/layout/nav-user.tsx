@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { ChevronsUpDown, LogOut, Settings, User } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -12,14 +13,21 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useLocale } from '@/context/locale-provider'
-import { getName, getUsername, logout } from '@/lib/auth'
+import { AUTH_CHANGED_EVENT, getName, getUsername, logout } from '@/lib/auth'
 
 export function NavUser() {
   const navigate = useNavigate()
   const { t } = useLocale()
   const { isMobile, setOpenMobile } = useSidebar()
-  const name = getName()
   const username = getUsername()
+  // 姓名改完（个人资料页）会广播 AUTH_CHANGED_EVENT，这里重新读一次 localStorage，
+  // 否则要等整页刷新侧边栏才跟着变
+  const [name, setName] = useState(getName)
+  useEffect(() => {
+    const sync = () => setName(getName())
+    window.addEventListener(AUTH_CHANGED_EVENT, sync)
+    return () => window.removeEventListener(AUTH_CHANGED_EVENT, sync)
+  }, [])
 
   // 移动端抽屉形态下，点击下拉项跳转后收起抽屉
   const closeMobileSidebar = () => {
