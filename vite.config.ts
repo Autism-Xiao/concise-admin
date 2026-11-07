@@ -13,9 +13,12 @@ const SETTINGS_FILE = path.resolve(__dirname, 'settings.json')
 const FILES_FILE = path.resolve(__dirname, 'public/mock/files.json')
 const TENANTS_FILE = path.resolve(__dirname, 'public/mock/tenants.json')
 const REGIONS_FILE = path.resolve(__dirname, 'public/mock/regions.json')
-// Go 后端地址：开发环境通过 /backend-api 代理访问，规避 CORS（生产环境由网关/Nginx 转发）
-// 可用环境变量覆盖（真机调试时设 BACKEND_URL=http://<局域网IP>:3000），默认指向本机后端
-const BACKEND_URL = process.env.BACKEND_URL ?? 'http://127.0.0.1:3000'
+// 后端地址：开发环境通过 /backend-api 代理访问，规避 CORS（生产环境由网关/Nginx 转发）
+// 端口必须与 concise-server-node/.env 的 PORT 一致（当前为 3459）；
+// 真机调试可用 BACKEND_URL=http://<局域网IP>:3459 覆盖，或用 BACKEND_PORT 只改端口。
+// 注意：这里写错不会报错，只会让代理返回 502（前端表现为「拿不到 JSON」），排查时先看后端端口。
+const BACKEND_PORT = process.env.BACKEND_PORT ?? '3459'
+const BACKEND_URL = process.env.BACKEND_URL ?? `http://127.0.0.1:${BACKEND_PORT}`
 const DEFAULT_SETTINGS = {
   fontSize: 'default',
   themeColor: 'default',

@@ -20,15 +20,25 @@ export async function downloadFromApi(path: string, fallbackName: string): Promi
     headers: token ? { Authorization: `Bearer ${token}` } : {}
   })
   if (!res.ok) {
-    let message = `请求失败（${res.status}）`
-    try {
-      const body = (await res.json()) as { message?: string | string[] }
-      const text = Array.isArray(body.message) ? body.message.join('；') : body.message
-      if (text) {
-        message = text
+    // 先读文本再尝试解析：网关错误时是 text/plain（upstream connect failed），
+    // 直接 res.json() 会抛解析错误，把真正的「后端连不上」掩盖成 JSON 报错
+    const raw = await res.text().catch(() => '')
+    const brief = raw.trim().slice(0, 160)
+    const gatewayFailed = res.status === 502 || res.status === 503 || res.status === 504
+    if (gatewayFailed) {
+      throw new Error(
+        `后端服务不可用（HTTP ${res.status}）：${brief || '代理无法连接后端'}。请检查后端是否启动、代理端口是否与后端 PORT 一致`
+      )
+    }
+    let message = `请求失败（HTTP ${res.status}）`
+    if (brief) {
+      try {
+        const body = JSON.parse(raw) as { message?: string | string[] }
+        const text = Array.isArray(body.message) ? body.message.join('；') : body.message
+        message = text || `${message}：${brief}`
+      } catch {
+        message = `${message}：${brief}`
       }
-    } catch {
-      // 非 JSON（如网关错误页），保留状态码提示
     }
     throw new Error(message)
   }

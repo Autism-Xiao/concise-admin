@@ -17,6 +17,19 @@ function loadHttp(response) {
   ])
   const state = { logoutCalls: 0, redirects: [] }
   const module = { exports: {} }
+  // 模拟 fetch 返回的 Response：真实响应有 headers/text，不能只给 json()
+  // （原用例只 mock 了 json()，加上空响应/非 JSON 的健壮处理后必须一起补齐）
+  const mockedResponse = {
+    status: response.status,
+    headers: {
+      get: name => (name.toLowerCase() === 'content-type' ? (response.contentType ?? 'application/json; charset=utf-8') : null)
+    },
+    text: async () => {
+      if (typeof response.text === 'function') return response.text()
+      const body = await response.json()
+      return typeof body === 'string' ? body : JSON.stringify(body)
+    }
+  }
   vm.runInNewContext(outputText, {
     module,
     exports: module.exports,
@@ -40,7 +53,7 @@ function loadHttp(response) {
         assign: url => state.redirects.push(url)
       }
     },
-    fetch: async () => response
+    fetch: async () => mockedResponse
   })
   return { getApiResult: module.exports.getApiResult, state, store }
 }
@@ -73,7 +86,19 @@ async function main() {
   assert.equal(loginFailure.state.logoutCalls, 0, '登录接口返回认证失败时不能重复退出或跳转')
   assert.deepEqual(loginFailure.state.redirects, [])
 
-  console.log('PASS: 业务请求 401 统一退出登录，登录失败保留原错误提示')
+  // 网关层连不上后端：vite 代理返回 502 + text/plain，必须给出可读提示，
+  // 不能让用户看到 "Unexpected end of JSON input"
+  const gatewayFailed = loadHttp({
+    status: 502,
+    contentType: 'text/plain; charset=utf-8',
+    text: async () => 'upstream connect failed: 由于目标计算机积极拒绝，无法连接。 (os error 10061)'
+  })
+  await assert.rejects(gatewayFailed.getApiResult('/backend-api/v1/users'), /后端服务不可用（HTTP 502）/)
+  const emptyBody = loadHttp({ status: 502, contentType: 'text/plain; charset=utf-8', text: async () => '' })
+  await assert.rejects(emptyBody.getApiResult('/backend-api/v1/users'), /没有收到后端响应（HTTP 502）/)
+  assert.equal(gatewayFailed.state.logoutCalls, 0, '网关错误不应把用户踢下线')
+
+  console.log('PASS: 业务请求 401 统一退出登录，登录失败保留原错误提示，网关错误给出可读提示')
 }
 
 main().catch(error => {

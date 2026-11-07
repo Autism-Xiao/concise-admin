@@ -1,13 +1,47 @@
 import { logout } from '@/lib/auth'
 
+/**
+ * 安全解析响应体：代理层（vite/Nginx）连不上后端时不会返回 JSON，
+ * 而是 502 + text/plain 或干脆空 body。直接 res.json() 只会得到
+ * 「Failed to execute 'json' on 'Response': Unexpected end of JSON input」这种
+ * 对用户毫无信息量的报错，所以这里统一转成可读提示。
+ */
+export async function parseJsonBody<T>(res: Response, path: string): Promise<T> {
+  const text = await res.text()
+  const brief = text.trim().slice(0, 160)
+  const gatewayFailed = res.status === 502 || res.status === 503 || res.status === 504
+
+  if (!brief) {
+    throw new Error(
+      `没有收到后端响应（HTTP ${res.status}）：${path}。请确认后端服务已启动，且 vite 代理 BACKEND_URL 指向正确端口`
+    )
+  }
+  const isJson = (res.headers.get('content-type') ?? '').includes('json')
+  if (!isJson) {
+    throw new Error(
+      gatewayFailed
+        ? `后端服务不可用（HTTP ${res.status}）：${brief}。请检查后端是否启动、代理端口是否与后端 PORT 一致`
+        : `后端返回了非 JSON 响应（HTTP ${res.status}）：${brief}`
+    )
+  }
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    throw new Error(`后端返回的 JSON 无法解析（HTTP ${res.status}）：${brief}`)
+  }
+}
+
 // 轻量 HTTP 封装：统一 JSON 请求、错误处理
 // 之后接真实后端时，在这里加 baseURL、鉴权头、错误码处理即可
 export async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { headers: { Accept: 'application/json' }, ...init })
   if (!res.ok) {
-    throw new Error(`请求失败: ${res.status} ${res.statusText}`)
+    // 失败时优先用后端给的中文文案；非 JSON（网关错误/空响应）则直接抛出可读提示
+    const body = await parseJsonBody<{ message?: string }>(res, url).catch((error: Error) => error)
+    if (body instanceof Error) throw body
+    throw new Error(body?.message ?? `请求失败: ${res.status} ${res.statusText}`)
   }
-  return res.json() as Promise<T>
+  return parseJsonBody<T>(res, url)
 }
 
 /** 后端统一响应外壳：{ code, message, result, success, timestamp } */
@@ -60,7 +94,7 @@ export async function getApiResult<T>(url: string, init?: RequestInit): Promise<
   if (res.status === 401 && !isLoginRequest) {
     handleUnauthorized()
   }
-  const json = (await res.json()) as ApiEnvelope<T>
+  const json = await parseJsonBody<ApiEnvelope<T>>(res, url)
   if (json.code === 401 && !isLoginRequest) {
     handleUnauthorized()
   }
