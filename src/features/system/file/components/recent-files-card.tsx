@@ -1,20 +1,16 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileIcon } from './file-icon'
-import { formatRelativeTime, formatSize, type FileItem } from '../api'
+import { formatRelativeTime, formatSize, type FileNode } from '../api'
 
 interface RecentFilesCardProps {
-  files: FileItem[]
+  files: FileNode[]
   onViewAll: () => void
+  onOpen: (file: FileNode) => void
 }
 
-/** 最近文件卡片：展示最近修改的 4 个文件 */
-export function RecentFilesCard({ files, onViewAll }: RecentFilesCardProps) {
-  const recent = files
-    .filter(f => f.type === 'file')
-    .sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt))
-    .slice(0, 4)
-
+/** 最近文件卡片：后端已按修改时间倒序且只返回文件，这里只负责展示 */
+export function RecentFilesCard({ files, onViewAll, onOpen }: RecentFilesCardProps) {
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
@@ -24,17 +20,22 @@ export function RecentFilesCard({ files, onViewAll }: RecentFilesCardProps) {
         </Button>
       </CardHeader>
       <CardContent className="space-y-3">
-        {recent.length === 0 && <p className="text-muted-foreground text-sm">暂无文件</p>}
-        {recent.map(file => (
-          <div key={file.id} className="flex items-center gap-3">
+        {files.length === 0 && <p className="text-muted-foreground text-sm">还没有上传过文件</p>}
+        {files.map(file => (
+          <button
+            key={file.id}
+            type="button"
+            onClick={() => onOpen(file)}
+            className="hover:bg-accent/60 -mx-1 flex w-[calc(100%+0.5rem)] items-center gap-3 rounded-md px-1 py-1 text-left transition-colors"
+          >
             <FileIcon item={file} className="size-8 shrink-0" />
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">{file.name}</p>
               <p className="text-muted-foreground text-xs tabular-nums">
-                {formatSize(file.size)} · {formatRelativeTime(file.modifiedAt)}
+                {formatSize(file.size)} · {formatRelativeTime(file.updateTime)}
               </p>
             </div>
-          </div>
+          </button>
         ))}
       </CardContent>
     </Card>
