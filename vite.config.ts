@@ -8,10 +8,22 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite'
 // 仍是本地数据文件的模块（文件管理、行政区划、租户均已接真实后端，对应 mock 已删除）
 const REGIONS_FILE = path.resolve(__dirname, 'public/mock/regions.json')
 // 后端地址：开发环境通过 /backend-api 代理访问，规避 CORS（生产环境由网关/Nginx 转发）
-// 端口必须与 concise-server-node/.env 的 PORT 一致（当前为 3459）；
-// 真机调试可用 BACKEND_URL=http://<局域网IP>:3459 覆盖，或用 BACKEND_PORT 只改端口。
+// 端口默认跟随同行后端仓库的 .env（../concise-server-node/.env 的 PORT），读不到才退回 3000，
+// 避免「后端改了端口、前端还指着旧端口」导致页面全是 502、且终端一声不吭的情况。
+// 真机调试可用 BACKEND_URL=http://<局域网IP>:<端口> 覆盖，或用 BACKEND_PORT 只改端口。
 // 注意：这里写错不会报错，只会让代理返回 502（前端表现为「拿不到 JSON」），排查时先看后端端口。
-const BACKEND_PORT = process.env.BACKEND_PORT ?? '3459'
+function resolveBackendPort(): string {
+  if (process.env.BACKEND_PORT) return process.env.BACKEND_PORT
+  try {
+    const envFile = path.resolve(__dirname, '../concise-server-node/.env')
+    const port = /^\s*PORT\s*=\s*(\d+)/m.exec(fs.readFileSync(envFile, 'utf8'))?.[1]
+    if (port) return port
+  } catch {
+    // 后端仓库不在一起（单独 clone 前端）时走下面的默认值
+  }
+  return '3000'
+}
+const BACKEND_PORT = resolveBackendPort()
 const BACKEND_URL = process.env.BACKEND_URL ?? `http://127.0.0.1:${BACKEND_PORT}`
 const FRONTEND_PORT = 5173
 

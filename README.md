@@ -1,6 +1,8 @@
 # Concise Admin
 
-基于 React 19 + Vite + shadcn/ui 的后台管理系统，内置完整的 mock 数据层：所有页面数据走 `public/mock/*.json`，开发环境下由 Vite 中间件提供读写接口，接真实后端时只需替换各模块的 `api.ts`。
+基于 React 19 + Vite + shadcn/ui 的后台管理系统，配套后端仓库：**[concise-server-node](https://github.com/Autism-Xiao/concise-server-node)**（NestJS 12 + TypeORM + MySQL 8.4，源码在 `../concise-server-node`）。
+
+> 前后端必须同批发布：前端所有数据都来自后端 `/api/v1/**`，不再有内置演示数据（仅「文件管理」等个别页面仍读 `public/mock/*.json`）。
 
 ## 技术栈
 
@@ -23,6 +25,32 @@ pnpm run dev
 ```
 
 打开 http://localhost:5173 ，用后端（`/v1/auth/login`）下发的账号登录，角色与菜单由 `/v1/auth/permissions` 返回，前端不再内置任何演示账号。
+
+### 先起后端
+
+前端本身不存数据，页面全部请求后端，**没起后端会一片 502**。
+
+```bash
+cd ../concise-server-node
+npm install
+npm run restart        # = nest build + scripts/serve.mjs，端口取 .env 的 PORT（当前 3000）
+```
+
+| 用途 | 地址 |
+| --- | --- |
+| 后端仓库 | https://github.com/Autism-Xiao/concise-server-node |
+| 后端 API 根（本地） | http://127.0.0.1:3000/api/v1 |
+| Swagger 在线文档 | http://127.0.0.1:3000/api/docs |
+| OpenAPI JSON | http://127.0.0.1:3000/api/docs-json |
+
+前端开发环境统一走 vite 代理：`/backend-api/**` → 后端 `/api/**`（见 `vite.config.ts`）。代理目标**默认自动读取同级后端仓库 `.env` 里的 `PORT`**（读不到才退回 3000），所以后端改端口后前端只要重启一次 dev 就跟上，不用改代码：
+
+```bash
+BACKEND_PORT=3460 pnpm run dev                    # 强制指定端口
+BACKEND_URL=http://192.168.1.8:3000 pnpm run dev  # 真机调试，指向局域网 IP
+```
+
+登录默认账号见后端初始化数据（`admin` / `admin123`），首次登录若提示改密按提示操作。
 
 登录页支持「记住密码」：勾选后可选 1 / 7 / 15 天有效期，到期自动失效，取消勾选立即清除本地记录（密码仅做 base64 编码存放，公共设备建议不要勾选）。
 
