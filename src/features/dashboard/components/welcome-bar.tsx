@@ -45,7 +45,8 @@ export function WelcomeBar({ profile, noticeCount, refreshing, onRefresh, onOpen
 
   return (
     <Card>
-      <CardContent className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 py-6">
+      {/* 注意：CardContent 基础类是 flex-col，这里必须显式 flex-row，否则左右两列会垂直堆叠居中 */}
+      <CardContent className="flex flex-row flex-wrap items-center justify-between gap-x-8 gap-y-4 py-6">
         <div className="flex min-w-0 items-center gap-4">
           <AvatarFallback name={profile.realname || profile.username} />
           <div className="min-w-0">
