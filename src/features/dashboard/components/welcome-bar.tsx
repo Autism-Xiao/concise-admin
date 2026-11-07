@@ -22,7 +22,7 @@ interface WelcomeBarProps {
 /** 头像占位：没有头像时用真名首字，避免请求 404 图片 */
 function AvatarFallback({ name }: { name: string }) {
   return (
-    <div className="bg-primary/10 text-primary flex size-11 shrink-0 items-center justify-center rounded-full text-lg font-semibold">
+    <div className="bg-primary/15 text-primary ring-border/60 flex size-11 shrink-0 items-center justify-center rounded-full text-lg font-semibold ring-1">
       {name.slice(0, 1).toUpperCase()}
     </div>
   )
@@ -32,7 +32,7 @@ function AvatarFallback({ name }: { name: string }) {
  * 欢迎条（参照轻量模板布局）：
  * - 左：头像 + 单行问候「上午好，XX，开始您一天的工作吧！」，第二行小字是身份与上次登录
  *   （上次登录是安全感知最有用的一行信息：不是自己的登录能立刻发现，数据来自 sys_log）
- * - 右：迷你统计块（待办 / 今日登录 / 在线），逐块按权限显示，无权限的不出现
+ * - 右：迷你统计块，竖分隔线分块 + 图标底座 + 大数字，逐块按权限显示，无权限的不出现
  */
 export function WelcomeBar({ profile, stats, refreshing, onRefresh }: WelcomeBarProps) {
   const lastLogin = profile.lastLogin
@@ -46,34 +46,39 @@ export function WelcomeBar({ profile, stats, refreshing, onRefresh }: WelcomeBar
   return (
     <Card>
       {/* CardContent 基础类是 flex-col，这里必须显式 flex-row，否则左右两列会垂直堆叠 */}
-      <CardContent className="flex flex-row flex-wrap items-center justify-between gap-x-8 gap-y-3 py-5">
-        <div className="flex min-w-0 items-center gap-3.5">
+      <CardContent className="flex flex-row flex-wrap items-center justify-between gap-x-8 gap-y-4 py-6">
+        <div className="flex min-w-0 items-center gap-4">
           <AvatarFallback name={profile.realname || profile.username} />
           <div className="min-w-0">
             <h1 className="truncate text-lg font-semibold tracking-tight">
               {greeting()}，{profile.realname}，开始您一天的工作吧！
             </h1>
-            <p className="text-muted-foreground mt-1 truncate text-xs">
+            <p className="text-muted-foreground mt-1.5 truncate text-xs">
               {identity ? `${identity} · ` : ''}
               {lastLoginText}
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-          {stats.map(stat => (
-            <div key={stat.key} className="flex items-center gap-2">
-              <stat.icon className="text-muted-foreground size-4.5" />
+        <div className="flex flex-wrap items-center">
+          {stats.map((stat, index) => (
+            <div
+              key={stat.key}
+              className={cn('flex items-center gap-3 py-1 pl-5 first:pl-0', index > 0 && 'border-border border-l')}
+            >
+              <div className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
+                <stat.icon className="size-4.5" />
+              </div>
               <div className="leading-tight">
-                <p className="text-muted-foreground text-xs whitespace-nowrap">{stat.label}</p>
-                <p className="text-sm font-semibold tabular-nums">{stat.value}</p>
+                <p className="text-lg font-semibold tabular-nums">{stat.value}</p>
+                <p className="text-muted-foreground mt-0.5 text-xs whitespace-nowrap">{stat.label}</p>
               </div>
             </div>
           ))}
           <Button
             variant="ghost"
             size="icon"
-            className="text-muted-foreground size-8"
+            className={cn('text-muted-foreground size-8', stats.length > 0 && 'ml-3')}
             disabled={refreshing}
             onClick={onRefresh}
             aria-label="刷新概览"
