@@ -1,12 +1,14 @@
-import { ArrowRight, ListTodo } from 'lucide-react'
+import { ChevronRight, ListTodo } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import type { TaskBlock } from '../api'
 
 interface MyTasksCardProps {
   block: TaskBlock
   onOpenTasks: () => void
+  /** 目标页面（/tasks）是否在当前角色菜单范围内；不在时隐藏入口，避免点了被甩到 403 */
+  canOpenTasks?: boolean
 }
 
 const STATUS_ROWS = [
@@ -23,21 +25,25 @@ const STATUS_ROWS = [
  * 而 task.assignee_id 是 int、用户主键是 varchar(32)，两边还没对齐，
  * 所以大概率恒为 0 —— 空态文案要引导去任务看板，而不是让人以为页面坏了。
  */
-export function MyTasksCard({ block, onOpenTasks }: MyTasksCardProps) {
+export function MyTasksCard({ block, onOpenTasks, canOpenTasks = true }: MyTasksCardProps) {
   const total = block.pending + block.doing + block.done + block.cancelled
   const openCount = block.pending + block.doing
 
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
+      <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <ListTodo className="text-muted-foreground size-4" />
           我的待办
         </CardTitle>
-        <Button variant="link" size="sm" className="h-auto px-0" onClick={onOpenTasks}>
-          任务看板
-          <ArrowRight />
-        </Button>
+        {canOpenTasks && (
+          <CardAction>
+            <Button variant="link" size="sm" className="h-auto px-0" onClick={onOpenTasks}>
+              任务看板
+              <ChevronRight />
+            </Button>
+          </CardAction>
+        )}
       </CardHeader>
       <CardContent>
         {total === 0 ? (

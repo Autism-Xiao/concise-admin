@@ -1,12 +1,14 @@
-import { ArrowRight, Megaphone } from 'lucide-react'
+import { ChevronRight, Megaphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { formatRelativeTime, type NoticeRow } from '../api'
 
 interface NoticesCardProps {
   rows: NoticeRow[]
   onOpenNotices: () => void
+  /** 目标页面（/system/notice）是否在当前角色菜单范围内 */
+  canOpenNotices?: boolean
 }
 
 /** 优先级配色：H 高（红）/ M 中（琥珀）/ L 低（灰） */
@@ -17,18 +19,22 @@ const PRIORITY_STYLE: Record<string, { label: string; className: string }> = {
 }
 
 /** 最新公告（只取已发布的，最多 5 条） */
-export function NoticesCard({ rows, onOpenNotices }: NoticesCardProps) {
+export function NoticesCard({ rows, onOpenNotices, canOpenNotices = true }: NoticesCardProps) {
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
+      <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Megaphone className="text-muted-foreground size-4" />
           通知公告
         </CardTitle>
-        <Button variant="link" size="sm" className="h-auto px-0" onClick={onOpenNotices}>
-          全部
-          <ArrowRight />
-        </Button>
+        {canOpenNotices && (
+          <CardAction>
+            <Button variant="link" size="sm" className="h-auto px-0" onClick={onOpenNotices}>
+              全部
+              <ChevronRight />
+            </Button>
+          </CardAction>
+        )}
       </CardHeader>
       <CardContent className="space-y-1">
         {rows.length === 0 ? (

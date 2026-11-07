@@ -1,6 +1,6 @@
-import { ArrowRight, Server } from 'lucide-react'
+import { ChevronRight, Server } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { formatBytes, type ServerStateBlock } from '../api'
 
@@ -43,15 +43,17 @@ function UsageRow({ label, usage, extra }: { label: string; usage: number; extra
 export function ServerStateCard({ block, onOpenMonitor }: ServerStateCardProps) {
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
+      <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Server className="text-muted-foreground size-4" />
           系统状态
         </CardTitle>
-        <Button variant="link" size="sm" className="h-auto px-0" onClick={onOpenMonitor}>
-          服务监控
-          <ArrowRight />
-        </Button>
+        <CardAction>
+          <Button variant="link" size="sm" className="h-auto px-0" onClick={onOpenMonitor}>
+            服务监控
+            <ChevronRight />
+          </Button>
+        </CardAction>
       </CardHeader>
       <CardContent className="space-y-3">
         <UsageRow label="CPU" usage={block.cpuUsage} />

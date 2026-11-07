@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { isPathAllowed, usePermittedPaths } from '@/lib/permissions'
 import { fetchOverview, type DashboardOverview } from './api'
 import { LoginTrendChart } from './components/login-trend-chart'
 import { MetricCards } from './components/metric-cards'
@@ -99,6 +100,14 @@ export function DashboardPage() {
     [navigate]
   )
 
+  // 卡片上的跳转入口与快捷入口同一套门槛：目标页不在当前角色菜单范围内就不渲染按钮，
+  // 避免访客点「通知公告」被甩到 403（permitted 为 null = 超管 / 加载中，放行）
+  const permitted = usePermittedPaths()
+  const canGo = useMemo(() => {
+    const check = (path: string) => !permitted || isPathAllowed(path, permitted)
+    return { notices: check('/system/notice'), tasks: check('/tasks'), logs: check('/system/log/operation') }
+  }, [permitted])
+
   if (loading) return <DashboardSkeleton />
 
   if (error) {
@@ -128,6 +137,7 @@ export function DashboardPage() {
         refreshing={refreshing}
         onRefresh={() => void load()}
         onOpenNotices={() => go('/system/notice')}
+        canOpenNotices={canGo.notices}
       />
 
       {restricted && (
@@ -144,11 +154,13 @@ export function DashboardPage() {
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
           {data.loginTrend && <LoginTrendChart block={data.loginTrend} />}
-          {data.recentOpers && <RecentOpersCard block={data.recentOpers} onOpenLogs={() => go('/system/log/operation')} />}
+          {data.recentOpers && (
+            <RecentOpersCard block={data.recentOpers} onOpenLogs={() => go('/system/log/operation')} canOpenLogs={canGo.logs} />
+          )}
         </div>
         <div className="space-y-4">
-          <MyTasksCard block={data.myTasks} onOpenTasks={() => go('/tasks')} />
-          <NoticesCard rows={data.notices} onOpenNotices={() => go('/system/notice')} />
+          <MyTasksCard block={data.myTasks} onOpenTasks={() => go('/tasks')} canOpenTasks={canGo.tasks} />
+          <NoticesCard rows={data.notices} onOpenNotices={() => go('/system/notice')} canOpenNotices={canGo.notices} />
           <QuickEntriesCard onNavigate={go} />
           {data.serverState && <ServerStateCard block={data.serverState} onOpenMonitor={() => go('/ops/server')} />}
         </div>

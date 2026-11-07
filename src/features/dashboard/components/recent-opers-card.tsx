@@ -1,11 +1,13 @@
-import { ArrowRight, CheckCircle2, ScrollText, XCircle } from 'lucide-react'
+import { CheckCircle2, ChevronRight, ScrollText, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatRelativeTime, type RecentOpersBlock } from '../api'
 
 interface RecentOpersCardProps {
   block: RecentOpersBlock
   onOpenLogs: () => void
+  /** 目标页面（/system/log/operation）是否在当前角色菜单范围内 */
+  canOpenLogs?: boolean
 }
 
 /**
@@ -14,10 +16,10 @@ interface RecentOpersCardProps {
  * 后端已经把 log_content 截断到 80 字、并且不返回 params / error_msg，
  * 所以这里可以直接展示（详情页才有完整参数）。
  */
-export function RecentOpersCard({ block, onOpenLogs }: RecentOpersCardProps) {
+export function RecentOpersCard({ block, onOpenLogs, canOpenLogs = true }: RecentOpersCardProps) {
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
+      <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <ScrollText className="text-muted-foreground size-4" />
           最近操作
@@ -25,10 +27,14 @@ export function RecentOpersCard({ block, onOpenLogs }: RecentOpersCardProps) {
             {block.scope === 'all' ? '全站' : '仅我的'}
           </span>
         </CardTitle>
-        <Button variant="link" size="sm" className="h-auto px-0" onClick={onOpenLogs}>
-          操作日志
-          <ArrowRight />
-        </Button>
+        {canOpenLogs && (
+          <CardAction>
+            <Button variant="link" size="sm" className="h-auto px-0" onClick={onOpenLogs}>
+              操作日志
+              <ChevronRight />
+            </Button>
+          </CardAction>
+        )}
       </CardHeader>
       <CardContent>
         {block.rows.length === 0 ? (
