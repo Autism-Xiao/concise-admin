@@ -99,7 +99,6 @@ export const zh = {
   'lock.unlock': '解锁',
   'lock.unlocking': '解锁中…',
   'lock.wrongPassword': '密码不正确',
-  'lock.rememberedHint': '已填入本设备记住的密码，直接解锁即可',
   'lock.backToLogin': '返回登录',
   // 快捷键设置
   'config.shortcuts': '快捷键',
@@ -246,7 +245,6 @@ export const en: Record<TranslationKey, string> = {
   'lock.unlock': 'Unlock',
   'lock.unlocking': 'Unlocking…',
   'lock.wrongPassword': 'Incorrect password',
-  'lock.rememberedHint': 'Password filled in from this device — just tap Unlock',
   'lock.backToLogin': 'Back to login',
   // Shortcut settings
   'config.shortcuts': 'Shortcuts',
