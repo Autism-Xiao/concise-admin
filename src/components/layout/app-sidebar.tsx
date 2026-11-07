@@ -72,11 +72,10 @@ function menuIcon(path?: string): LucideIcon {
 
 /**
  * 菜单节点是否渲染到侧边栏。
- * 首页（HOME_PATH）在下方有**固定入口**，后端菜单树里若也配了「仪表盘」节点就会重复出现两个，
- * 所以这里统一剔除 —— 首页入口不依赖菜单授权，是常驻的。
+ * 仪表盘和其他菜单一样走后端菜单树（排序、分组、改名都由「菜单管理」决定），
+ * 不再有硬编码的顶部固定入口 —— 后端登录接口会把首页节点补进树里，任何角色都有。
  */
-const visible = (n: PermissionMenu) =>
-  n.menuType !== 2 && n.hidden !== 1 && n.status !== '0' && menuPath(n) !== HOME_PATH
+const visible = (n: PermissionMenu) => n.menuType !== 2 && n.hidden !== 1 && n.status !== '0'
 const nodeLabel = (n: PermissionMenu) => n.name ?? n.title ?? ''
 const bySort = (a: PermissionMenu, b: PermissionMenu) => (a.sortNo ?? a.sort ?? 0) - (b.sortNo ?? b.sort ?? 0)
 
@@ -148,16 +147,16 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
   const homePath = resolveHomePath()
   const visibleGroups = useMemo<NavGroup[]>(() => {
     if (!permitted) return navGroups
+    // 首页是常驻页面（路由守卫白名单放行），不参与菜单授权过滤
+    const allowed = (url?: string) => !!url && (url === HOME_PATH || permitted.has(url))
     return navGroups
       .map(group => {
         if (group.titleKey !== 'group.general' && group.titleKey !== 'group.system' && group.titleKey !== 'group.data' && group.titleKey !== 'group.ops')
           return group
         const items = group.items
-          // 静态菜单里也有「仪表盘」一项，同样剔除，避免和上方固定入口重复
-          .filter(item => item.url !== HOME_PATH)
           .map(item => {
-            if (!item.items) return item.url && permitted.has(item.url) ? item : null
-            const subs = item.items.filter(sub => sub.url && sub.url !== HOME_PATH && permitted.has(sub.url))
+            if (!item.items) return allowed(item.url as string) ? item : null
+            const subs = item.items.filter(sub => allowed(sub.url as string))
             return subs.length ? { ...item, items: subs } : null
           })
           .filter((item): item is NavItem => item != null)
@@ -168,7 +167,22 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
 
   // 登录后拿到后端菜单树则直接用它渲染（后端已按角色过滤）；否则回退静态菜单
   const menuTree = useMenuTree()
-  const dynamicGroups = useMemo<DynGroup[] | null>(() => (menuTree ? treeToGroups(menuTree) : null), [menuTree])
+  const dynamicGroups = useMemo<DynGroup[] | null>(() => {
+    if (!menuTree) return null
+    const groups = treeToGroups(menuTree)
+    // 兜底：历史会话缓存里没有首页节点（后端补节点前登录的账号）时补一个，
+    // 保证「登录 → 落地页」始终有可点的入口；后端下发了则以菜单配置的排序/名称为准
+    const hasHome = groups.some(g => g.items.some(i => i.url === HOME_PATH || i.children?.some(c => c.url === HOME_PATH)))
+    if (hasHome) return groups
+    return [
+      {
+        key: '_home',
+        label: '',
+        items: [{ url: HOME_PATH, label: t('nav.dashboard'), icon: LayoutDashboard }]
+      },
+      ...groups
+    ]
+  }, [menuTree, t])
 
   return (
     <Sidebar collapsible={collapsible} variant={variant} side={direction === 'rtl' ? 'right' : 'left'}>
@@ -191,15 +205,7 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
         <SidebarGroup className="pb-0">
           <SidebarGroupContent>
             <SidebarMenu>
-              {/* 首页固定入口：不依赖后端菜单授权（菜单里没勾「仪表盘」的角色也能一键回首页） */}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === homePath} tooltip={t('nav.dashboard')}>
-                  <Link to={homePath as never} onClick={closeMobileSidebar}>
-                    <LayoutDashboard />
-                    <span>{t('nav.dashboard')}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {/* 搜索是动作不是路由，固定放在菜单最上方；页面入口（含仪表盘）全部由菜单树渲染 */}
               <SidebarMenuItem>
                 <SidebarMenuButton
                   tooltip={t('nav.search')}
