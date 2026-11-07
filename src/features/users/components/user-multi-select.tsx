@@ -33,8 +33,8 @@ export function UserMultiSelect({ value, onChange, placeholder = '搜索账号�
   const [loadFailed, setLoadFailed] = useState(false)
   /** 已选 ID → 账号信息缓存，保证 chips 一直能显示账号 */
   const [briefs, setBriefs] = useState<Record<string, UserBrief>>({})
-  /** 已尝试过 lookup 的 ID，避免「用户已删除 → 每次都查不到 → 死循环重查」 */
-  const attemptedRef = useRef<Set<string>>(new Set())
+  /** 查过但确实拿不到账号的 ID（用户已删除 / 后端没有 lookup 接口），避免死循环重查 */
+  const failedRef = useRef<Set<string>>(new Set())
   const rootRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -44,28 +44,55 @@ export function UserMultiSelect({ value, onChange, placeholder = '搜索账号�
   /* ---------- 回显：把已选 ID 翻译成账号 ---------- */
   useEffect(() => {
     const ids = valueKey ? valueKey.split(',') : []
-    const missing = ids.filter(id => id && !attemptedRef.current.has(id))
+    // 依赖里带 briefs：拿到账号后会再跑一次，这时 missing 为空自然停下
+    const missing = ids.filter(id => id && !briefs[id] && !failedRef.current.has(id))
     if (!missing.length) return
-    missing.forEach(id => attemptedRef.current.add(id))
     let alive = true
-    lookupUsers(missing)
+
+    /** 优先 lookup（按 ID 精确、一次拿全）；失败或空结果退回用户列表兜底（后端未升级时也能显示） */
+    const resolve = async (): Promise<UserBrief[]> => {
+      try {
+        const list = await lookupUsers(missing)
+        if (list.length) return list
+      } catch {
+        // 后端还没这个接口（404）或网络异常，走下面的列表兜底
+      }
+      const res = await fetchUsers()
+      return (res.records ?? []).map(u => ({ id: u.id, username: u.username, realname: u.realname }))
+    }
+
+    resolve()
       .then(list => {
-        if (!alive || !list.length) return
-        setBriefs(prev => {
-          const next = { ...prev }
-          list.forEach(item => {
-            next[item.id] = item
-          })
-          return next
+        if (!alive) return
+        const hit: UserBrief[] = []
+        const next: Record<string, UserBrief> = {}
+        list.forEach(item => {
+          next[item.id] = item
         })
+        missing.forEach(id => {
+          const found = next[id]
+          if (found) hit.push(found)
+        })
+        if (hit.length) {
+          setBriefs(prev => {
+            const merged = { ...prev }
+            hit.forEach(item => {
+              merged[item.id] = item
+            })
+            return merged
+          })
+        }
+        // 一个都没命中（账号已删 / 后端不可用）：记下避免反复重试，chip 保留红色 #id
+        if (!hit.length) missing.forEach(id => failedRef.current.add(id))
       })
       .catch(() => {
-        // 回显失败不打断编辑：chip 退化为 #id，保存时原样保留该 ID
+        if (alive) missing.forEach(id => failedRef.current.add(id))
       })
+
     return () => {
       alive = false
     }
-  }, [valueKey])
+  }, [valueKey, briefs])
 
   /* ---------- 搜索：服务端 keyword 模糊匹配账号/姓名/电话 ---------- */
   useEffect(() => {
