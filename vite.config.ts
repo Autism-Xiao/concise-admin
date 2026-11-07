@@ -9,8 +9,7 @@ import { buildFilterCss, buildThemeColorCss } from './src/lib/theme-presets.ts'
 // 应用设置持久化到项目根目录 settings.json（开发环境由 dev server 读写，
 // 生产环境可替换为后端接口，前端代码不变）
 const SETTINGS_FILE = path.resolve(__dirname, 'settings.json')
-// 仍是本地数据文件的模块（其余模块已接真实后端，不再有 mock 文件）
-const FILES_FILE = path.resolve(__dirname, 'public/mock/files.json')
+// 仍是本地数据文件的模块（文件管理、行政区划已接真实后端，files.json 已删除）
 const TENANTS_FILE = path.resolve(__dirname, 'public/mock/tenants.json')
 const REGIONS_FILE = path.resolve(__dirname, 'public/mock/regions.json')
 // 后端地址：开发环境通过 /backend-api 代理访问，规避 CORS（生产环境由网关/Nginx 转发）
@@ -139,7 +138,6 @@ export default defineConfig({
     react(),
     tailwindcss(),
     settingsApi(),
-    jsonWriteApi('concise-files-api', '/api/files', FILES_FILE),
     jsonWriteApi('concise-tenants-api', '/api/tenants', TENANTS_FILE),
     jsonWriteApi('concise-regions-api', '/api/regions', REGIONS_FILE)
   ],
@@ -158,7 +156,7 @@ export default defineConfig({
     },
     watch: {
       // settings.json / mock 写回文件由接口写入，变化不应触发页面刷新
-      ignored: ['**/settings.json', '**/public/mock/files.json', '**/public/mock/tenants.json', '**/public/mock/regions.json']
+      ignored: ['**/settings.json', '**/public/mock/tenants.json', '**/public/mock/regions.json']
     }
   },
   resolve: {
