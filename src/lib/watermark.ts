@@ -103,3 +103,26 @@ export function updateUserWatermark(userId: string, patch: UserWatermarkPatch): 
     body: JSON.stringify(patch)
   })
 }
+
+/**
+ * 批量水印动作（用户管理勾选多人后提交）
+ *
+ * 只有三档，刻意不给任意 enabled/enforced 组合：批量场景下"开但强制关"这种矛盾设置没人要，
+ * 单用户的精细组合仍走 updateUserWatermark。
+ */
+export type BatchWatermarkMode = 'on' | 'off' | 'inherit'
+
+export interface BatchWatermarkResult {
+  mode: BatchWatermarkMode
+  updated: number
+  /** 被跳过的目标（用户不存在/已删除），原因直接展示给用户 */
+  skipped: Array<{ id: string; reason: string }>
+}
+
+export function batchUpdateUsersWatermark(ids: string[], mode: BatchWatermarkMode): Promise<BatchWatermarkResult> {
+  return getApiResult<BatchWatermarkResult>('/backend-api/v1/users/batch-watermark', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids, mode })
+  })
+}

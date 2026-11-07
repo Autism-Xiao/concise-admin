@@ -1,7 +1,14 @@
 import { batchDeleteRequest, type BatchDeleteResult } from '@/lib/batch-delete'
 import { downloadFromApi } from '@/lib/download'
 import { getApiResult, type PageResult } from '@/lib/http'
-import { updateUserWatermark, type UserWatermarkPatch, type WatermarkDensity } from '@/lib/watermark'
+import {
+  batchUpdateUsersWatermark,
+  updateUserWatermark,
+  type BatchWatermarkMode,
+  type BatchWatermarkResult,
+  type UserWatermarkPatch,
+  type WatermarkDensity
+} from '@/lib/watermark'
 import { fetchRoleOptions, type Role } from '@/features/system/role/api'
 
 /** 后端 sys_user（对齐 JeecgBoot），只保留页面需要的字段 */
@@ -43,8 +50,8 @@ export interface User {
   watermarkEffective?: boolean
 }
 
-export { updateUserWatermark }
-export type { UserWatermarkPatch, WatermarkDensity }
+export { batchUpdateUsersWatermark, updateUserWatermark }
+export type { BatchWatermarkMode, BatchWatermarkResult, UserWatermarkPatch, WatermarkDensity }
 
 export interface UserWritePayload {
   /** 新增必填；编辑时后端不可改，不下发 */

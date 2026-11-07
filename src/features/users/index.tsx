@@ -37,9 +37,11 @@ import { saveBlobFile } from '@/lib/download'
 import { UserImportDialog } from './components/user-import-dialog'
 import { UserLoginLogDialog } from './components/user-login-log-dialog'
 import { BatchRolesDialog } from './components/batch-roles-dialog'
+import { BATCH_WATERMARK_MODE_LABEL, BatchWatermarkDialog } from './components/batch-watermark-dialog'
 import {
   batchAssignRoles,
   batchUpdateUsersStatus,
+  batchUpdateUsersWatermark,
   clearUserPermissionCache,
   createUser,
   deleteUser,
@@ -53,6 +55,7 @@ import {
   updateUser,
   updateUserStatus,
   userStatusMap,
+  type BatchWatermarkMode,
   type User,
   type UserWritePayload
 } from './api'
@@ -94,6 +97,8 @@ export function UsersPage() {
   const [logTarget, setLogTarget] = useState<User | null>(null)
   /** 批量分配角色弹窗开关（目标用户取当前勾选行） */
   const [batchRolesOpen, setBatchRolesOpen] = useState(false)
+  /** 批量水印弹窗开关（目标用户取当前勾选行） */
+  const [batchWatermarkOpen, setBatchWatermarkOpen] = useState(false)
   /** 批量启停确认框：非空时待执行 */
   const [batchStatusTarget, setBatchStatusTarget] = useState<1 | 2 | null>(null)
 
@@ -394,6 +399,24 @@ export function UsersPage() {
     }
   }
 
+  /** 批量水印：三档成品动作（强制开/强制关/跟随全局），单条失败不阻断并回传跳过原因 */
+  const handleBatchWatermark = async (ids: string[], mode: BatchWatermarkMode) => {
+    try {
+      const result = await withOperationLog(`批量${BATCH_WATERMARK_MODE_LABEL[mode]} ${ids.length} 个用户`, () => batchUpdateUsersWatermark(ids, mode))
+      if (result.updated > 0) {
+        toast.success(`已为 ${result.updated} 个用户${BATCH_WATERMARK_MODE_LABEL[mode]}，用户刷新页面后生效`)
+      } else {
+        toast.error('没有用户被更新')
+      }
+      result.skipped?.forEach(item => toast.warning(`已跳过 ${item.id}：${item.reason}`))
+      setBatchWatermarkOpen(false)
+      setRowSelection({})
+      load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '批量水印设置失败')
+    }
+  }
+
   const handleSubmit = (values: UserWritePayload) => {
     const request = editing ? withOperationLog('更新用户', () => updateUser(editing.id, values)) : withOperationLog('新增用户', () => createUser(values))
     request
@@ -513,6 +536,10 @@ export function UsersPage() {
               <Button variant="outline" onClick={() => setBatchRolesOpen(true)} disabled={batchBusy}>
                 <UserCog />
                 批量分配角色（{selectedCount}）
+              </Button>
+              <Button variant="outline" onClick={() => setBatchWatermarkOpen(true)} disabled={batchBusy}>
+                <Droplets />
+                批量水印（{selectedCount}）
               </Button>
             </>
           )}
@@ -650,6 +677,17 @@ export function UsersPage() {
           }}
           targets={table.getSelectedRowModel().rows.map(row => row.original)}
           onSubmit={handleBatchRoles}
+        />
+      )}
+
+      {batchWatermarkOpen && selectedCount > 0 && (
+        <BatchWatermarkDialog
+          open={batchWatermarkOpen}
+          onOpenChange={v => {
+            if (!v) setBatchWatermarkOpen(false)
+          }}
+          targets={table.getSelectedRowModel().rows.map(row => row.original)}
+          onSubmit={handleBatchWatermark}
         />
       )}
 
