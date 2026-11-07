@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Download, Pencil, Plus, Search, ShieldCheck, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
@@ -20,8 +21,9 @@ import { createRole, deleteRole, deleteRoles, exportRoles, fetchRoleMenuIds, fet
 import { toastBatchResult } from '@/lib/batch-delete'
 
 const columnLabels: Record<string, string> = {
-  roleCode: '权限字符',
   roleName: '角色名称',
+  roleCode: '权限字符',
+  status: '状态',
   description: '描述',
   createTime: '创建时间'
 }
@@ -57,6 +59,39 @@ export function RolePage() {
   useEffect(load, [])
 
   const roles = useMemo(() => list ?? [], [list])
+
+  /** 正在切换状态的行 id（行级 loading，防止连点） */
+  const [togglingId, setTogglingId] = useState<string | null>(null)
+  const togglingRef = useRef<string | null>(null)
+
+  /** 表格里直接开关角色状态：乐观更新，失败回滚；停用后该角色立即失去权限 */
+  const toggleStatus = useCallback(
+    (role: Role, checked: boolean) => {
+      const next = checked ? 1 : 0
+      if (role.status === next || togglingRef.current) return
+      togglingRef.current = role.id
+      setTogglingId(role.id)
+      setList(prev => (prev ?? []).map(item => (item.id === role.id ? { ...item, status: next } : item)))
+      updateRole(role.id, { status: next })
+        .then(() => {
+          toast.success(
+            checked ? `已启用「${role.roleName ?? role.roleCode}」` : `已停用「${role.roleName ?? role.roleCode}」，该角色权限立即失效`
+          )
+          // 权限接口（菜单树/按钮码）有会话级缓存，通知清一下，被停用角色的在线用户下次拉取就看不到菜单了
+          notifyPermissionsChanged()
+        })
+        .catch(e => {
+          // 回滚
+          setList(prev => (prev ?? []).map(item => (item.id === role.id ? { ...item, status: role.status ?? 1 } : item)))
+          toast.error(e instanceof Error ? e.message : '状态修改失败')
+        })
+        .finally(() => {
+          togglingRef.current = null
+          setTogglingId(null)
+        })
+    },
+    []
+  )
 
   const openCreate = () => {
     setEditing(null)
@@ -109,14 +144,32 @@ export function RolePage() {
         enableHiding: false
       },
       {
+        accessorKey: 'roleName',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="角色名称" />,
+        cell: ({ row }) => <span className="font-medium">{row.getValue('roleName') ?? '-'}</span>
+      },
+      {
         accessorKey: 'roleCode',
         header: ({ column }) => <DataTableColumnHeader column={column} title="权限字符" />,
         cell: ({ row }) => <span className="font-mono text-xs">{row.getValue('roleCode')}</span>
       },
       {
-        accessorKey: 'roleName',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="角色名称" />,
-        cell: ({ row }) => <span className="font-medium">{row.getValue('roleName') ?? '-'}</span>
+        accessorKey: 'status',
+        header: () => <div>状态</div>,
+        enableSorting: false,
+        cell: ({ row }) => {
+          const role = row.original
+          const builtin = isSuperRoleCode(role.roleCode)
+          const busy = togglingId === role.id
+          return (
+            <Switch
+              checked={role.status !== 0}
+              disabled={builtin || busy}
+              aria-label={builtin ? '内置管理员角色不允许停用' : role.status !== 0 ? '停用角色' : '启用角色'}
+              onCheckedChange={checked => void toggleStatus(role, checked)}
+            />
+          )
+        }
       },
       {
         accessorKey: 'description',
@@ -176,7 +229,7 @@ export function RolePage() {
         }
       }
     ],
-    [permLoading]
+    [permLoading, togglingId, toggleStatus]
   )
 
   const { table, keyword, setKeyword, rowSelection, setRowSelection } = useDataTable({ data: roles, columns, getRowId: role => role.id })

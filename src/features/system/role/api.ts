@@ -9,6 +9,8 @@ export interface Role {
   description?: string
   /** 数据范围：1 全部 / 2 本部门及以下 / 3 本部门 / 4 仅本人 */
   dataScope?: number
+  /** 状态：1 正常 / 0 停用（停用后不参与权限计算、不可再分配给用户） */
+  status?: number
   createBy?: string
   createTime?: string
   updateBy?: string
@@ -40,6 +42,8 @@ export interface RoleWritePayload {
   description?: string
   /** 数据范围：1 全部 / 2 本部门及以下 / 3 本部门 / 4 仅本人 */
   dataScope?: number
+  /** 状态：1 正常 / 0 停用 */
+  status?: number
   /** 传入即全量覆盖授权（创建/更新都支持） */
   menuIds?: string[]
 }

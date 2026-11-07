@@ -4,6 +4,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { isSuperRoleCode } from '@/lib/permissions'
 import type { Role } from '../api'
 
 export interface RoleFormValues {
@@ -11,6 +13,8 @@ export interface RoleFormValues {
   roleCode: string
   description?: string
   dataScope?: number
+  /** 状态：1 正常 / 0 停用 */
+  status?: number
 }
 
 interface RoleFormDialogProps {
@@ -21,7 +25,7 @@ interface RoleFormDialogProps {
   onSubmit: (values: RoleFormValues) => void
 }
 
-const emptyForm = { roleName: '', roleCode: '', description: '', dataScope: 1 }
+const emptyForm = { roleName: '', roleCode: '', description: '', dataScope: 1, status: 1 }
 
 /** 数据范围档位（与后端 sys_role.data_scope 对齐） */
 const DATA_SCOPE_ITEMS = { 1: '全部数据', 2: '本部门及以下', 3: '仅本部门', 4: '仅本人' }
@@ -30,7 +34,13 @@ const DATA_SCOPE_ITEMS = { 1: '全部数据', 2: '本部门及以下', 3: '仅�
 export function RoleFormDialog({ open, onOpenChange, role, onSubmit }: RoleFormDialogProps) {
   const [form, setForm] = useState(() =>
     role
-      ? { roleName: role.roleName ?? '', roleCode: role.roleCode, description: role.description ?? '', dataScope: role.dataScope ?? 1 }
+      ? {
+          roleName: role.roleName ?? '',
+          roleCode: role.roleCode,
+          description: role.description ?? '',
+          dataScope: role.dataScope ?? 1,
+          status: role.status ?? 1
+        }
       : emptyForm
   )
 
@@ -91,6 +101,18 @@ export function RoleFormDialog({ open, onOpenChange, role, onSubmit }: RoleFormD
               </SelectContent>
             </Select>
             <p className="text-muted-foreground text-xs">控制该角色下用户能看到的业务数据范围（如用户列表只显示权限内的人）；超管角色不受限</p>
+          </div>
+          <div className="flex items-center justify-between rounded-lg border px-3 py-2.5">
+            <div>
+              <Label htmlFor="role-status">状态</Label>
+              <p className="text-muted-foreground mt-0.5 text-xs">停用后该角色不再参与权限计算，也不能再分配给用户</p>
+            </div>
+            <Switch
+              id="role-status"
+              checked={form.status !== 0}
+              disabled={role !== null && isSuperRoleCode(role.roleCode)}
+              onCheckedChange={checked => set('status', checked ? 1 : 0)}
+            />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
