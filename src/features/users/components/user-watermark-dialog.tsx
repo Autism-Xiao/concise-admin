@@ -16,7 +16,7 @@ interface UserWatermarkDialogProps {
 }
 
 const ENFORCED_LABELS: Record<number, string> = {
-  0: '按全局策略（用户可自行开关）',
+  0: '跟随全局策略（用户不能自行修改）',
   1: '强制开启（用户关不掉）',
   2: '强制关闭（用户开不了）'
 }
@@ -24,6 +24,8 @@ const ENFORCED_LABELS: Record<number, string> = {
 /**
  * 管理员给单个用户设置水印
  *
+ * 水印开关只归管理员：普通账号在设置面板里看到的是只读状态（后端也拒绝其自改），
+ * 逐人开启/关闭就是走这个弹窗。
  * 列表只带回 enabled/enforced 摘要，content/density 不展示原始值：
  * 留空提交 = 跟随全局，改了才覆盖 —— 与后端 NULL 语义一致，也避免误以为空输入是"清空用户配置"。
  */
@@ -72,7 +74,9 @@ export function UserWatermarkDialog({ open, onOpenChange, user, onSaved }: UserW
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>水印设置 · {user.realname || user.username}</DialogTitle>
-          <DialogDescription>该用户当前水印状态：{user.watermarkEffective ? '已开启' : '已关闭'}。留空的内容与密度将跟随全局策略。</DialogDescription>
+          <DialogDescription>
+            该用户当前水印状态：{user.watermarkEffective ? '已开启' : '已关闭'}。用户自己不能开关水印，只在这里设置；留空的内容与密度将跟随全局策略。
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

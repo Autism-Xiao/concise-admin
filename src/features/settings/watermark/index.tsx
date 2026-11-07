@@ -38,7 +38,28 @@ export function WatermarkSettingPage() {
       .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
   }
 
-  useEffect(load, [])
+  useEffect(() => {
+    if (editable) load()
+    // 权限汇总在登录后异步写入，editable 可能首帧为 false，拿到权限后要补一次加载
+  }, [editable])
+
+  // 没有管理权限就不发请求（否则只会得到 403 的通用报错），直接告诉用户这块归谁管
+  if (!editable) {
+    return (
+      <Card className="w-full max-w-2xl">
+        <CardHeader>
+          <CardTitle>水印策略</CardTitle>
+          <CardDescription>水印开关只由管理员统一管理，普通账号不能自行开启或关闭。</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground text-sm">
+            需要对某个账号调整水印，请联系系统管理员在「用户管理 → 水印」中设置（需权限码 system:watermark:edit）。
+          </p>
+        </CardContent>
+      </Card>
+    )
+  }
+
 
   if (error) {
     return (

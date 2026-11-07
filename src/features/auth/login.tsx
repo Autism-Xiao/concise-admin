@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { AppWindow, ChevronRight, CircleCheckBig, Eye, EyeOff, Loader2, Lock, Palette, ShieldCheck, User } from 'lucide-react'
+import { AppWindow, ChevronRight, CircleCheckBig, Eye, EyeOff, Loader2, Lock, Palette, ShieldCheck, TriangleAlert, User } from 'lucide-react'
 import { toast } from 'sonner'
 import SliderCaptcha, { type ActionType, type VerifyParam } from 'rc-slider-captcha'
 import { cn } from 'cn'
@@ -16,64 +16,18 @@ import { useLocale } from '@/context/locale-provider'
 import { login, setMenuTree, setMustChangePassword, setPermissions, setTokens } from '@/lib/auth'
 import { resolveHomePath } from '@/lib/home-path'
 import { notifyPermissionsChanged } from '@/lib/permissions'
+import {
+  clearRemember,
+  readRemember,
+  readRememberPassword,
+  REMEMBER_DAYS_DEFAULT,
+  REMEMBER_OPTIONS,
+  writeRemember,
+  type RememberDays
+} from '@/lib/remember'
 import { fetchCaptcha, fetchPermissions, loginRequest, verifyCaptcha } from './api'
 
 const APP_NAME = import.meta.env.VITE_APP_NAME
-
-/** 「记住密码」可选有效期（天） */
-const REMEMBER_OPTIONS = [1, 7, 15] as const
-type RememberDays = (typeof REMEMBER_OPTIONS)[number]
-const REMEMBER_DAYS_DEFAULT: RememberDays = 7
-const REMEMBER_KEY = 'concise-remember'
-
-/**
- * 记住密码存本地：password 只做 base64 编码（避免明文肉眼可见），
- * 不是加密 —— 浏览器本地存储本身可被同源脚本读取，公共设备建议不要勾选。
- */
-interface RememberedLogin {
-  username: string
-  secret: string
-  days: RememberDays
-  expireAt: number
-}
-
-function readRemember(): RememberedLogin | null {
-  try {
-    const raw = localStorage.getItem(REMEMBER_KEY)
-    if (!raw) return null
-    const data = JSON.parse(raw) as RememberedLogin
-    if (!data.expireAt || data.expireAt < Date.now()) {
-      localStorage.removeItem(REMEMBER_KEY)
-      return null
-    }
-    return data
-  } catch {
-    localStorage.removeItem(REMEMBER_KEY)
-    return null
-  }
-}
-
-function decodeSecret(secret: string): string {
-  try {
-    return decodeURIComponent(atob(secret))
-  } catch {
-    return ''
-  }
-}
-
-function writeRemember(username: string, password: string, days: RememberDays) {
-  const data: RememberedLogin = {
-    username,
-    secret: btoa(encodeURIComponent(password)),
-    days,
-    expireAt: Date.now() + days * 24 * 60 * 60 * 1000
-  }
-  localStorage.setItem(REMEMBER_KEY, JSON.stringify(data))
-}
-
-function clearRemember() {
-  localStorage.removeItem(REMEMBER_KEY)
-}
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -81,7 +35,7 @@ export function LoginPage() {
   // 已过期/损坏的记住记录在读取时就被清掉，这里只在首帧读一次
   const [remembered] = useState(readRemember)
   const [account, setAccount] = useState(remembered?.username ?? '')
-  const [password, setPassword] = useState(() => (remembered ? decodeSecret(remembered.secret) : ''))
+  const [password, setPassword] = useState(() => (remembered ? (readRememberPassword(remembered.username) ?? '') : ''))
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   // 记住密码：勾选后按所选天数保存，登录成功才落盘，取消勾选立即清除
@@ -89,6 +43,10 @@ export function LoginPage() {
   const [rememberDays, setRememberDays] = useState<RememberDays>(remembered?.days ?? REMEMBER_DAYS_DEFAULT)
   // 字段级非空校验（Element Plus 风格：错误红字内联显示，输入即清除）
   const [errors, setErrors] = useState<{ account?: string; password?: string }>({})
+  // 提交级错误：toast 会消失，这里常驻展示「还可尝试 N 次 / 账号已锁定 24 小时」
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  // 触发锁定后本地禁用提交，避免用户继续在已锁定账号上徒劳尝试（后端仍会拒）
+  const [lockedOut, setLockedOut] = useState(false)
 
   // 滑块验证码：captchaId / ticket 放 ref（request/onVerify 回调闭包要拿最新值），ticket 另存 state 供提交判断
   const sliderRef = useRef<ActionType | undefined>(undefined)
@@ -142,6 +100,8 @@ export function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (lockedOut) return
+    setSubmitError(null)
     if (!validateForm()) return
     if (!captchaTicket) {
       toast.error(t('login.captchaRequired'))
@@ -180,8 +140,11 @@ export function LoginPage() {
       // 首页是常驻页面（数据按权限裁剪），任何账号都落到 /dashboard
       void navigate({ to: resolveHomePath() as never })
     } catch (err) {
-      // 后端 message 直接透出（如：验证码错误 / 用户名或密码错误）；票据一次性，失败后重置滑块
-      toast.error(err instanceof Error ? err.message : t('login.credentialsError'))
+      // 后端 message 直接透出：验证码错误 / 用户名或密码错误，还可尝试 4 次 / 账号已锁定 24 小时
+      const message = err instanceof Error ? err.message : t('login.credentialsError')
+      setSubmitError(message)
+      setLockedOut(message.includes('已锁定'))
+      toast.error(message)
       resetCaptcha()
     } finally {
       setSubmitting(false)
@@ -251,13 +214,16 @@ export function LoginPage() {
             </p>
           </div>
 
-          <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+          {/* autoComplete 开着：浏览器密码管理器认得「username + current-password」才肯自动填充 */}
+          <form className="space-y-4" onSubmit={handleSubmit} autoComplete="on" noValidate>
             <div className="space-y-2">
               <Label htmlFor="account">{t('login.account')}</Label>
               <div className="relative">
                 <User className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                 <Input
                   id="account"
+                  name="username"
+                  autoComplete="username"
                   className="pl-9"
                   placeholder={t('login.accountPlaceholder')}
                   value={account}
@@ -277,6 +243,8 @@ export function LoginPage() {
                 <Lock className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                 <Input
                   id="password"
+                  name="password"
+                  autoComplete="current-password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder={t('login.passwordPlaceholder')}
                   className="pr-9 pl-9"
@@ -362,7 +330,14 @@ export function LoginPage() {
                 </span>
               </button>
             </div>
-            <Button type="submit" className="w-full" disabled={submitting}>
+            {/* 常驻错误条：toast 一闪而过，剩余尝试次数/锁定信息需要停在这里让用户看清 */}
+            {submitError && (
+              <div className="border-destructive/40 bg-destructive/5 text-destructive flex items-start gap-2 rounded-md border px-3 py-2 text-xs">
+                <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+                <span className="leading-relaxed">{submitError}</span>
+              </div>
+            )}
+            <Button type="submit" className="w-full" disabled={submitting || lockedOut}>
               {submitting && <Loader2 className="animate-spin" />}
               {submitting ? t('login.submitting') : t('login.submit')}
             </Button>
