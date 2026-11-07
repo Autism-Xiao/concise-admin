@@ -44,25 +44,34 @@ interface FormState {
 
 const emptyForm: FormState = { username: '', realname: '', password: '', email: '', phone: '', workNo: '', sex: 0, status: 1, roleIds: [], deptIds: [], postIds: [], levelId: '', passwordExpireAt: '', mustChangePassword: 0 }
 
-/** 复选框列表（角色/部门多选） */
+/** 复选框列表（角色/部门多选）；disabled 项不可新勾选（已选中的允许取消，便于摘除） */
 function CheckList({
   options,
   selected,
   onToggle
 }: {
-  options: Array<{ id: string; label: string }>
+  options: Array<{ id: string; label: string; disabled?: boolean }>
   selected: string[]
   onToggle: (id: string) => void
 }) {
   if (!options.length) return <p className="text-muted-foreground text-sm">暂无可选项</p>
   return (
     <div className="max-h-36 space-y-1.5 overflow-y-auto rounded-md border p-2">
-      {options.map(o => (
-        <label key={o.id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm hover:bg-accent">
-          <input type="checkbox" className="accent-primary" checked={selected.includes(o.id)} onChange={() => onToggle(o.id)} />
-          {o.label}
-        </label>
-      ))}
+      {options.map(o => {
+        const locked = o.disabled === true && !selected.includes(o.id)
+        return (
+          <label key={o.id} className={`flex items-center gap-2 rounded px-1 py-0.5 text-sm ${locked ? 'opacity-60' : 'cursor-pointer hover:bg-accent'}`}>
+            <input
+              type="checkbox"
+              className="accent-primary"
+              checked={selected.includes(o.id)}
+              disabled={locked}
+              onChange={() => onToggle(o.id)}
+            />
+            {o.label}
+          </label>
+        )
+      })}
     </div>
   )
 }
@@ -90,7 +99,7 @@ export function UserFormDialog({ open, onOpenChange, user, onSubmit }: UserFormD
       : emptyForm
   )
   const [roles, setRoles] = useState<Role[] | null>(null)
-  const [depts, setDepts] = useState<Array<{ id: string; departName: string }> | null>(null)
+  const [depts, setDepts] = useState<Array<{ id: string; departName: string; status?: string }> | null>(null)
   const [posts, setPosts] = useState<Post[] | null>(null)
   const [levels, setLevels] = useState<Level[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -245,7 +254,15 @@ export function UserFormDialog({ open, onOpenChange, user, onSubmit }: UserFormD
               </div>
               <div className="space-y-2">
                 <Label>部门（多选，首个为主部门）</Label>
-                <CheckList options={depts.map(d => ({ id: d.id, label: d.departName }))} selected={form.deptIds} onToggle={id => toggle('deptIds', id)} />
+                <CheckList
+                  options={depts.map(d => {
+                    // 停用部门不可新选；已挂该部门的用户照常回显并可取消勾选
+                    const disabledDept = d.status === '0'
+                    return { id: d.id, label: disabledDept ? `${d.departName}（已停用）` : d.departName, disabled: disabledDept }
+                  })}
+                  selected={form.deptIds}
+                  onToggle={id => toggle('deptIds', id)}
+                />
               </div>
               {posts.length > 0 && (
                 <div className="space-y-2">

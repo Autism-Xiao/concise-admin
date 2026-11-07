@@ -151,8 +151,8 @@ export { fetchRoleOptions }
 export type { Role }
 
 /** 后端部门列表（/api/v1/depts 扁平结构，供用户表单部门下拉使用；响应为统一分页结构） */
-export async function fetchBackendDepts(): Promise<Array<{ id: string; departName: string; parentId?: string | null }>> {
-  const page = await getApiResult<{ records: Array<{ id: string; departName: string; parentId?: string | null }> }>('/backend-api/v1/depts')
+export async function fetchBackendDepts(): Promise<Array<{ id: string; departName: string; parentId?: string | null; status?: string }>> {
+  const page = await getApiResult<{ records: Array<{ id: string; departName: string; parentId?: string | null; status?: string }> }>('/backend-api/v1/depts')
   return page.records
 }
 

@@ -10,20 +10,32 @@ export interface Dept {
   departName: string
   /** 同级排序，越小越靠前 */
   departOrder: number
-  /** 部门编码（后端自动生成 A01/A01A01） */
+  /** 部门编码（新建自动生成 A01/A01A01，可手改） */
   orgCode?: string | null
+  /** 机构类别：1 公司 / 2 部门 / 3 岗位 / 4 子公司 */
+  orgCategory?: string | null
   description?: string | null
-  /** '1' 正常 / '0' 停用 */
+  /** '1' 启用 / '0' 停用 */
   status?: string
+  createTime?: string
+  updateTime?: string
 }
 
 export interface DeptWritePayload {
   departName: string
-  /** null 为顶级部门；换父由后端防环并同步 orgCode */
+  /** null 为顶级部门；换父由后端防环并同步 orgCode（不手填编码时） */
   parentId?: string | null
+  /** 部门编码：新建不传自动生成，编辑可改（重复会被 400 拒） */
+  orgCode?: string | null
+  /** 机构类别：1 公司 / 2 部门 / 3 岗位 / 4 子公司 */
+  orgCategory?: string | null
   departOrder?: number
   description?: string | null
+  status?: string
 }
+
+/** 部门类型展示（对齐 jeecg 机构类别） */
+export const orgCategoryMap: Record<string, string> = { '1': '公司', '2': '部门', '3': '岗位', '4': '子公司' }
 
 /** 部门扁平列表（统一分页结构，全量返回；keyword 模糊匹配名称），前端自行组树 */
 export async function fetchDepts(keyword = ''): Promise<Dept[]> {

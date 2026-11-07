@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type DragEvent, type ReactNode } from 'react'
-import { ChevronRight, Download, GripVertical, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { ChevronRight, Download, GripVertical, Plus, Search, SquarePen, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { StatusBadge } from '@/components/status-badge'
 import { DeptFormDialog } from './components/dept-form-dialog'
-import { createDept, deleteDept, deleteDepts, exportDepts, fetchDepts, updateDept, type Dept, type DeptWritePayload } from './api'
+import { createDept, deleteDept, deleteDepts, exportDepts, fetchDepts, orgCategoryMap, updateDept, type Dept, type DeptWritePayload } from './api'
 import { withOperationLog } from '@/features/system/log/api'
 import { hasPermission } from '@/lib/auth'
 import { toastBatchResult } from '@/lib/batch-delete'
@@ -56,6 +57,14 @@ function collectSubtreeIds(id: string, depts: Dept[]): Set<string> {
     }
   }
   return ids
+}
+
+function formatDateTime(value?: string | null): string {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
 export function DeptPage() {
@@ -259,7 +268,8 @@ export function DeptPage() {
     const next: Dept[] = []
     const walk = (nodes: DeptNode[], parentId: string | null) => {
       nodes.forEach((n, i) => {
-        next.push({ id: n.id, parentId, departName: n.departName, departOrder: i + 1, orgCode: n.orgCode, description: n.description, status: n.status })
+        // 保留节点全部字段（部门类型/状态/时间列都在用），只重排 parentId 与同级序号
+        next.push({ ...n, parentId, departOrder: i + 1 })
         walk(n.children, n.id)
       })
     }
@@ -350,20 +360,43 @@ export function DeptPage() {
           <TableCell>
             <span className="font-mono text-xs">{node.orgCode ?? '-'}</span>
           </TableCell>
-          <TableCell className="w-20">{node.departOrder}</TableCell>
-          <TableCell className="text-end">
-            <Button variant="ghost" size="icon" title="新增子部门" onClick={() => openCreate(node.id)}>
-              <Plus className="size-4" />
-              <span className="sr-only">新增子部门</span>
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => openEdit(node)}>
-              <Pencil className="size-4" />
-              <span className="sr-only">编辑</span>
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setDeleting(node)}>
-              <Trash2 className="text-destructive size-4" />
-              <span className="sr-only">删除</span>
-            </Button>
+          <TableCell>
+            {node.orgCategory === '4' || node.orgCategory === '1' ? (
+              <span className="bg-primary/10 text-primary rounded px-1.5 py-0.5 text-xs">{orgCategoryMap[node.orgCategory] ?? '公司'}</span>
+            ) : node.orgCategory === '3' ? (
+              <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs">岗位</span>
+            ) : (
+              <span className="bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded px-1.5 py-0.5 text-xs">部门</span>
+            )}
+          </TableCell>
+          <TableCell className="w-14 tabular-nums">{node.departOrder}</TableCell>
+          <TableCell className="w-20">
+            <StatusBadge ok={node.status !== '0'} label={node.status === '0' ? '停用' : '正常'} />
+          </TableCell>
+          <TableCell className="text-muted-foreground max-w-40 truncate text-xs" title={node.description ?? undefined}>
+            {node.description ?? '-'}
+          </TableCell>
+          <TableCell className="text-muted-foreground w-40 whitespace-nowrap text-xs tabular-nums">{formatDateTime(node.createTime)}</TableCell>
+          <TableCell className="text-muted-foreground w-40 whitespace-nowrap text-xs tabular-nums">{formatDateTime(node.updateTime)}</TableCell>
+          <TableCell className="text-end whitespace-nowrap">
+            {hasPermission('system:dept:add') && (
+              <Button variant="ghost" size="sm" className="text-primary hover:text-primary h-7 gap-0.5 px-1.5" title="新增子部门" onClick={() => openCreate(node.id)}>
+                <Plus className="size-3.5" />
+                添加
+              </Button>
+            )}
+            {hasPermission('system:dept:update') && (
+              <Button variant="ghost" size="sm" className="text-primary hover:text-primary h-7 gap-0.5 px-1.5" onClick={() => openEdit(node)}>
+                <SquarePen className="size-3.5" />
+                修改
+              </Button>
+            )}
+            {hasPermission('system:dept:delete') && (
+              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive h-7 gap-0.5 px-1.5" onClick={() => setDeleting(node)}>
+                <Trash2 className="size-3.5" />
+                删除
+              </Button>
+            )}
           </TableCell>
         </TableRow>
       )
@@ -442,9 +475,14 @@ export function DeptPage() {
                     />
                   </TableHead>
                   <TableHead>部门名称</TableHead>
-                  <TableHead className="w-40">部门编码</TableHead>
-                  <TableHead className="w-20">排序</TableHead>
-                  <TableHead className="w-36 text-end">操作</TableHead>
+                  <TableHead className="w-32">部门编码</TableHead>
+                  <TableHead className="w-20">部门类型</TableHead>
+                  <TableHead className="w-14">排序</TableHead>
+                  <TableHead className="w-20">状态</TableHead>
+                  <TableHead className="max-w-40">备注</TableHead>
+                  <TableHead className="w-40">创建时间</TableHead>
+                  <TableHead className="w-40">更新时间</TableHead>
+                  <TableHead className="w-44 text-end">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -456,7 +494,7 @@ export function DeptPage() {
                     )
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
+                      <TableCell colSpan={9} className="text-muted-foreground py-10 text-center">
                         没有匹配的部门
                       </TableCell>
                     </TableRow>
@@ -465,7 +503,7 @@ export function DeptPage() {
                   renderRows(tree, 0)
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
+                    <TableCell colSpan={9} className="text-muted-foreground py-10 text-center">
                       暂无部门，点击右上角「新增部门」创建
                     </TableCell>
                   </TableRow>
