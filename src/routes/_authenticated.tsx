@@ -1,4 +1,5 @@
 import { createFileRoute, Navigate, Outlet, redirect, useLocation } from '@tanstack/react-router'
+import { Loader2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { PageTabs } from '@/components/layout/page-tabs'
@@ -9,6 +10,7 @@ import { ForceChangePasswordDialog } from '@/components/forced-change-password-d
 import { ServiceStatusBanner } from '@/components/service-status-banner'
 import { Watermark } from '@/components/watermark'
 import { TabsProvider } from '@/context/tabs-provider'
+import { TenantScopeProvider, useTenantScope } from '@/context/tenant-scope-provider'
 import { WatermarkProvider, useWatermark } from '@/context/watermark-provider'
 import { LockProvider } from '@/context/lock-provider'
 import { useSettings } from '@/context/settings-provider'
@@ -53,18 +55,22 @@ function AuthenticatedLayout() {
       {/* 密码过期/管理员标记强制改密：盖在所有内容之上，改完才放行（存 sessionStorage，刷新不丢） */}
       {needsPasswordChange() && <ForceChangePasswordDialog />}
       <TabsProvider>
-        <AppSidebar variant={settings.sidebarVariant} collapsible={collapsible} direction={settings.direction} />
-        <SidebarInset className="h-svh overflow-hidden">
-          <SiteHeader />
-          {/* 后端整体不可用时只留一条常驻横幅，避免每个接口各弹一条 toast */}
-          <ServiceStatusBanner />
-          <PageTabs />
-          <main data-scroll="main" className="flex-1 overflow-y-auto p-6">
-            <PermissionGuard>
-              <MainContent />
-            </PermissionGuard>
-          </main>
-        </SidebarInset>
+        <TenantScopeProvider>
+          <AppSidebar variant={settings.sidebarVariant} collapsible={collapsible} direction={settings.direction} />
+          <SidebarInset className="relative h-svh overflow-hidden">
+            <SiteHeader />
+            {/* 后端整体不可用时只留一条常驻横幅，避免每个接口各弹一条 toast */}
+            <ServiceStatusBanner />
+            <PageTabs />
+            <main data-scroll="main" className="flex-1 overflow-y-auto p-6">
+              <PermissionGuard>
+                <MainContent />
+              </PermissionGuard>
+            </main>
+            {/* 切换租户时盖住旧租户的数据：重挂后各页面重新拉数据，期间不该让旧数字被当成新的 */}
+            <TenantSwitchingOverlay />
+          </SidebarInset>
+        </TenantScopeProvider>
       </TabsProvider>
       {/* 水印完全由后端下发：开关、内容、样式都来自 /users/me/watermark，前端只负责绘制 */}
       {wm.config?.enabled && wm.config.lines.length > 0 && (
@@ -85,6 +91,20 @@ function AuthenticatedLayout() {
 function MainContent() {
   const pathname = useLocation({ select: location => location.pathname })
   return isRegisteredPage(pathname) ? <TabPageRenderer /> : <Outlet />
+}
+
+/** 切换租户期间的遮罩：只盖内容区，顶栏（含切换器转圈）仍然可见可感 */
+function TenantSwitchingOverlay() {
+  const { switching } = useTenantScope()
+  if (!switching) return null
+  return (
+    <div className="bg-background/60 absolute inset-0 z-20 grid place-items-center backdrop-blur-[1px]">
+      <div className="bg-popover text-foreground flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm shadow-lg">
+        <Loader2 className="size-4 animate-spin" />
+        正在切换租户…
+      </div>
+    </div>
+  )
 }
 
 // 路由级权限拦截：直接输入无权限的 URL 时跳 403；

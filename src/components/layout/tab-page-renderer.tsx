@@ -1,6 +1,7 @@
-import { memo, useEffect, useState, type CSSProperties } from 'react'
+import { memo, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useLocation } from '@tanstack/react-router'
 import { useTabs } from '@/context/tabs-provider'
+import { useTenantScope } from '@/context/tenant-scope-provider'
 import { isRegisteredPage, PAGE_REGISTRY } from '@/config/page-registry'
 import { SettingsLayout } from '@/features/settings'
 
@@ -34,8 +35,21 @@ const TabPage = memo(function TabPage({ path, active }: TabPageProps) {
 // 切换时保留滚动位置、表单和筛选状态；活动标签用 display:contents 保持原有布局。
 export function TabPageRenderer() {
   const { tabs, nonces } = useTabs()
+  // 租户代次：切换租户后自增，作为 key 的一部分让所有 keep-alive 页面重挂 → 各自重拉数据。
+  // 这是「软切换」的关键：页面数据都在组件内部 state（项目没有全局数据缓存层），
+  // 重挂是唯一能保证不残留上一个租户数据的办法，比整页 reload 少了一次应用启动。
+  const { epoch } = useTenantScope()
   const pathname = useLocation({ select: location => location.pathname })
   const [visitedPaths, setVisitedPaths] = useState<ReadonlySet<string>>(() => new Set([pathname]))
+
+  // 切租户后只让当前页挂回去：其余已访问的标签要等下次点开再挂载，
+  // 否则一次切换会把 N 个页面的请求一起打出去，反而更卡
+  const seenEpochRef = useRef(epoch)
+  useEffect(() => {
+    if (seenEpochRef.current === epoch) return
+    seenEpochRef.current = epoch
+    setVisitedPaths(new Set([pathname]))
+  }, [epoch, pathname])
 
   useEffect(() => {
     if (!isRegisteredPage(pathname)) return
@@ -55,8 +69,8 @@ export function TabPageRenderer() {
   return (
     <>
       {mountedPaths.map(path => (
-        // nonce 变化 → key 变化 → 重挂载，实现「刷新当前页」
-        <TabPage key={`${path}:${nonces[path] ?? 0}`} path={path} active={path === pathname} />
+        // nonce 变化 → key 变化 → 重挂载，实现「刷新当前页」；epoch 变化 → 切租户后全部重挂
+        <TabPage key={`${path}:${nonces[path] ?? 0}:${epoch}`} path={path} active={path === pathname} />
       ))}
     </>
   )

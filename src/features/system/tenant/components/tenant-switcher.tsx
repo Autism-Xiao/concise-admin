@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Building2, Check, ChevronsUpDown, Globe } from 'lucide-react'
+import { Building2, Check, ChevronsUpDown, Globe, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,9 +10,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { getTenantId, setTenantId } from '@/lib/auth'
+import { getTenantId } from '@/lib/auth'
 import { userMessageOf } from '@/lib/api-error'
-import { fetchMyTenants, switchTenant, type MyTenant } from '../api'
+import { useTenantScope } from '@/context/tenant-scope-provider'
+import { fetchMyTenants, type MyTenant } from '../api'
 
 /**
  * 顶栏租户切换器
@@ -25,11 +26,11 @@ import { fetchMyTenants, switchTenant, type MyTenant } from '../api'
  * 写 onSelect 会被 React 当成文本选择的合成事件挂到 DOM 上，点击永远不触发。
  * 菜单项的点击处理一律用 `onClick`。
  *
- * 切换后**整页重载**：租户变了意味着几乎每个列表的数据源都变了，
- * 局部刷新容易留下上一个租户的缓存（表格分页、下拉字典、首页统计），
- * 重载最省心也不会错。
+ * 切换走**软切换**（见 `context/tenant-scope-provider.tsx`）：不整页 reload，
+ * 只推进租户代次让业务页面重挂重拉，因此水印/主题/锁屏/标签页都不会闪。
  */
 export function TenantSwitcher() {
+  const { applySwitch, switching } = useTenantScope()
   const [tenants, setTenants] = useState<MyTenant[]>([])
   const [isSuper, setIsSuper] = useState(false)
   const [current, setCurrent] = useState<number | null>(getTenantId())
@@ -52,16 +53,18 @@ export function TenantSwitcher() {
   }, [])
 
   async function handleSwitch(tenantId: number) {
-    if (busy) return
+    if (busy || switching) return
     setBusy(true)
     try {
-      const applied = await switchTenant(tenantId)
-      setTenantId(applied)
-      window.location.reload()
+      const applied = await applySwitch(tenantId)
+      setCurrent(applied)
+      const name = tenants.find(item => item.id === applied)?.name
+      toast.success(applied ? `已切换到「${name ?? applied}」` : '已回到平台视角')
     } catch (error) {
-      setBusy(false)
       // 不用 window.alert：原生弹窗会阻塞整个页面，且样式与系统提示完全脱节
       toast.error(userMessageOf(error, '切换租户失败'))
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -75,8 +78,8 @@ export function TenantSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 max-w-44 gap-1.5 px-2 font-normal" disabled={busy}>
-          <Building2 className="size-4 shrink-0 opacity-70" />
+        <Button variant="ghost" size="sm" className="h-8 max-w-44 gap-1.5 px-2 font-normal" disabled={busy || switching}>
+          {busy || switching ? <Loader2 className="size-4 shrink-0 animate-spin opacity-70" /> : <Building2 className="size-4 shrink-0 opacity-70" />}
           <span className="truncate">{label}</span>
           <ChevronsUpDown className="size-3.5 shrink-0 opacity-50" />
         </Button>
