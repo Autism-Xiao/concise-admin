@@ -81,15 +81,13 @@ export function fetchRoles(query: RoleQuery): Promise<PageResult<Role>> {
 }
 ```
 
-仍是本地数据的模块：仪表盘、任务、日历、文件、地区、租户。它们各有 `api.ts`，
+仍是本地数据的模块：仪表盘（已接真实接口）、任务、日历、地区。它们各有 `api.ts`，
 读 `public/mock/*.json`，写操作由 `vite.config.ts` 的 `jsonWriteApi` 中间件落盘：
 
-| 接口                 | 写入文件            | 类型     | 用途     |
-| -------------------- | ------------------- | -------- | -------- |
-| `POST /api/files`    | `mock/files.json`   | 整体覆盖 | 文件管理 |
-| `POST /api/regions`  | `mock/regions.json` | 整体覆盖 | 地区管理 |
-| `POST /api/tenants`  | `mock/tenants.json` | 整体覆盖 | 租户管理 |
-| `GET/POST /api/settings` | `settings.json` | 读取/合并 | 应用设置 |
+| 接口                        | 写入文件            | 类型     | 用途     |
+| --------------------------- | ------------------- | -------- | -------- |
+| `POST /api/regions`         | `mock/regions.json` | 整体覆盖 | 地区管理 |
+| `GET/POST /api/settings`    | `settings.json`     | 读取/合并 | 应用设置 |
 
 接后端时把对应 `api.ts` 的 URL 换成真实接口即可，页面代码不用动。
 

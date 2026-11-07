@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Search, Trash2, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -10,9 +10,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
+import { hasPermission } from '@/lib/auth'
 import { TenantFormDialog } from './components/tenant-form-dialog'
-import { fetchTenants, saveTenants, type Tenant, type TenantPlan } from './api'
-import { withOperationLog } from '@/features/system/log/api'
+import { TenantUserDialog } from './components/tenant-user-dialog'
+import { createTenant, deleteTenant, fetchTenants, updateTenant, type Tenant, type TenantPlan } from './api'
 
 const columnLabels: Record<string, string> = {
   id: 'ID',
@@ -21,6 +22,7 @@ const columnLabels: Record<string, string> = {
   contact: '联系人',
   phone: '联系电话',
   plan: '套餐',
+  userCount: '用户数',
   expireAt: '到期日期',
   status: '状态',
   remark: '备注'
@@ -28,6 +30,7 @@ const columnLabels: Record<string, string> = {
 
 /** 到期日 30 天内高亮提醒 */
 function isExpiringSoon(expireAt: string): boolean {
+  if (!expireAt) return false
   const days = (new Date(expireAt).getTime() - Date.now()) / 86400000
   return days >= 0 && days <= 30
 }
@@ -40,6 +43,13 @@ export function TenantPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Tenant | null>(null)
   const [deleting, setDeleting] = useState<Tenant | null>(null)
+  const [assigning, setAssigning] = useState<Tenant | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  const canAdd = hasPermission('system:tenant:add')
+  const canEdit = hasPermission('system:tenant:edit')
+  const canDelete = hasPermission('system:tenant:delete')
+  const canAssign = hasPermission('system:tenant:user')
 
   const load = () => {
     setLoading(true)
@@ -99,10 +109,16 @@ export function TenantPage() {
         }
       },
       {
+        accessorKey: 'userCount',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="用户数" />,
+        cell: ({ row }) => <span className="tabular-nums">{row.getValue<number>('userCount') ?? 0}</span>
+      },
+      {
         accessorKey: 'expireAt',
         header: ({ column }) => <DataTableColumnHeader column={column} title="到期日期" />,
         cell: ({ row }) => {
           const expireAt = row.getValue<string>('expireAt')
+          if (!expireAt) return <span className="text-muted-foreground">永久</span>
           return (
             <span className={`tabular-nums ${isExpiringSoon(expireAt) ? 'font-medium text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
               {expireAt}
@@ -132,56 +148,59 @@ export function TenantPage() {
         enableSorting: false,
         enableHiding: false,
         cell: ({ row }) => (
-          <div className="text-end">
-            <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
-              <Pencil className="size-4" />
-              <span className="sr-only">编辑</span>
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setDeleting(row.original)}>
-              <Trash2 className="text-destructive size-4" />
-              <span className="sr-only">删除</span>
-            </Button>
+          <div className="text-end whitespace-nowrap">
+            {canAssign && (
+              <Button variant="ghost" size="icon" onClick={() => setAssigning(row.original)} title="分配用户">
+                <Users className="size-4" />
+                <span className="sr-only">分配用户</span>
+              </Button>
+            )}
+            {canEdit && (
+              <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
+                <Pencil className="size-4" />
+                <span className="sr-only">编辑</span>
+              </Button>
+            )}
+            {canDelete && (
+              <Button variant="ghost" size="icon" onClick={() => setDeleting(row.original)}>
+                <Trash2 className="text-destructive size-4" />
+                <span className="sr-only">删除</span>
+              </Button>
+            )}
           </div>
         )
       }
     ],
-    []
+    [canAssign, canEdit, canDelete]
   )
 
   const columnFilters = useMemo(() => (statusFilter === 'all' ? [] : [{ id: 'status', value: statusFilter }]), [statusFilter])
   const { table, keyword, setKeyword } = useDataTable({ data: tenants, columns, columnFilters })
 
-  const handleSubmit = (values: Omit<Tenant, 'id'>) => {
-    if (editing) {
-      persist(
-        tenants.map(t => (t.id === editing.id ? { ...t, ...values } : t)),
-        '租户已更新'
-      )
-    } else {
-      const id = tenants.length ? Math.max(...tenants.map(t => t.id)) + 1 : 1
-      persist([{ ...values, id }, ...tenants], '租户已创建')
-    }
-    setFormOpen(false)
+  const handleSubmit = (values: Omit<Tenant, 'id' | 'userCount'>) => {
+    setSaving(true)
+    const action = editing ? updateTenant(editing.id, values) : createTenant(values)
+    action
+      .then(() => {
+        toast.success(editing ? '租户已更新' : '租户已创建')
+        setFormOpen(false)
+        load()
+      })
+      .catch(error => toast.error(error instanceof Error ? error.message : '保存失败'))
+      .finally(() => setSaving(false))
   }
 
   const handleDelete = () => {
     if (!deleting) return
-    persist(
-      tenants.filter(t => t.id !== deleting.id),
-      `已删除租户「${deleting.name}」`
-    )
-    setDeleting(null)
-  }
-
-  /** 乐观更新 + 写回 tenants.json，失败回退重新加载；操作记入操作日志 */
-  const persist = (next: Tenant[], successMsg: string) => {
-    setList(next)
-    withOperationLog(successMsg, () => saveTenants(next))
-      .then(() => toast.success(successMsg))
-      .catch(() => {
-        toast.error('写入 tenants.json 失败，已重新加载')
+    setSaving(true)
+    deleteTenant(deleting.id)
+      .then(() => {
+        toast.success(`已删除租户「${deleting.name}」`)
+        setDeleting(null)
         load()
       })
+      .catch(error => toast.error(error instanceof Error ? error.message : '删除失败'))
+      .finally(() => setSaving(false))
   }
 
   return (
@@ -189,12 +208,16 @@ export function TenantPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">租户管理</h1>
-          <p className="text-muted-foreground text-sm">共 {tenants.length} 个租户（mock 数据）</p>
+          <p className="text-muted-foreground text-sm">
+            共 {tenants.length} 个租户 · 切换租户后只看到该租户的部门/角色/字典/公告/任务/文件
+          </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus />
-          新增租户
-        </Button>
+        {canAdd && (
+          <Button onClick={openCreate}>
+            <Plus />
+            新增租户
+          </Button>
+        )}
       </div>
 
       {loading ? (
@@ -240,13 +263,18 @@ export function TenantPage() {
         </Card>
       )}
 
-      {formOpen && <TenantFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} tenant={editing} onSubmit={handleSubmit} />}
+      {formOpen && (
+        <TenantFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} tenant={editing} submitting={saving} onSubmit={handleSubmit} />
+      )}
+
+      {assigning && <TenantUserDialog tenant={assigning} open onOpenChange={open => !open && setAssigning(null)} onSaved={load} />}
 
       <ConfirmDialog
         confirmText="删除"
+        loading={saving}
         open={!!deleting}
         onOpenChange={v => !v && setDeleting(null)}
-        description={<>即将删除租户「{deleting?.name}」，该操作不可恢复。</>}
+        description={<>即将删除租户「{deleting?.name}」。租户下还有用户时会被拒绝，需先在「分配用户」里清空成员。</>}
         onConfirm={handleDelete}
       />
     </div>

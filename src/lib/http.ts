@@ -86,10 +86,17 @@ function handleUnauthorized(): never {
  */
 export async function getApiResult<T>(url: string, init?: RequestInit): Promise<T> {
   const token = localStorage.getItem('concise-token') ?? ''
+  // 当前租户：后端中间件用它做数据隔离（不可信也没关系，服务端会校验归属，越权直接 403）
+  const tenantId = localStorage.getItem('concise-tenant') ?? ''
   const isLoginRequest = /\/v1\/auth\/login(?:$|\?)/.test(url)
   const res = await fetch(url, {
     ...init,
-    headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init?.headers }
+    headers: {
+      Accept: 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),
+      ...init?.headers
+    }
   })
   if (res.status === 401 && !isLoginRequest) {
     handleUnauthorized()

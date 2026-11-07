@@ -7,6 +7,7 @@ import { LanguageToggle } from '@/components/language-toggle'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { TenantSwitcher } from '@/features/system/tenant/components/tenant-switcher'
 
 export function SiteHeader() {
   return (
@@ -15,6 +16,7 @@ export function SiteHeader() {
       <Separator orientation="vertical" className="mr-2 h-4! self-center!" />
       <BreadcrumbNav />
       <div className="flex-1" />
+      <TenantSwitcher />
       <Search />
       <FullscreenToggle />
       <ThemeToggle />

@@ -11,7 +11,9 @@ interface TenantFormDialogProps {
   onOpenChange: (open: boolean) => void
   /** null 表示新增 */
   tenant: Tenant | null
-  onSubmit: (values: Omit<Tenant, 'id'>) => void
+  /** 保存中：禁用按钮，避免重复提交 */
+  submitting?: boolean
+  onSubmit: (values: Omit<Tenant, 'id' | 'userCount'>) => void
 }
 
 const emptyForm = {
@@ -20,13 +22,14 @@ const emptyForm = {
   contact: '',
   phone: '',
   plan: '试用版' as TenantPlan,
+  beginDate: '',
   expireAt: '',
   status: '正常' as TenantStatus,
   remark: ''
 }
 
 /** 由父组件按 key 控制重挂载，保证打开时表单初始化为对应租户 */
-export function TenantFormDialog({ open, onOpenChange, tenant, onSubmit }: TenantFormDialogProps) {
+export function TenantFormDialog({ open, onOpenChange, tenant, submitting = false, onSubmit }: TenantFormDialogProps) {
   const [form, setForm] = useState(() =>
     tenant
       ? {
@@ -35,6 +38,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSubmit }: Tenan
           contact: tenant.contact,
           phone: tenant.phone,
           plan: tenant.plan,
+          beginDate: tenant.beginDate,
           expireAt: tenant.expireAt,
           status: tenant.status,
           remark: tenant.remark
@@ -89,8 +93,13 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSubmit }: Tenan
               </Select>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="tenant-begin">开通日期</Label>
+              <Input id="tenant-begin" type="date" value={form.beginDate} onChange={e => set('beginDate', e.target.value)} />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="tenant-expire">到期日期</Label>
-              <Input id="tenant-expire" type="date" value={form.expireAt} onChange={e => set('expireAt', e.target.value)} required />
+              <Input id="tenant-expire" type="date" value={form.expireAt} onChange={e => set('expireAt', e.target.value)} />
+              <p className="text-muted-foreground text-xs">留空表示永久有效</p>
             </div>
           </div>
           <div className="space-y-2">
@@ -113,7 +122,9 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSubmit }: Tenan
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               取消
             </Button>
-            <Button type="submit">保存</Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? '保存中…' : '保存'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -7,6 +7,8 @@ const REFRESH_TOKEN_KEY = 'concise-refresh-token'
 const PERMS_KEY = 'concise-perms'
 const MENUS_KEY = 'concise-menus'
 const TABS_KEY = 'concise-tabs'
+/** 当前租户 ID（切换器写入，http 层读出来放到 X-Tenant-Id 请求头） */
+const TENANT_KEY = 'concise-tenant'
 /** 强制改密标记：sessionStorage（关标签页即失效，改完密码清除） */
 const MUST_CHANGE_PWD_KEY = 'concise-must-change-pwd'
 
@@ -64,6 +66,7 @@ export function logout(): void {
   localStorage.removeItem(REFRESH_TOKEN_KEY)
   localStorage.removeItem(PERMS_KEY)
   localStorage.removeItem(MENUS_KEY)
+  localStorage.removeItem(TENANT_KEY)
   // 清掉多标签页缓存，避免下个账号登录后恢复上一个会话打开的页面
   localStorage.removeItem(TABS_KEY)
   // 强制改密标记同样不能跨账号残留
@@ -111,6 +114,19 @@ export function getMenuTree<T>(): T | null {
   } catch {
     return null
   }
+}
+
+/** 当前租户 ID；null 表示不指定（超管平台视角） */
+export function getTenantId(): number | null {
+  const raw = localStorage.getItem(TENANT_KEY)
+  const value = raw ? Number(raw) : NaN
+  return Number.isFinite(value) && value > 0 ? value : null
+}
+
+/** 切换租户后写入（0 / null 表示回到平台视角，仅超管有效） */
+export function setTenantId(tenantId: number | null): void {
+  if (tenantId && tenantId > 0) localStorage.setItem(TENANT_KEY, String(tenantId))
+  else localStorage.removeItem(TENANT_KEY)
 }
 
 /** 按钮级权限判断：超管（'*'）或精确命中编码 */
