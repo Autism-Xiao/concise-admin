@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as SsoCallbackRouteImport } from './routes/sso-callback'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedHelpCenterRouteImport } from './routes/_authenticated/help-center'
 import { Route as AuthenticatedIframeRouteImport } from './routes/_authenticated/iframe'
@@ -61,6 +62,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SsoCallbackRoute = SsoCallbackRouteImport.update({
+  id: '/sso-callback',
+  path: '/sso-callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -264,6 +270,7 @@ const AuthenticatedSystemLogOperationRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/sso-callback': typeof SsoCallbackRoute
   '/settings': typeof AuthenticatedSettingsRouteRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/help-center': typeof AuthenticatedHelpCenterRoute
@@ -304,6 +311,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/sso-callback': typeof SsoCallbackRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/help-center': typeof AuthenticatedHelpCenterRoute
   '/iframe': typeof AuthenticatedIframeRoute
@@ -345,6 +353,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
+  '/sso-callback': typeof SsoCallbackRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/help-center': typeof AuthenticatedHelpCenterRoute
@@ -387,6 +396,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/sso-callback'
     | '/settings'
     | '/dashboard'
     | '/help-center'
@@ -427,6 +437,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/sso-callback'
     | '/dashboard'
     | '/help-center'
     | '/iframe'
@@ -467,6 +478,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/login'
+    | '/sso-callback'
     | '/_authenticated/settings'
     | '/_authenticated/dashboard'
     | '/_authenticated/help-center'
@@ -509,6 +521,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
+  SsoCallbackRoute: typeof SsoCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -532,6 +545,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sso-callback': {
+      id: '/sso-callback'
+      path: '/sso-callback'
+      fullPath: '/sso-callback'
+      preLoaderRoute: typeof SsoCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/dashboard': {
@@ -900,6 +920,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
+  SsoCallbackRoute: SsoCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

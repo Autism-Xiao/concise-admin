@@ -107,3 +107,19 @@ export interface PermissionSummary {
 export function fetchPermissions(): Promise<PermissionSummary> {
   return getApiResult<PermissionSummary>('/backend-api/v1/auth/permissions')
 }
+
+/* ---------- SSO 单点登录：GET config / POST exchange ---------- */
+
+/** 后端 SSO 开关：登录页据此决定是否展示「单点登录」按钮 */
+export function fetchSsoConfig(): Promise<{ enabled: boolean }> {
+  return getApiResult<{ enabled: boolean }>('/backend-api/v1/auth/sso/config')
+}
+
+/** SSO 回调一次性 code 换取令牌：与密码登录同构的返回结构 */
+export function exchangeSsoCode(code: string): Promise<LoginResult> {
+  return getApiResult<LoginResult>('/backend-api/v1/auth/sso/exchange', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code })
+  })
+}

@@ -25,7 +25,7 @@ import {
   writeRemember,
   type RememberDays
 } from '@/lib/remember'
-import { fetchCaptcha, fetchPermissions, loginRequest, verifyCaptcha } from './api'
+import { fetchCaptcha, fetchPermissions, fetchSsoConfig, loginRequest, verifyCaptcha } from './api'
 
 const APP_NAME = import.meta.env.VITE_APP_NAME
 
@@ -47,6 +47,14 @@ export function LoginPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   // 触发锁定后本地禁用提交，避免用户继续在已锁定账号上徒劳尝试（后端仍会拒）
   const [lockedOut, setLockedOut] = useState(false)
+  // SSO 开关：后端启用才显示「单点登录」按钮；查询失败静默降级为隐藏（不影响密码登录）
+  const [ssoEnabled, setSsoEnabled] = useState(false)
+
+  useEffect(() => {
+    fetchSsoConfig()
+      .then(config => setSsoEnabled(!!config.enabled))
+      .catch(() => setSsoEnabled(false))
+  }, [])
 
   // 滑块验证码：captchaId / ticket 放 ref（request/onVerify 回调闭包要拿最新值），ticket 另存 state 供提交判断
   const sliderRef = useRef<ActionType | undefined>(undefined)
@@ -341,6 +349,21 @@ export function LoginPage() {
               {submitting && <Loader2 className="animate-spin" />}
               {submitting ? t('login.submitting') : t('login.submit')}
             </Button>
+            {/* SSO 单点登录：后端开关（GET /v1/auth/sso/config）返回 enabled 才展示，
+                点击直接整页跳后端 authorize → 302 到 IdP；回跳由 /sso-callback 落地 */}
+            {ssoEnabled && (
+              <>
+                <div className="text-muted-foreground flex items-center gap-3 text-xs">
+                  <span className="bg-border h-px flex-1" />
+                  或
+                  <span className="bg-border h-px flex-1" />
+                </div>
+                <Button type="button" variant="outline" className="w-full" onClick={() => window.location.assign('/backend-api/v1/auth/sso/authorize')}>
+                  <ShieldCheck />
+                  单点登录（SSO）
+                </Button>
+              </>
+            )}
           </form>
         </div>
       </div>
