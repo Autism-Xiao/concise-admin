@@ -38,10 +38,10 @@ function DashboardSkeleton() {
           </Card>
         ))}
       </div>
-      <div className="grid gap-4 xl:grid-cols-3">
-        <Card className="xl:col-span-2">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-3">
+        <Card className="min-w-0 xl:col-span-2">
           <CardContent className="py-5">
-            <Skeleton className="h-56 w-full" />
+            <Skeleton className="h-48 w-full sm:h-56" />
           </CardContent>
         </Card>
         <Card>
@@ -161,14 +161,16 @@ export function DashboardPage() {
 
       <MetricCards data={data} />
 
-      <div className="grid gap-4 xl:grid-cols-3">
-        <div className="space-y-4 xl:col-span-2">
+      {/* 列项必须 min-w-0：grid 轨道默认 min-width:auto，图表 SVG 的像素宽度会把轨道撑爆，
+          表现为移动端整列横向溢出（图 + 图下面的卡片一起超宽） */}
+      <div className="grid min-w-0 gap-4 xl:grid-cols-3">
+        <div className="min-w-0 space-y-4 xl:col-span-2">
           {data.loginTrend && <LoginTrendChart block={data.loginTrend} />}
           {data.recentOpers && (
             <RecentOpersCard block={data.recentOpers} onOpenLogs={() => go('/system/log/operation')} canOpenLogs={canGo.logs} />
           )}
         </div>
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <NoticesCard rows={data.notices} onOpenNotices={() => go('/system/notice')} canOpenNotices={canGo.notices} />
           <QuickEntriesCard onNavigate={go} />
           {data.serverState && <ServerStateCard block={data.serverState} onOpenMonitor={() => go('/ops/server')} />}

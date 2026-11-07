@@ -61,7 +61,7 @@ function AuthenticatedLayout() {
             {/* 后端整体不可用时只留一条常驻横幅，避免每个接口各弹一条 toast */}
             <ServiceStatusBanner />
             <PageTabs />
-            <main data-scroll="main" className="flex-1 overflow-y-auto p-6">
+            <main data-scroll="main" className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6">
               <PermissionGuard>
                 <MainContent />
               </PermissionGuard>

@@ -55,8 +55,13 @@ export function LoginTrendChart({ block }: { block: LoginTrendBlock }) {
         {isEmpty ? (
           <div className="text-muted-foreground flex h-56 items-center justify-center text-sm">近 7 天没有登录记录</div>
         ) : (
-          <div className="h-56 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div
+            // overflow-hidden + min-w-0：容器变窄时（手机竖屏 / 侧边栏收起），
+            // recharts 还没来得及按新宽度重画 SVG，min-content 会把外层 grid 轨道撑爆；
+            // 先裁住溢出，ResponsiveContainer 的 ResizeObserver 随即按真实宽度重画
+            className="h-48 w-full min-w-0 overflow-hidden sm:h-56"
+          >
+            <ResponsiveContainer width="100%" height="100%" debounce={50}>
               <AreaChart data={block.points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
                 <defs>
                   <linearGradient id="fillSuccess" x1="0" y1="0" x2="0" y2="1">
