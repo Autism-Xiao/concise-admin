@@ -2,14 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, CircleDashed, CheckCircle2, Circle, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { fetchTasks, type Task, type TaskPriority, type TaskStatus } from './api'
 
 const PAGE_SIZE = 9
 
-const statusMap: Record<TaskStatus, { label: string; icon: typeof Circle; className: string }> = {
+const statusMap: Record<TaskStatus, { label: string; icon: typeof Circle; className: string; pulse?: boolean }> = {
   todo: { label: '待处理', icon: Circle, className: 'text-muted-foreground' },
-  'in-progress': { label: '进行中', icon: CircleDashed, className: 'text-sky-600 dark:text-sky-400' },
+  'in-progress': { label: '进行中', icon: CircleDashed, className: 'text-sky-600 dark:text-sky-400', pulse: true },
   done: { label: '已完成', icon: CheckCircle2, className: 'text-emerald-600 dark:text-emerald-400' },
   canceled: { label: '已取消', icon: XCircle, className: 'text-muted-foreground' }
 }
@@ -93,7 +94,7 @@ export function TasksPage() {
                     <p className="leading-snug font-medium">{task.title}</p>
                     <div className="flex items-center justify-between text-sm">
                       <span className={`inline-flex items-center gap-1.5 ${status.className}`}>
-                        <StatusIcon className="size-4" />
+                        <StatusIcon className={cn('size-4', status.pulse && 'drop-shadow-[0_0_4px_currentColor] animate-status-breathe')} />
                         {status.label}
                       </span>
                       <span className="text-muted-foreground text-xs">{task.assignee}</span>

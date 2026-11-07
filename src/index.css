@@ -160,6 +160,27 @@
   }
 }
 
+/* 状态标签呼吸灯：只给「活的」状态用（运行中 / 在线 / 进行中），静态终态不加 */
+@keyframes status-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.animate-status-breathe {
+  animation: status-breathe 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-status-breathe {
+    animation: none;
+  }
+}
+
 /* 登录页品牌面板装饰光斑：缓慢上下漂浮 */
 @keyframes login-float {
   0%,

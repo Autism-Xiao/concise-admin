@@ -129,7 +129,13 @@ export function JobPage() {
       {
         accessorKey: 'status',
         header: ({ column }) => <DataTableColumnHeader column={column} title="状态" />,
-        cell: ({ row }) => <StatusBadge ok={row.original.status === 0} label={JOB_STATUS_LABEL[row.original.status] ?? String(row.original.status)} />,
+        cell: ({ row }) => (
+          <StatusBadge
+            ok={row.original.status === 0}
+            pulse={row.original.status === 0}
+            label={JOB_STATUS_LABEL[row.original.status] ?? String(row.original.status)}
+          />
+        ),
         filterFn: (row, id, value) => String(row.getValue(id)) === value
       },
       {
