@@ -43,10 +43,10 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const pathname = useLocation({ select: location => location.pathname })
   // 固定「首页」标签跟随权限：后端菜单里没有仪表盘时落到第一个有权限的业务页面
-  const homePath = useMemo(() => resolveHomePath(computePermittedPaths()), [])
+  const homePath = useMemo(() => resolveHomePath(), [])
   const [tabs, setTabs] = useState<TabItem[]>(() => {
     const permitted = computePermittedPaths()
-    const home = resolveHomePath(permitted)
+    const home = resolveHomePath()
     const restored = loadPersistedTabs(permitted)
     if (!home) return restored
     return restored.some(t => t.path === home) ? restored.map(t => (t.path === home ? { ...t, pinned: true } : t)) : [{ path: home, pinned: true }, ...restored]

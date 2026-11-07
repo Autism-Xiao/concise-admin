@@ -1,35 +1,21 @@
-import { HOME_PATH, PAGE_REGISTRY } from '@/config/page-registry'
-import { computePermittedPaths } from './permissions'
-
-/** 常驻页面：错误页与设置中心不依赖菜单授权，任何账号都能进，不能当「首页」候选 */
-const NON_HOME_PREFIXES = ['/errors', '/settings', '/help-center']
-
-/** 是否是可作为落地页的业务页面：前端已实现（在注册表里）且不是常驻页面 */
-function isBusinessPage(path: string): boolean {
-  if (!(path in PAGE_REGISTRY)) return false
-  return !NON_HOME_PREFIXES.some(prefix => path === prefix || path.startsWith(prefix + '/'))
-}
+import { HOME_PATH } from '@/config/page-registry'
 
 /**
  * 解析当前账号的首页。
  *
- * 后端菜单树里没有「仪表盘」这个节点，只授权了某个业务菜单的账号并没有 /dashboard 权限。
- * 如果登录后仍然硬跳 /dashboard，就会被权限守卫拦到 403（表现为「有菜单权限却进不去一条数据」）。
- * 这里按「仪表盘 → 注册表顺序里第一个有权限的业务页面」选落地页。
+ * 历史背景：以前后端菜单树里没有「仪表盘」节点时，没有该菜单授权的账号访问 /dashboard
+ * 会被权限守卫拦到 403，所以这里有一套「仪表盘 → 注册表顺序里第一个有权限的业务页」的兜底，
+ * 结果是不同账号登录后落在不同页面，换账号后经常找不到「首页」在哪。
  *
- * @param permitted 可见路径集合；null 表示超管（不过滤）
- * @returns 首页路由；null 表示该账号一个业务页面都没有（调用方展示「未分配菜单」提示）
+ * 现在首页是**常驻页面**（`isPathAllowed` 里 /dashboard 在白名单中），概览数据按权限逐块裁剪：
+ * 没权限的块后端直接返回 null，页面表现为「更少的卡片」而不是整页被拦。
+ * 因此落地页恒为首页，任何角色都是同一个入口 —— 这也是「首页」该有的语义。
  */
-export function resolveHomePath(permitted: Set<string> | null): string | null {
-  if (!permitted) return HOME_PATH
-  if (permitted.has(HOME_PATH)) return HOME_PATH
-  for (const path of Object.keys(PAGE_REGISTRY)) {
-    if (permitted.has(path) && isBusinessPage(path)) return path
-  }
-  return null
+export function resolveHomePath(): string {
+  return HOME_PATH
 }
 
-/** 同步解析（读 localStorage 里的登录快照），供路由 beforeLoad / 标签页初始化使用 */
+/** 供路由 beforeLoad / 标签页初始化同步调用（首页不再依赖权限集合，直接返回常量） */
 export function resolveHomePathFromStorage(): string {
-  return resolveHomePath(computePermittedPaths()) ?? HOME_PATH
+  return HOME_PATH
 }

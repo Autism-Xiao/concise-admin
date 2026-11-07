@@ -99,8 +99,14 @@ export function useMenuTree(): PermissionMenu[] | null {
   return tree
 }
 
-/** 始终放行的路径前缀：错误页、设置、帮助中心不参与权限拦截 */
-const ALWAYS_ALLOWED = ['/', '/errors', '/settings', '/help-center']
+/**
+ * 始终放行的路径前缀：错误页、设置、帮助中心、首页不参与权限拦截
+ *
+ * /dashboard 列入白名单的原因：首页是「工作台/概览」，数据由后端按权限逐块裁剪
+ * （没权限的块返回 null，前端直接不渲染）。如果按菜单授权拦截整页，
+ * 没勾「仪表盘」菜单的账号登录后会被甩到 403 或被迫落到别的页面 —— 首页不该是这个体验。
+ */
+const ALWAYS_ALLOWED = ['/', '/dashboard', '/errors', '/settings', '/help-center']
 
 /**
  * 判断路径是否允许访问：

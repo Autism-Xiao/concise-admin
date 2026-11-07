@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
-import { ChevronRight, Circle, Search, type LucideIcon } from 'lucide-react'
+import { ChevronRight, Circle, LayoutDashboard, Search, type LucideIcon } from 'lucide-react'
 import { Collapsible } from '@base-ui/react/collapsible'
 import { Logo } from '@/assets/logo'
 import { NavUser } from '@/components/layout/nav-user'
@@ -139,7 +139,7 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
   // 按当前角色的菜单权限过滤侧边栏（仅过滤业务分组，页面/其他分组始终显示）
   const permitted = usePermittedPaths()
   // Logo 回首页同样跟随权限，避免点了 Logo 反而被甩到 403
-  const homePath = resolveHomePath(permitted) ?? '/dashboard'
+  const homePath = resolveHomePath()
   const visibleGroups = useMemo<NavGroup[]>(() => {
     if (!permitted) return navGroups
     return navGroups
@@ -183,6 +183,15 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
         <SidebarGroup className="pb-0">
           <SidebarGroupContent>
             <SidebarMenu>
+              {/* 首页固定入口：不依赖后端菜单授权（菜单里没勾「仪表盘」的角色也能一键回首页） */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === homePath} tooltip={t('nav.dashboard')}>
+                  <Link to={homePath as never} onClick={closeMobileSidebar}>
+                    <LayoutDashboard />
+                    <span>{t('nav.dashboard')}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   tooltip={t('nav.search')}

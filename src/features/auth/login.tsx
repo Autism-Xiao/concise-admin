@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useLocale } from '@/context/locale-provider'
 import { login, setMenuTree, setMustChangePassword, setPermissions, setTokens } from '@/lib/auth'
 import { resolveHomePath } from '@/lib/home-path'
-import { computePermittedPaths, notifyPermissionsChanged } from '@/lib/permissions'
+import { notifyPermissionsChanged } from '@/lib/permissions'
 import { fetchCaptcha, fetchPermissions, loginRequest, verifyCaptcha } from './api'
 
 const APP_NAME = import.meta.env.VITE_APP_NAME
@@ -177,9 +177,8 @@ export function LoginPage() {
       }
       notifyPermissionsChanged()
       toast.success(t('login.success'))
-      // 落地页跟随权限：只授权了业务菜单的账号没有 /dashboard，硬跳会被权限守卫拦到 403
-      const home = resolveHomePath(computePermittedPaths())
-      void navigate({ to: (home ?? '/dashboard') as never })
+      // 首页是常驻页面（数据按权限裁剪），任何账号都落到 /dashboard
+      void navigate({ to: resolveHomePath() as never })
     } catch (err) {
       // 后端 message 直接透出（如：验证码错误 / 用户名或密码错误）；票据一次性，失败后重置滑块
       toast.error(err instanceof Error ? err.message : t('login.credentialsError'))

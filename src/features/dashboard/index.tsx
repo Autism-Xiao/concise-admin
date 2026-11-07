@@ -1,77 +1,158 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
+import { Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { fetchDashboard, type DashboardData } from './api'
-import { DocumentsTable } from './components/documents-table'
-import { StatCards } from './components/stat-cards'
-import { VisitorsChart } from './components/visitors-chart'
+import { fetchOverview, type DashboardOverview } from './api'
+import { LoginTrendChart } from './components/login-trend-chart'
+import { MetricCards } from './components/metric-cards'
+import { MyTasksCard } from './components/my-tasks-card'
+import { NoticesCard } from './components/notices-card'
+import { QuickEntriesCard } from './components/quick-entries-card'
+import { RecentOpersCard } from './components/recent-opers-card'
+import { ServerStateCard } from './components/server-state-card'
+import { WelcomeBar } from './components/welcome-bar'
 
 function DashboardSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i}>
-            <CardHeader className="pb-2">
+      <Card>
+        <CardContent className="flex items-center gap-3 py-5">
+          <Skeleton className="size-12 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-4 w-52" />
+          </div>
+        </CardContent>
+      </Card>
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(13rem, 1fr))' }}>
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Card key={index}>
+            <CardContent className="space-y-2 py-5">
               <Skeleton className="h-4 w-20" />
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Skeleton className="h-8 w-28" />
+              <Skeleton className="h-8 w-24" />
               <Skeleton className="h-3 w-32" />
             </CardContent>
           </Card>
         ))}
       </div>
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-5 w-24" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-64 w-full" />
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 xl:grid-cols-3">
+        <Card className="xl:col-span-2">
+          <CardContent className="py-5">
+            <Skeleton className="h-56 w-full" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="space-y-3 py-5">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
 
+/**
+ * 首页
+ *
+ * 数据来自单个聚合接口 /v1/dashboard/overview —— 权限裁剪由服务端完成，
+ * 前端只做「有就画、null 就跳过」，不参与任何权限判断（localStorage 里的权限可被篡改）。
+ * 因此低权限账号看到的不是「一堆 0」，而是「更少的卡片」，并且每块都标注了口径（全站 / 仅我的）。
+ */
 export function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null)
+  const navigate = useNavigate()
+  const [data, setData] = useState<DashboardOverview | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  // 首次加载与手动刷新要分开：刷新时保留旧内容，避免整页闪 skeleton
+  const loadedRef = useRef(false)
 
-  const load = () => {
-    setLoading(true)
+  const load = useCallback(async () => {
+    if (loadedRef.current) setRefreshing(true)
+    else setLoading(true)
     setError(null)
-    fetchDashboard()
-      .then(setData)
-      .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
-      .finally(() => setLoading(false))
+    try {
+      const overview = await fetchOverview()
+      setData(overview)
+      loadedRef.current = true
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : '加载失败')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const go = useCallback(
+    (path: string) => {
+      void navigate({ to: path as never })
+    },
+    [navigate]
+  )
+
+  if (loading) return <DashboardSkeleton />
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center gap-3 py-12">
+          <p className="text-muted-foreground max-w-lg text-center text-sm">{error}</p>
+          <Button variant="outline" onClick={() => void load()}>
+            重试
+          </Button>
+        </CardContent>
+      </Card>
+    )
   }
 
-  useEffect(load, [])
+  if (!data) return null
+
+  // 四个「全站级」块全为 null：说明这个账号没有任何菜单授权，只剩「我的」数据
+  const restricted =
+    data.userTotal === null && data.onlineCount === null && data.roleTotal === null && data.serverState === null
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">仪表盘</h1>
-      {loading ? (
-        <DashboardSkeleton />
-      ) : error ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-12">
-            <p className="text-muted-foreground text-sm">{error}</p>
-            <Button variant="outline" onClick={load}>
-              重试
-            </Button>
-          </CardContent>
-        </Card>
-      ) : data ? (
-        <>
-          <StatCards stats={data.stats} />
-          <VisitorsChart visitors={data.visitors} />
-          <DocumentsTable documents={data.documents} />
-        </>
-      ) : null}
+      <WelcomeBar
+        profile={data.profile}
+        noticeCount={data.notices.length}
+        refreshing={refreshing}
+        onRefresh={() => void load()}
+        onOpenNotices={() => go('/system/notice')}
+      />
+
+      {restricted && (
+        <div className="text-muted-foreground flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm">
+          <Info className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <span>
+            当前账号还没有被分配菜单，因此只能看到属于你自己的数据。请联系管理员在「角色权限」里为你的角色勾选菜单与按钮。
+          </span>
+        </div>
+      )}
+
+      <MetricCards data={data} />
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <div className="space-y-4 xl:col-span-2">
+          {data.loginTrend && <LoginTrendChart block={data.loginTrend} />}
+          {data.recentOpers && <RecentOpersCard block={data.recentOpers} onOpenLogs={() => go('/system/log/operation')} />}
+        </div>
+        <div className="space-y-4">
+          <MyTasksCard block={data.myTasks} onOpenTasks={() => go('/tasks')} />
+          <NoticesCard rows={data.notices} onOpenNotices={() => go('/system/notice')} />
+          <QuickEntriesCard onNavigate={go} />
+          {data.serverState && <ServerStateCard block={data.serverState} onOpenMonitor={() => go('/ops/server')} />}
+        </div>
+      </div>
     </div>
   )
 }

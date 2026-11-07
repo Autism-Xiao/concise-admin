@@ -11,10 +11,9 @@ import { TabsProvider } from '@/context/tabs-provider'
 import { WatermarkProvider, useWatermark } from '@/context/watermark-provider'
 import { LockProvider } from '@/context/lock-provider'
 import { useSettings } from '@/context/settings-provider'
-import { HOME_PATH, isRegisteredPage } from '@/config/page-registry'
+import { isRegisteredPage } from '@/config/page-registry'
 import { NoMenuAccess } from '@/features/errors'
 import { isAuthenticated, needsPasswordChange } from '@/lib/auth'
-import { resolveHomePath } from '@/lib/home-path'
 import { isPathAllowed, usePermittedPaths } from '@/lib/permissions'
 import type { WatermarkDensity } from '@/lib/watermark'
 
@@ -96,9 +95,7 @@ function PermissionGuard({ children }: { children: ReactNode }) {
   if (!isAuthenticated()) return null
   if (!permitted || isPathAllowed(pathname, permitted)) return children
   // 一个业务菜单都没授权：给明确提示 + 退出入口，而不是甩 403 让人以为链接坏了
-  const home = resolveHomePath(permitted)
-  if (!home) return <NoMenuAccess />
-  // 落在默认首页（/dashboard）但该账号没有仪表盘权限：改去它第一个有权限的页面
-  if (pathname === HOME_PATH) return <Navigate to={home as never} replace />
+  // （首页 /dashboard 在白名单里，会走上面的放行分支，并自带「未分配菜单」提示条）
+  if (permitted.size === 0) return <NoMenuAccess />
   return <Navigate to="/errors/403" replace />
 }
