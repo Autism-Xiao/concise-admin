@@ -1,7 +1,6 @@
 import {
   BookOpen,
   FolderOpen,
-  ListTodo,
   ListTree,
   LogIn,
   Megaphone,
@@ -34,7 +33,6 @@ interface QuickEntry {
  * permitted 为 null 表示超管 / 权限加载中，不做菜单过滤。
  */
 const ENTRIES: QuickEntry[] = [
-  { path: '/tasks', label: '任务看板', icon: ListTodo, perm: null },
   { path: '/system/file', label: '文件管理', icon: FolderOpen, perm: null },
   { path: '/system/notice', label: '通知公告', icon: Megaphone, perm: null },
   { path: '/system/users', label: '用户管理', icon: Users, perm: 'system:user:list' },

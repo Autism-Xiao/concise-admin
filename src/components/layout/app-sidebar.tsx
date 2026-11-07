@@ -99,12 +99,19 @@ function toDynItem(node: PermissionMenu): DynItem | null {
   if (children.length > 0) return { label, icon: menuIcon(menuPath(node)), children }
   const url = menuPath(node)
   if (!url) return null
+  const external = node.internalOrExternal === 1
+  const inner = node.isRoute === 0 && !external
+  // 普通 SPA 菜单必须能在页面登记表里找到，否则点进去就是 404。
+  // 典型场景：后端菜单还留着、前端页面已下线的历史节点（早期的任务/应用/聊天），
+  // 以及浏览器 localStorage 里缓存的旧菜单树 —— 这里直接不渲染，不用等用户重新登录。
+  // 外链和 iframe 内链不查登记表：前者指向站外，后者统一走 /iframe 承载页。
+  if (!external && !inner && !PAGE_REGISTRY[url]) return null
   return {
     url,
     label: label || url,
     icon: menuIcon(url),
-    external: node.internalOrExternal === 1,
-    inner: node.isRoute === 0 && node.internalOrExternal !== 1
+    external,
+    inner
   }
 }
 

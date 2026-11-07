@@ -11,16 +11,13 @@ import {
   FolderOpen,
   HelpCircle,
   LayoutDashboard,
-  ListTodo,
   ListTree,
   LogIn,
   MapPin,
   Medal,
   Megaphone,
-  MessagesSquare,
   Monitor,
   Network,
-  Package,
   Palette,
   ScrollText,
   Server,
@@ -33,9 +30,6 @@ import {
 } from 'lucide-react'
 import type { TranslationKey } from '@/config/i18n'
 import { DashboardPage } from '@/features/dashboard'
-import { TasksPage } from '@/features/tasks'
-import { AppsPage } from '@/features/apps'
-import { ChatsPage } from '@/features/chats'
 import { HelpCenterPage } from '@/features/help-center'
 import { UsersPage } from '@/features/users'
 import { MenuPage } from '@/features/system/menu'
@@ -79,9 +73,6 @@ export const HOME_PATH = '/dashboard'
 
 export const PAGE_REGISTRY: Record<string, PageEntry> = {
   '/dashboard': { component: DashboardPage, titleKey: 'nav.dashboard', icon: LayoutDashboard },
-  '/tasks': { component: TasksPage, titleKey: 'nav.tasks', icon: ListTodo },
-  '/apps': { component: AppsPage, titleKey: 'nav.apps', icon: Package },
-  '/chats': { component: ChatsPage, titleKey: 'nav.chats', icon: MessagesSquare },
   '/help-center': { component: HelpCenterPage, titleKey: 'nav.helpCenter', icon: HelpCircle },
   '/system/users': { component: UsersPage, titleKey: 'nav.system.users', icon: Users },
   '/system/menu': { component: MenuPage, titleKey: 'nav.system.menu', icon: ListTree },

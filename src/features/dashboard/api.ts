@@ -59,14 +59,6 @@ export interface StorageBlock {
   fileCount: number
 }
 
-export interface TaskBlock {
-  scope: BlockScope
-  pending: number
-  doing: number
-  done: number
-  cancelled: number
-}
-
 export interface NoticeRow {
   id: string
   title: string
@@ -100,7 +92,6 @@ export interface DashboardOverview {
   loginTrend: LoginTrendBlock | null
   recentOpers: RecentOpersBlock | null
   myStorage: StorageBlock
-  myTasks: TaskBlock
   notices: NoticeRow[]
   serverState: ServerStateBlock | null
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { Info, ListTodo, LogIn, UserCheck } from 'lucide-react'
+import { Info, LogIn, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -8,7 +8,6 @@ import { isPathAllowed, usePermittedPaths } from '@/lib/permissions'
 import { fetchOverview, type DashboardOverview } from './api'
 import { LoginTrendChart } from './components/login-trend-chart'
 import { MetricCards } from './components/metric-cards'
-import { MyTasksCard } from './components/my-tasks-card'
 import { NoticesCard } from './components/notices-card'
 import { QuickEntriesCard } from './components/quick-entries-card'
 import { RecentOpersCard } from './components/recent-opers-card'
@@ -105,7 +104,7 @@ export function DashboardPage() {
   const permitted = usePermittedPaths()
   const canGo = useMemo(() => {
     const check = (path: string) => !permitted || isPathAllowed(path, permitted)
-    return { notices: check('/system/notice'), tasks: check('/tasks'), logs: check('/system/log/operation') }
+    return { notices: check('/system/notice'), logs: check('/system/log/operation') }
   }, [permitted])
 
   // 欢迎条右侧的迷你统计：逐块按权限构造（null 的块不出现，与下方卡片同一份数据）
@@ -123,8 +122,6 @@ export function DashboardPage() {
     if (data.onlineCount !== null) {
       stats.push({ key: 'onlineCount', label: '在线', icon: UserCheck, value: data.onlineCount.toLocaleString() })
     }
-    const openTasks = data.myTasks.pending + data.myTasks.doing
-    stats.push({ key: 'myTasks', label: '我的待办', icon: ListTodo, value: openTasks.toLocaleString() })
     return stats
   }, [data])
 
@@ -172,7 +169,6 @@ export function DashboardPage() {
           )}
         </div>
         <div className="space-y-4">
-          <MyTasksCard block={data.myTasks} onOpenTasks={() => go('/tasks')} canOpenTasks={canGo.tasks} />
           <NoticesCard rows={data.notices} onOpenNotices={() => go('/system/notice')} canOpenNotices={canGo.notices} />
           <QuickEntriesCard onNavigate={go} />
           {data.serverState && <ServerStateCard block={data.serverState} onOpenMonitor={() => go('/ops/server')} />}

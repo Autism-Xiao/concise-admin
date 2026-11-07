@@ -9,14 +9,11 @@ import {
   FolderOpen,
   HelpCircle,
   LayoutDashboard,
-  ListTodo,
   ListTree,
   MapPin,
   Medal,
   Megaphone,
-  MessagesSquare,
   Network,
-  Package,
   ScrollText,
   Server,
   Settings,
@@ -46,12 +43,7 @@ export interface NavGroup {
 export const navGroups: NavGroup[] = [
   {
     titleKey: 'group.general',
-    items: [
-      { titleKey: 'nav.dashboard', url: '/dashboard', icon: LayoutDashboard },
-      { titleKey: 'nav.tasks', url: '/tasks', icon: ListTodo },
-      { titleKey: 'nav.apps', url: '/apps', icon: Package },
-      { titleKey: 'nav.chats', url: '/chats', icon: MessagesSquare, badge: '3' }
-    ]
+    items: [{ titleKey: 'nav.dashboard', url: '/dashboard', icon: LayoutDashboard }]
   },
   {
     titleKey: 'group.system',

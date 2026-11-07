@@ -7,7 +7,6 @@ const listeners = new Set<() => void>()
 /** 统一取菜单节点的路由地址，顺带把后端与前端路由不一致的地址映射到前端实际路由。 */
 export const MENU_URL_ALIAS: Record<string, string> = {
   '/system/user': '/system/users',
-  '/system/task': '/tasks',
   '/tools/storage': '/system/file'
 }
 

@@ -12,13 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as AuthenticatedAppsRouteImport } from './routes/_authenticated/apps'
-import { Route as AuthenticatedChatsRouteImport } from './routes/_authenticated/chats'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedHelpCenterRouteImport } from './routes/_authenticated/help-center'
 import { Route as AuthenticatedIframeRouteImport } from './routes/_authenticated/iframe'
 import { Route as AuthenticatedSettingsRouteRouteImport } from './routes/_authenticated/settings/route'
-import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedErrors401RouteImport } from './routes/_authenticated/errors/401'
 import { Route as AuthenticatedErrors403RouteImport } from './routes/_authenticated/errors/403'
 import { Route as AuthenticatedErrors404RouteImport } from './routes/_authenticated/errors/404'
@@ -64,16 +61,6 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAppsRoute = AuthenticatedAppsRouteImport.update({
-  id: '/apps',
-  path: '/apps',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedChatsRoute = AuthenticatedChatsRouteImport.update({
-  id: '/chats',
-  path: '/chats',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -95,11 +82,6 @@ const AuthenticatedSettingsRouteRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedErrors401Route = AuthenticatedErrors401RouteImport.update({
   id: '/errors/401',
   path: '/errors/401',
@@ -269,12 +251,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/settings': typeof AuthenticatedSettingsRouteRouteWithChildren
-  '/apps': typeof AuthenticatedAppsRoute
-  '/chats': typeof AuthenticatedChatsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/help-center': typeof AuthenticatedHelpCenterRoute
   '/iframe': typeof AuthenticatedIframeRoute
-  '/tasks': typeof AuthenticatedTasksRoute
   '/errors/401': typeof AuthenticatedErrors401Route
   '/errors/403': typeof AuthenticatedErrors403Route
   '/errors/404': typeof AuthenticatedErrors404Route
@@ -309,12 +288,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/apps': typeof AuthenticatedAppsRoute
-  '/chats': typeof AuthenticatedChatsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/help-center': typeof AuthenticatedHelpCenterRoute
   '/iframe': typeof AuthenticatedIframeRoute
-  '/tasks': typeof AuthenticatedTasksRoute
   '/errors/401': typeof AuthenticatedErrors401Route
   '/errors/403': typeof AuthenticatedErrors403Route
   '/errors/404': typeof AuthenticatedErrors404Route
@@ -352,12 +328,9 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteRouteWithChildren
-  '/_authenticated/apps': typeof AuthenticatedAppsRoute
-  '/_authenticated/chats': typeof AuthenticatedChatsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/help-center': typeof AuthenticatedHelpCenterRoute
   '/_authenticated/iframe': typeof AuthenticatedIframeRoute
-  '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/errors/401': typeof AuthenticatedErrors401Route
   '/_authenticated/errors/403': typeof AuthenticatedErrors403Route
   '/_authenticated/errors/404': typeof AuthenticatedErrors404Route
@@ -395,12 +368,9 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/settings'
-    | '/apps'
-    | '/chats'
     | '/dashboard'
     | '/help-center'
     | '/iframe'
-    | '/tasks'
     | '/errors/401'
     | '/errors/403'
     | '/errors/404'
@@ -435,12 +405,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
-    | '/apps'
-    | '/chats'
     | '/dashboard'
     | '/help-center'
     | '/iframe'
-    | '/tasks'
     | '/errors/401'
     | '/errors/403'
     | '/errors/404'
@@ -477,12 +444,9 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/_authenticated/settings'
-    | '/_authenticated/apps'
-    | '/_authenticated/chats'
     | '/_authenticated/dashboard'
     | '/_authenticated/help-center'
     | '/_authenticated/iframe'
-    | '/_authenticated/tasks'
     | '/_authenticated/errors/401'
     | '/_authenticated/errors/403'
     | '/_authenticated/errors/404'
@@ -544,20 +508,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/apps': {
-      id: '/_authenticated/apps'
-      path: '/apps'
-      fullPath: '/apps'
-      preLoaderRoute: typeof AuthenticatedAppsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/chats': {
-      id: '/_authenticated/chats'
-      path: '/chats'
-      fullPath: '/chats'
-      preLoaderRoute: typeof AuthenticatedChatsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -584,13 +534,6 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/tasks': {
-      id: '/_authenticated/tasks'
-      path: '/tasks'
-      fullPath: '/tasks'
-      preLoaderRoute: typeof AuthenticatedTasksRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/errors/401': {
@@ -849,12 +792,9 @@ const AuthenticatedSystemLogRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedSettingsRouteRoute: typeof AuthenticatedSettingsRouteRouteWithChildren
-  AuthenticatedAppsRoute: typeof AuthenticatedAppsRoute
-  AuthenticatedChatsRoute: typeof AuthenticatedChatsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHelpCenterRoute: typeof AuthenticatedHelpCenterRoute
   AuthenticatedIframeRoute: typeof AuthenticatedIframeRoute
-  AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedErrors401Route: typeof AuthenticatedErrors401Route
   AuthenticatedErrors403Route: typeof AuthenticatedErrors403Route
   AuthenticatedErrors404Route: typeof AuthenticatedErrors404Route
@@ -881,12 +821,9 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSettingsRouteRoute: AuthenticatedSettingsRouteRouteWithChildren,
-  AuthenticatedAppsRoute: AuthenticatedAppsRoute,
-  AuthenticatedChatsRoute: AuthenticatedChatsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHelpCenterRoute: AuthenticatedHelpCenterRoute,
   AuthenticatedIframeRoute: AuthenticatedIframeRoute,
-  AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedErrors401Route: AuthenticatedErrors401Route,
   AuthenticatedErrors403Route: AuthenticatedErrors403Route,
   AuthenticatedErrors404Route: AuthenticatedErrors404Route,
