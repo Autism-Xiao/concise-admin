@@ -90,6 +90,10 @@ export interface PermissionMenu {
   sort?: number
   /** 后端图标名（可选，前端优先按路由从 PAGE_REGISTRY 取图标） */
   icon?: string | null
+  /** 是否路由菜单：0 内链（iframe 嵌入）/ 1 组件路由；按钮/目录恒为 1 */
+  isRoute?: number | null
+  /** 外链打开方式：0 内部打开 / 1 外部新窗口 */
+  internalOrExternal?: number | null
   children?: PermissionMenu[]
 }
 

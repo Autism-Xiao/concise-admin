@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ChevronRight, Download, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
+import { ChevronRight, Download, Plus, RefreshCw, Search, SquarePen, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StatusBadge } from '@/components/status-badge'
+import { cn } from 'cn'
 import { hasPermission } from '@/lib/auth'
 import { saveBlobFile } from '@/lib/download'
 import { MenuFormDialog } from './components/menu-form-dialog'
-import { createMenu, deleteMenu, exportMenus, fetchMenus, menuTypeMap, updateMenu, type Menu } from './api'
+import { createMenu, deleteMenu, exportMenus, fetchMenus, menuTypeMap, savePermNodes, updateMenu, type Menu, type MenuWritePayload, type PermNode } from './api'
 import { withOperationLog } from '@/features/system/log/api'
 
 interface MenuNode extends Menu {
@@ -41,13 +41,21 @@ function buildTree(menus: Menu[]): MenuNode[] {
   return roots
 }
 
+function formatDateTime(value?: string | null): string {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
 export function MenuPage() {
   const [list, setList] = useState<Menu[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [keyword, setKeyword] = useState('')
+  const [appliedKeyword, setAppliedKeyword] = useState('')
   const [exporting, setExporting] = useState(false)
-  const [typeFilter, setTypeFilter] = useState('all')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Menu | null>(null)
@@ -88,11 +96,22 @@ export function MenuPage() {
     setFormOpen(true)
   }
 
-  const handleSubmit = (values: Parameters<typeof createMenu>[0]) => {
+  /** 保存：菜单本体 + 「权限节点」穿梭框全量替换（按钮类型没有穿梭框，permNodes 为空） */
+  const handleSubmit = (values: MenuWritePayload, permNodes: PermNode[]) => {
     const request = editing
       ? withOperationLog('更新菜单', () => updateMenu(editing.id, values))
       : withOperationLog('新增菜单', () => createMenu({ ...values, parentId: createParentId ?? values.parentId ?? null }))
     request
+      .then(saved => {
+        if (values.menuType === 2) return null
+        const targetId = editing?.id ?? (saved as Menu).id
+        return withOperationLog('更新菜单权限节点', () => savePermNodes(targetId, permNodes)).then(result => {
+          const { added, removed } = result
+          if (added.length > 0 || removed.length > 0) {
+            toast.success(`按钮权限已更新：新增 ${added.length} 个，移除 ${removed.length} 个`)
+          }
+        })
+      })
       .then(() => {
         toast.success(editing ? '菜单已更新' : '菜单已创建')
         setFormOpen(false)
@@ -112,14 +131,17 @@ export function MenuPage() {
     setDeleting(null)
   }
 
-  const filtering = keyword.trim() !== '' || typeFilter !== 'all'
+  const searching = appliedKeyword.trim() !== ''
   const tree = useMemo(() => buildTree(list), [list])
   const flatList = useMemo(() => {
-    const kw = keyword.trim().toLowerCase()
-    return list.filter(
-      m => (typeFilter === 'all' || String(m.menuType) === typeFilter) && (!kw || m.name.toLowerCase().includes(kw) || (m.url ?? '').toLowerCase().includes(kw))
-    )
-  }, [list, keyword, typeFilter])
+    const kw = appliedKeyword.trim().toLowerCase()
+    return list.filter(m => !kw || m.name.toLowerCase().includes(kw) || (m.url ?? '').toLowerCase().includes(kw) || (m.perms ?? '').toLowerCase().includes(kw))
+  }, [list, appliedKeyword])
+
+  const resetSearch = () => {
+    setKeyword('')
+    setAppliedKeyword('')
+  }
 
   const toggle = (id: string) =>
     setCollapsed(prev => {
@@ -136,13 +158,14 @@ export function MenuPage() {
     nodes.flatMap(node => {
       const hasChildren = node.children.length > 0
       const isCollapsed = collapsed.has(node.id)
+      const isButton = node.menuType === 2
       const row = (
         <TableRow key={node.id}>
           <TableCell>
             <div className="flex items-center gap-1" style={{ paddingInlineStart: depth * 20 }}>
               {hasChildren ? (
                 <Button variant="ghost" size="icon" className="size-6" onClick={() => toggle(node.id)}>
-                  <ChevronRight className={`size-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`} />
+                  <ChevronRight className={cn('size-4 transition-transform', isCollapsed ? '' : 'rotate-90')} />
                   <span className="sr-only">展开 / 收起</span>
                 </Button>
               ) : (
@@ -152,35 +175,43 @@ export function MenuPage() {
             </div>
           </TableCell>
           <TableCell>
-            <span className="rounded bg-muted px-1.5 py-0.5 text-xs">{menuTypeMap[node.menuType] ?? node.menuType}</span>
+            {isButton ? (
+              <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs">按钮</span>
+            ) : (
+              <span className="bg-primary/10 text-primary rounded px-1.5 py-0.5 text-xs">{menuTypeMap[node.menuType] ?? '菜单'}</span>
+            )}
           </TableCell>
           <TableCell>
-            <span className="font-mono text-xs">{node.url ?? '-'}</span>
+            <span className="text-muted-foreground font-mono text-xs">{node.url ?? '-'}</span>
           </TableCell>
           <TableCell>
-            <span className="font-mono text-xs">{node.perms ?? '-'}</span>
+            <span className="text-muted-foreground font-mono text-xs">{node.component ?? '-'}</span>
           </TableCell>
-          <TableCell className="w-16">{node.sortNo}</TableCell>
+          <TableCell>
+            <span className="text-muted-foreground font-mono text-xs">{node.perms ?? '-'}</span>
+          </TableCell>
+          <TableCell className="w-14 tabular-nums">{node.sortNo}</TableCell>
           <TableCell className="w-24">
             <StatusBadge ok={node.status === '1'} label={node.status === '1' ? '正常' : '停用'} />
           </TableCell>
-          <TableCell className="text-end">
-            {node.menuType !== 2 && hasPermission('system:menu:add') && (
-              <Button variant="ghost" size="icon" title="新增子菜单" onClick={() => openCreate(node.id)}>
-                <Plus className="size-4" />
-                <span className="sr-only">新增子菜单</span>
+          <TableCell className="text-muted-foreground w-40 whitespace-nowrap text-xs tabular-nums">{formatDateTime(node.createTime)}</TableCell>
+          <TableCell className="text-end whitespace-nowrap">
+            {hasPermission('system:menu:add') && (
+              <Button variant="ghost" size="sm" className="text-primary hover:text-primary h-7 gap-0.5 px-1.5" onClick={() => openCreate(node.id)}>
+                <Plus className="size-3.5" />
+                新增
               </Button>
             )}
             {hasPermission('system:menu:update') && (
-              <Button variant="ghost" size="icon" onClick={() => openEdit(node)}>
-                <Pencil className="size-4" />
-                <span className="sr-only">编辑</span>
+              <Button variant="ghost" size="sm" className="text-primary hover:text-primary h-7 gap-0.5 px-1.5" onClick={() => openEdit(node)}>
+                <SquarePen className="size-3.5" />
+                修改
               </Button>
             )}
             {hasPermission('system:menu:delete') && (
-              <Button variant="ghost" size="icon" onClick={() => setDeleting(node)}>
-                <Trash2 className="text-destructive size-4" />
-                <span className="sr-only">删除</span>
+              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive h-7 gap-0.5 px-1.5" onClick={() => setDeleting(node)}>
+                <Trash2 className="size-3.5" />
+                删除
               </Button>
             )}
           </TableCell>
@@ -196,40 +227,58 @@ export function MenuPage() {
           <h1 className="text-2xl font-bold">菜单管理</h1>
           <p className="text-muted-foreground text-sm">{loading ? '加载中…' : `共 ${list.length} 个菜单（含按钮权限）`}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {hasPermission('system:menu:export') && (
-            <Button variant="outline" onClick={handleExport} disabled={exporting || list.length === 0}>
-              <Download />
-              {exporting ? '导出中…' : '导出'}
-            </Button>
-          )}
-          {hasPermission('system:menu:add') && (
-            <Button onClick={() => openCreate(null)}>
-              <Plus />
-              新增菜单
-            </Button>
-          )}
-        </div>
+        {hasPermission('system:menu:export') && (
+          <Button variant="outline" onClick={handleExport} disabled={exporting || list.length === 0}>
+            <Download />
+            {exporting ? '导出中…' : '导出'}
+          </Button>
+        )}
       </div>
 
       <Card>
         <CardContent className="space-y-4">
+          {/* 搜索行：输入菜单标题 → 查询；重置恢复全量树 */}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative w-full max-w-xs">
-              <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
-              <Input placeholder="搜索名称 / 路由" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
+            <Input
+              placeholder="请输入菜单标题 / 路由 / 权限标识"
+              className="h-9 w-72"
+              value={keyword}
+              onChange={e => setKeyword(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') setAppliedKeyword(keyword)
+              }}
+            />
+            <Button size="sm" className="h-9" onClick={() => setAppliedKeyword(keyword)}>
+              <Search className="size-4" />
+              查询
+            </Button>
+            <Button size="sm" variant="outline" className="h-9" onClick={resetSearch}>
+              重置
+            </Button>
+          </div>
+
+          {/* 操作 Tab：新增常驻；搜索态提供「查询全部」一键还原 */}
+          <div className="border-b">
+            <div className="flex items-center gap-1">
+              {hasPermission('system:menu:add') && (
+                <button
+                  type="button"
+                  className="text-primary border-primary -mb-px border-b-2 px-3 pb-2 text-sm font-medium"
+                  onClick={() => openCreate(null)}
+                >
+                  新增
+                </button>
+              )}
+              {searching && (
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-foreground -mb-px border-b-2 border-transparent px-3 pb-2 text-sm font-medium"
+                  onClick={resetSearch}
+                >
+                  查询全部
+                </button>
+              )}
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter} items={{ all: '全部类型', 0: '目录', 1: '菜单', 2: '按钮' }}>
-              <SelectTrigger className="h-9 w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部类型</SelectItem>
-                <SelectItem value="0">目录</SelectItem>
-                <SelectItem value="1">菜单</SelectItem>
-                <SelectItem value="2">按钮</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           {loadError ? (
@@ -251,16 +300,18 @@ export function MenuPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>菜单名称</TableHead>
-                  <TableHead className="w-20">类型</TableHead>
+                  <TableHead className="w-20">菜单类型</TableHead>
                   <TableHead>路由地址</TableHead>
-                  <TableHead>权限编码</TableHead>
-                  <TableHead className="w-16">排序</TableHead>
+                  <TableHead>组件路径</TableHead>
+                  <TableHead>权限标识</TableHead>
+                  <TableHead className="w-14">排序</TableHead>
                   <TableHead className="w-24">状态</TableHead>
-                  <TableHead className="w-36 text-end">操作</TableHead>
+                  <TableHead className="w-40">创建时间</TableHead>
+                  <TableHead className="text-end">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtering ? (
+                {searching ? (
                   flatList.length ? (
                     renderRows(
                       flatList.map(m => ({ ...m, children: [] })),
@@ -268,7 +319,7 @@ export function MenuPage() {
                     )
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-muted-foreground py-10 text-center">
+                      <TableCell colSpan={9} className="text-muted-foreground py-10 text-center">
                         没有匹配的菜单
                       </TableCell>
                     </TableRow>

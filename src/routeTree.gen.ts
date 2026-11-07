@@ -16,6 +16,7 @@ import { Route as AuthenticatedAppsRouteImport } from './routes/_authenticated/a
 import { Route as AuthenticatedChatsRouteImport } from './routes/_authenticated/chats'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedHelpCenterRouteImport } from './routes/_authenticated/help-center'
+import { Route as AuthenticatedIframeRouteImport } from './routes/_authenticated/iframe'
 import { Route as AuthenticatedSettingsRouteRouteImport } from './routes/_authenticated/settings/route'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedErrors401RouteImport } from './routes/_authenticated/errors/401'
@@ -81,6 +82,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
 const AuthenticatedHelpCenterRoute = AuthenticatedHelpCenterRouteImport.update({
   id: '/help-center',
   path: '/help-center',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedIframeRoute = AuthenticatedIframeRouteImport.update({
+  id: '/iframe',
+  path: '/iframe',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedSettingsRouteRoute =
@@ -267,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/chats': typeof AuthenticatedChatsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/help-center': typeof AuthenticatedHelpCenterRoute
+  '/iframe': typeof AuthenticatedIframeRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/errors/401': typeof AuthenticatedErrors401Route
   '/errors/403': typeof AuthenticatedErrors403Route
@@ -306,6 +313,7 @@ export interface FileRoutesByTo {
   '/chats': typeof AuthenticatedChatsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/help-center': typeof AuthenticatedHelpCenterRoute
+  '/iframe': typeof AuthenticatedIframeRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/errors/401': typeof AuthenticatedErrors401Route
   '/errors/403': typeof AuthenticatedErrors403Route
@@ -348,6 +356,7 @@ export interface FileRoutesById {
   '/_authenticated/chats': typeof AuthenticatedChatsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/help-center': typeof AuthenticatedHelpCenterRoute
+  '/_authenticated/iframe': typeof AuthenticatedIframeRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/errors/401': typeof AuthenticatedErrors401Route
   '/_authenticated/errors/403': typeof AuthenticatedErrors403Route
@@ -390,6 +399,7 @@ export interface FileRouteTypes {
     | '/chats'
     | '/dashboard'
     | '/help-center'
+    | '/iframe'
     | '/tasks'
     | '/errors/401'
     | '/errors/403'
@@ -429,6 +439,7 @@ export interface FileRouteTypes {
     | '/chats'
     | '/dashboard'
     | '/help-center'
+    | '/iframe'
     | '/tasks'
     | '/errors/401'
     | '/errors/403'
@@ -470,6 +481,7 @@ export interface FileRouteTypes {
     | '/_authenticated/chats'
     | '/_authenticated/dashboard'
     | '/_authenticated/help-center'
+    | '/_authenticated/iframe'
     | '/_authenticated/tasks'
     | '/_authenticated/errors/401'
     | '/_authenticated/errors/403'
@@ -558,6 +570,13 @@ declare module '@tanstack/react-router' {
       path: '/help-center'
       fullPath: '/help-center'
       preLoaderRoute: typeof AuthenticatedHelpCenterRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/iframe': {
+      id: '/_authenticated/iframe'
+      path: '/iframe'
+      fullPath: '/iframe'
+      preLoaderRoute: typeof AuthenticatedIframeRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/settings': {
@@ -834,6 +853,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedChatsRoute: typeof AuthenticatedChatsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHelpCenterRoute: typeof AuthenticatedHelpCenterRoute
+  AuthenticatedIframeRoute: typeof AuthenticatedIframeRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedErrors401Route: typeof AuthenticatedErrors401Route
   AuthenticatedErrors403Route: typeof AuthenticatedErrors403Route
@@ -865,6 +885,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedChatsRoute: AuthenticatedChatsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHelpCenterRoute: AuthenticatedHelpCenterRoute,
+  AuthenticatedIframeRoute: AuthenticatedIframeRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedErrors401Route: AuthenticatedErrors401Route,
   AuthenticatedErrors403Route: AuthenticatedErrors403Route,

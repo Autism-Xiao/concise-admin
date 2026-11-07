@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { ChevronRight, Circle, LayoutDashboard, Search, type LucideIcon } from 'lucide-react'
 import { Collapsible } from '@base-ui/react/collapsible'
 import { Logo } from '@/assets/logo'
@@ -57,6 +57,10 @@ interface DynItem {
   icon: LucideIcon
   /** 子菜单（最多再嵌一层：目录 > 子目录 > 页面） */
   children?: DynItem[]
+  /** 外链：internalOrExternal=1，新窗口打开 */
+  external?: boolean
+  /** 内链：isRoute=0，路由到 /iframe 承载页嵌入 */
+  inner?: boolean
 }
 
 interface DynGroup {
@@ -94,7 +98,37 @@ function toDynItem(node: PermissionMenu): DynItem | null {
   const label = nodeLabel(node)
   if (children.length > 0) return { label, icon: menuIcon(menuPath(node)), children }
   const url = menuPath(node)
-  return url ? { url, label: label || url, icon: menuIcon(url) } : null
+  if (!url) return null
+  return {
+    url,
+    label: label || url,
+    icon: menuIcon(url),
+    external: node.internalOrExternal === 1,
+    inner: node.isRoute === 0 && node.internalOrExternal !== 1
+  }
+}
+
+/** 叶子菜单 → 链接元素：外链用 <a target=_blank> 新窗口；内链路由到 /iframe?url= 承载页；普通菜单走 SPA Link */
+function dynLinkElement(item: DynItem, onClick: () => void, children: ReactNode) {
+  if (item.external) {
+    return (
+      <a href={item.url} target="_blank" rel="noreferrer" title={item.label} onClick={onClick}>
+        {children}
+      </a>
+    )
+  }
+  if (item.inner) {
+    return (
+      <Link to="/iframe" search={{ url: item.url! }} activeProps={{ 'data-active': true }} onClick={onClick}>
+        {children}
+      </Link>
+    )
+  }
+  return (
+    <Link to={item.url!} activeProps={{ 'data-active': true }} onClick={onClick}>
+      {children}
+    </Link>
+  )
 }
 
 /**
@@ -102,8 +136,7 @@ function toDynItem(node: PermissionMenu): DynItem | null {
  * 组内支持二级折叠（如 系统管理 > 日志管理 > 登录日志/操作日志）；
  * menuType 2（按钮权限）、hidden=1、status='0'（停用）不显示；顶层无子级但有路由的收进无标题分组。
  * 字段兼容真实后端（name/url/sortNo）与旧字段（title/path/sort）。
- */
-function treeToGroups(tree: PermissionMenu[]): DynGroup[] {
+ */function treeToGroups(tree: PermissionMenu[]): DynGroup[] {
   const groups: DynGroup[] = []
   const loose: DynItem[] = []
   for (const node of [...tree].sort(bySort)) {
@@ -252,22 +285,14 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
                                   sub.children.map(d =>
                                     d.url ? (
                                       <SidebarMenuSubItem key={d.url}>
-                                        <SidebarMenuSubButton asChild>
-                                          <Link to={d.url} activeProps={{ 'data-active': true }} onClick={closeMobileSidebar}>
-                                            {d.label}
-                                          </Link>
-                                        </SidebarMenuSubButton>
+                                        <SidebarMenuSubButton asChild>{dynLinkElement(d, closeMobileSidebar, d.label)}</SidebarMenuSubButton>
                                       </SidebarMenuSubItem>
                                     )
                                     : null
                                   )
                                 ) : (
                                   <SidebarMenuSubItem key={sub.url}>
-                                    <SidebarMenuSubButton asChild>
-                                      <Link to={sub.url} activeProps={{ 'data-active': true }} onClick={closeMobileSidebar}>
-                                        {sub.label}
-                                      </Link>
-                                    </SidebarMenuSubButton>
+                                    <SidebarMenuSubButton asChild>{dynLinkElement(sub, closeMobileSidebar, sub.label)}</SidebarMenuSubButton>
                                   </SidebarMenuSubItem>
                                 )
                               )}
@@ -277,14 +302,18 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
                       </Collapsible.Root>
                     )
                   }
-                  // 叶子菜单：普通链接
+                  // 叶子菜单：普通链接（外链/内链按菜单配置分流）
                   return (
                     <SidebarMenuItem key={item.url}>
                       <SidebarMenuButton asChild tooltip={item.label}>
-                        <Link to={item.url} activeProps={{ 'data-active': true }} onClick={closeMobileSidebar}>
-                          <item.icon />
-                          <span>{item.label}</span>
-                        </Link>
+                        {dynLinkElement(
+                          item,
+                          closeMobileSidebar,
+                          <>
+                            <item.icon />
+                            <span>{item.label}</span>
+                          </>
+                        )}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   )

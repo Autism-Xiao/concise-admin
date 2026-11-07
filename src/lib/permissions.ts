@@ -106,7 +106,9 @@ export function useMenuTree(): PermissionMenu[] | null {
  * （没权限的块返回 null，前端直接不渲染）。如果按菜单授权拦截整页，
  * 没勾「仪表盘」菜单的账号登录后会被甩到 403 或被迫落到别的页面 —— 首页不该是这个体验。
  */
-const ALWAYS_ALLOWED = ['/', '/dashboard', '/errors', '/settings', '/help-center']
+// /iframe 是内链菜单的通用承载页（?url= 指向任意 http/https 地址），
+// 本身不暴露数据，内容安全靠页面内的协议白名单兜底，故与 /dashboard 一样常驻放行
+const ALWAYS_ALLOWED = ['/', '/dashboard', '/errors', '/settings', '/help-center', '/iframe']
 
 /**
  * 判断路径是否允许访问：
