@@ -13,6 +13,7 @@ import {
   type UserWritePayload
 } from '../api'
 import { fetchPosts, type Post } from '@/features/system/post/api'
+import { fetchLevels, type Level } from '@/features/system/level/api'
 
 interface UserFormDialogProps {
   open: boolean
@@ -34,12 +35,14 @@ interface FormState {
   roleIds: string[]
   deptIds: string[]
   postIds: string[]
+  /** 职级（单选，'' = 未设置） */
+  levelId: string
   /** YYYY-MM-DD；空串 = 不限制 */
   passwordExpireAt: string
   mustChangePassword: number
 }
 
-const emptyForm: FormState = { username: '', realname: '', password: '', email: '', phone: '', workNo: '', sex: 0, status: 1, roleIds: [], deptIds: [], postIds: [], passwordExpireAt: '', mustChangePassword: 0 }
+const emptyForm: FormState = { username: '', realname: '', password: '', email: '', phone: '', workNo: '', sex: 0, status: 1, roleIds: [], deptIds: [], postIds: [], levelId: '', passwordExpireAt: '', mustChangePassword: 0 }
 
 /** 复选框列表（角色/部门多选） */
 function CheckList({
@@ -80,6 +83,7 @@ export function UserFormDialog({ open, onOpenChange, user, onSubmit }: UserFormD
           roleIds: (user.roles ?? []).map(r => r.id),
           deptIds: (user.depts ?? []).map(d => d.id),
           postIds: (user.posts ?? []).map(p => p.id),
+          levelId: user.levelId ?? '',
           passwordExpireAt: user.passwordExpireAt ? user.passwordExpireAt.slice(0, 10) : '',
           mustChangePassword: user.mustChangePassword ?? 0
         }
@@ -88,16 +92,19 @@ export function UserFormDialog({ open, onOpenChange, user, onSubmit }: UserFormD
   const [roles, setRoles] = useState<Role[] | null>(null)
   const [depts, setDepts] = useState<Array<{ id: string; departName: string }> | null>(null)
   const [posts, setPosts] = useState<Post[] | null>(null)
+  const [levels, setLevels] = useState<Level[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // 弹窗打开时拉角色/部门/岗位下拉数据（每次挂载拉一次，数据量小）
+  // 弹窗打开时拉角色/部门/岗位/职级下拉数据（每次挂载拉一次，数据量小）
   useEffect(() => {
-    Promise.all([fetchRoleOptions(), fetchBackendDepts(), fetchPosts().catch(() => [])])
-      .then(([r, d, p]) => {
+    Promise.all([fetchRoleOptions(), fetchBackendDepts(), fetchPosts().catch(() => []), fetchLevels().catch(() => [])])
+      .then(([r, d, p, l]) => {
         setRoles(r)
         setDepts(d)
         setPosts(p)
+        // 停用职级不给新选（已选中的老数据照常回显，避免把历史值"洗掉"）
+        setLevels(l.filter(item => item.status === '1'))
       })
       .catch(e => setLoadError(e instanceof Error ? e.message : '加载角色/部门失败'))
   }, [])
@@ -122,6 +129,8 @@ export function UserFormDialog({ open, onOpenChange, user, onSubmit }: UserFormD
       roleIds: form.roleIds,
       deptIds: form.deptIds,
       postIds: form.postIds,
+      // 职级：'' = 未设置，置 null 让后端清掉
+      levelId: form.levelId || null,
       // 密码有效期：清空日期 = 清除过期限制
       passwordExpireAt: form.passwordExpireAt || null,
       mustChangePassword: form.mustChangePassword,
@@ -239,9 +248,31 @@ export function UserFormDialog({ open, onOpenChange, user, onSubmit }: UserFormD
                 <CheckList options={depts.map(d => ({ id: d.id, label: d.departName }))} selected={form.deptIds} onToggle={id => toggle('deptIds', id)} />
               </div>
               {posts.length > 0 && (
-                <div className="col-span-2 space-y-2">
+                <div className="space-y-2">
                   <Label>岗位（多选）</Label>
                   <CheckList options={posts.map(p => ({ id: p.id, label: p.postName || p.postCode }))} selected={form.postIds} onToggle={id => toggle('postIds', id)} />
+                </div>
+              )}
+              {(levels?.length ?? 0) > 0 && (
+                <div className="space-y-2">
+                  <Label>职级（单选）</Label>
+                  <Select
+                    value={form.levelId || 'none'}
+                    onValueChange={v => set('levelId', v === 'none' ? '' : v)}
+                    items={Object.fromEntries([['none', '未设置'], ...(levels ?? []).map(l => [l.id, l.levelName])])}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">未设置</SelectItem>
+                      {(levels ?? []).map(l => (
+                        <SelectItem key={l.id} value={l.id}>
+                          {l.levelName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
             </div>

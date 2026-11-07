@@ -25,6 +25,10 @@ export interface User {
   depts?: Array<{ id: string; departName: string }>
   /** 岗位列表（sys_user_post） */
   posts?: Array<{ id: string; postName?: string; postCode?: string }>
+  /** 职级 ID（sys_level，单选可空） */
+  levelId?: string | null
+  /** 职级（后端批量组装，只含 id/levelName） */
+  level?: { id: string; levelName: string } | null
   /** 密码过期时间（ISO 字符串；空 = 不限制） */
   passwordExpireAt?: string | null
   /** 下次登录强制改密：1 是 / 0 否 */
@@ -57,6 +61,8 @@ export interface UserWritePayload {
   roleIds?: string[]
   deptIds?: string[]
   postIds?: string[]
+  /** 职级 ID（单选；null/'' 表示不设置） */
+  levelId?: string | null
   /** 密码过期时间（YYYY-MM-DD 或 ISO；不传表示不改，传空串清除） */
   passwordExpireAt?: string | null
   /** 下次登录强制改密：1 是 / 0 否 */

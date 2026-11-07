@@ -190,10 +190,22 @@ export function UsersPage() {
         cell: ({ row }) => row.getValue('roleNames') || '-'
       },
       {
+        id: 'levelName',
+        accessorFn: row => row.level?.levelName ?? '',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="职级" />,
+        cell: ({ row }) => row.getValue('levelName') || '-'
+      },
+      {
         id: 'postNames',
         accessorFn: row => (row.posts ?? []).map(p => p.postName || p.postCode).join('、'),
         header: ({ column }) => <DataTableColumnHeader column={column} title="岗位" />,
         cell: ({ row }) => row.getValue('postNames') || '-'
+      },
+      {
+        id: 'deptNames',
+        accessorFn: row => (row.depts ?? []).map(d => d.departName).join('、'),
+        header: ({ column }) => <DataTableColumnHeader column={column} title="部门" />,
+        cell: ({ row }) => row.getValue('deptNames') || '-'
       },
       {
         id: 'watermark',
