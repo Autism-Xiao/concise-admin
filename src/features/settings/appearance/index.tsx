@@ -56,7 +56,7 @@ export function AppearancePage() {
       <Card>
         <CardHeader>
           <CardTitle>主题色</CardTitle>
-          <CardDescription>选择界面主色调，自动保存到 settings.json</CardDescription>
+          <CardDescription>选择界面主色调，自动同步到云端（接口不可用时保存在本机）</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">

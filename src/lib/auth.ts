@@ -1,3 +1,5 @@
+import { clearLocalSettings } from '@/lib/settings'
+
 const AUTH_KEY = 'concise-auth'
 const USER_KEY = 'concise-user'
 const NAME_KEY = 'concise-name'
@@ -11,6 +13,18 @@ const TABS_KEY = 'concise-tabs'
 const TENANT_KEY = 'concise-tenant'
 /** 强制改密标记：sessionStorage（关标签页即失效，改完密码清除） */
 const MUST_CHANGE_PWD_KEY = 'concise-must-change-pwd'
+/**
+ * 登录态变化事件
+ *
+ * 设置 Provider 挂在 `__root` 上一直不卸载，登录用的是 `navigate()` 而非整页刷新，
+ * 所以它感知不到「刚刚登录了」。登录/登出时发一个事件，让它重新拉一次云端设置，
+ * 否则换设备登录后要手动刷新一次才能看到自己的主题色。
+ */
+export const AUTH_CHANGED_EVENT = 'concise:auth-changed'
+
+function notifyAuthChanged(): void {
+  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
+}
 
 export interface LoginAccount {
   username: string
@@ -28,6 +42,7 @@ export function login(account: LoginAccount): void {
   localStorage.setItem(USER_KEY, account.username)
   localStorage.setItem(NAME_KEY, account.name)
   localStorage.setItem(ROLE_KEY, account.role)
+  notifyAuthChanged()
 }
 
 export function getUsername(): string {
@@ -67,10 +82,13 @@ export function logout(): void {
   localStorage.removeItem(PERMS_KEY)
   localStorage.removeItem(MENUS_KEY)
   localStorage.removeItem(TENANT_KEY)
+  // 界面偏好是「按账号」的：不清掉的话下一个登录的人会看到上一个人的主题色
+  clearLocalSettings()
   // 清掉多标签页缓存，避免下个账号登录后恢复上一个会话打开的页面
   localStorage.removeItem(TABS_KEY)
   // 强制改密标记同样不能跨账号残留
   clearMustChangePassword()
+  notifyAuthChanged()
 }
 
 /** 保存后端下发的令牌 */

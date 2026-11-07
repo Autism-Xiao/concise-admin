@@ -16,6 +16,24 @@
           root.style.colorScheme = isDark ? 'dark' : 'light'
           // dev 模式下样式由 JS 注入，先铺一层背景色盖住无样式的白屏窗口
           root.style.backgroundColor = isDark ? 'oklch(0.145 0 0)' : 'oklch(1 0 0)'
+
+          // 上次保存的界面设置（字号 / 主题色变量 / 滤镜）：settings-provider 每次应用样式时
+          // 会把这串 CSS 缓存到 localStorage，这里在 React 起来之前先套上，
+          // 避免「默认主题 → 云端/本地设置」之间闪一下
+          var cachedCss = localStorage.getItem('concise-settings-css')
+          if (cachedCss) {
+            var styleEl = document.createElement('style')
+            styleEl.id = 'app-settings-override'
+            styleEl.textContent = cachedCss
+            ;(document.head || root).appendChild(styleEl)
+          }
+
+          // 文字方向同理（RTL 用户刷新时不应该先按 LTR 排一遍版）
+          var saved = localStorage.getItem('concise-settings')
+          if (saved) {
+            var dir = (JSON.parse(saved).settings || {}).direction
+            if (dir === 'rtl' || dir === 'ltr') root.setAttribute('dir', dir)
+          }
         } catch (e) {}
       })()
     </script>

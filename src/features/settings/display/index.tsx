@@ -16,7 +16,7 @@ export function DisplayPage() {
     <Card className="w-full max-w-2xl">
       <CardHeader>
         <CardTitle>字体大小</CardTitle>
-        <CardDescription>调整后即时生效，自动保存到项目根目录 settings.json</CardDescription>
+        <CardDescription>调整后即时生效，自动同步到云端（接口不可用时保存在本机）</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid max-w-md grid-cols-3 gap-3">
