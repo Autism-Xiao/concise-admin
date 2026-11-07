@@ -1,5 +1,4 @@
 import { createFileRoute, Navigate, Outlet, redirect, useLocation } from '@tanstack/react-router'
-import { Loader2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { PageTabs } from '@/components/layout/page-tabs'
@@ -67,8 +66,8 @@ function AuthenticatedLayout() {
                 <MainContent />
               </PermissionGuard>
             </main>
-            {/* 切换租户时盖住旧租户的数据：重挂后各页面重新拉数据，期间不该让旧数字被当成新的 */}
-            <TenantSwitchingOverlay />
+            {/* 切换租户时用旧画面快照盖住内容区：新页面在下面默默重挂重拉，避免「内容消失一下」 */}
+            <TenantSnapshotOverlay />
           </SidebarInset>
         </TenantScopeProvider>
       </TabsProvider>
@@ -93,16 +92,31 @@ function MainContent() {
   return isRegisteredPage(pathname) ? <TabPageRenderer /> : <Outlet />
 }
 
-/** 切换租户期间的遮罩：只盖内容区，顶栏（含切换器转圈）仍然可见可感 */
-function TenantSwitchingOverlay() {
-  const { switching } = useTenantScope()
-  if (!switching) return null
+/** 切换租户期间盖住内容区的旧画面快照：新页面在下面重挂重拉，数据到齐后淡出 */
+function TenantSnapshotOverlay() {
+  const { snapshot } = useTenantScope()
+  if (!snapshot) return null
   return (
-    <div className="bg-background/60 absolute inset-0 z-20 grid place-items-center backdrop-blur-[1px]">
-      <div className="bg-popover text-foreground flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm shadow-lg">
-        <Loader2 className="size-4 animate-spin" />
-        正在切换租户…
-      </div>
+    <div
+      // 用 fixed + 视口坐标：不受父级定位和内容区滚动影响，位置像素级对齐原内容区
+      className="bg-background absolute z-20 overflow-hidden"
+      data-tenant-snapshot="1"
+      style={{
+        position: 'fixed',
+        top: snapshot.top,
+        left: snapshot.left,
+        width: snapshot.width,
+        height: snapshot.height,
+        opacity: snapshot.fading ? 0 : 1,
+        transition: 'opacity 160ms ease-out'
+      }}
+    >
+      <div
+        style={{ padding: snapshot.padding, marginTop: -snapshot.scrollTop }}
+        // 内容是从本应用自己的 DOM 克隆出来的（React 已转义），不存在脚本注入面；
+        // 用 innerHTML 而不是真实组件树，是为了避免这些旧节点重新挂载、重新发请求
+        dangerouslySetInnerHTML={{ __html: snapshot.html }}
+      />
     </div>
   )
 }

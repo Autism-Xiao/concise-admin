@@ -1,4 +1,5 @@
 import { ApiError, reportRecovered, reportUnavailable } from '@/lib/api-error'
+import { beginApiCall, endApiCall } from '@/lib/api-activity'
 import { logout } from '@/lib/auth'
 
 /** 普通接口的超时时间：后端挂了时 fetch 可能一直挂着，用户只看到页面转圈没有任何提示 */
@@ -18,6 +19,8 @@ async function request(url: string, init?: RequestInit): Promise<Response> {
     : null
 
   try {
+    // 记账：切换租户时靠「在途请求归零」判断新页面的数据是否已就绪
+    beginApiCall()
     return await fetch(url, { ...init, ...(controller ? { signal: controller.signal } : {}) })
   } catch (error) {
     const method = init?.method ?? 'GET'
@@ -29,6 +32,7 @@ async function request(url: string, init?: RequestInit): Promise<Response> {
     reportUnavailable(`${method} ${url} 请求未发出：${reason}`)
     throw new ApiError('network', `${method} ${url} → ${reason}`)
   } finally {
+    endApiCall()
     if (timer) clearTimeout(timer)
   }
 }

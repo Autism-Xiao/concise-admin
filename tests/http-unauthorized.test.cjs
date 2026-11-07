@@ -48,6 +48,8 @@ function createApiErrorModule(state) {
 function loadHttp(response) {
   const state = { logoutCalls: 0, redirects: [], events: [] }
   const apiError = createApiErrorModule(state)
+  // 真实的请求计数模块：http.ts 靠它判断「新页面的请求是否都结束了」（切换租户揭幕用）
+  const apiActivity = loadTsModule('src/lib/api-activity.ts')
   const store = new Map([
     ['concise-auth', 'true'],
     ['concise-token', 'expired-token']
@@ -85,6 +87,7 @@ function loadHttp(response) {
         }
       }
       if (id === '@/lib/api-error') return apiError
+      if (id === '@/lib/api-activity') return apiActivity
       throw new Error(`Unexpected import: ${id}`)
     },
     localStorage: {
@@ -111,7 +114,7 @@ function loadHttp(response) {
     AbortController,
     DOMException
   })
-  return { getApiResult: module.exports.getApiResult, state, store, apiError }
+  return { getApiResult: module.exports.getApiResult, state, store, apiError, apiActivity }
 }
 
 async function main() {
@@ -180,6 +183,9 @@ async function main() {
   const payload = await ok.getApiResult('/backend-api/v1/users/1')
   // 跨 vm 上下文的对象原型不同，不能 deepStrictEqual，按属性断言
   assert.equal(payload.id, 1)
+  // 在途计数必须成对：多计一次，切换租户的遮罩就永远撤不掉
+  assert.equal(ok.apiActivity.getInflightCount(), 0, '成功请求结束后在途计数应归零')
+  assert.equal(business401.apiActivity.getInflightCount(), 0, '业务失败（抛错）也必须把在途计数减回去')
 
   // 横幅的状态翻转语义：只在「不可用 → 可用」时广播一次恢复，成功请求是常态不重复广播
   const flipState = { events: [] }
