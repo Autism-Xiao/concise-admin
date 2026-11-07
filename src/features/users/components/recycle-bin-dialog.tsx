@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { fetchRecycledUsers, restoreUser, type User } from '../api'
 
 interface RecycleBinDialogProps {
@@ -125,7 +125,9 @@ export function RecycleBinDialog({ open, onOpenChange, onRestored }: RecycleBinD
         </DialogFooter>
       </DialogContent>
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="恢复"
+        confirmVariant="default"
         open={!!restoring}
         onOpenChange={value => !value && setRestoring(null)}
         title="确认恢复该账号？"

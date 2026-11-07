@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { TenantFormDialog } from './components/tenant-form-dialog'
@@ -242,7 +242,8 @@ export function TenantPage() {
 
       {formOpen && <TenantFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} tenant={editing} onSubmit={handleSubmit} />}
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={!!deleting}
         onOpenChange={v => !v && setDeleting(null)}
         description={<>即将删除租户「{deleting?.name}」，该操作不可恢复。</>}

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { ExcelImportDialog } from '@/components/excel-import-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
@@ -469,14 +469,16 @@ export function DictPage() {
         />
       )}
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={!!deletingDict}
         onOpenChange={v => !v && setDeletingDict(null)}
         description={<>即将删除字典「{deletingDict?.dictName}」。字典下若还有字典项会拒绝删除，请先清空字典项。</>}
         onConfirm={handleDeleteDict}
       />
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={!!deletingItem}
         onOpenChange={v => !v && setDeletingItem(null)}
         description={<>即将删除字典项「{deletingItem?.itemText}」，该操作不可恢复。</>}
@@ -496,7 +498,8 @@ export function DictPage() {
         />
       )}
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={batchDeleting}
         onOpenChange={v => !batchBusy && setBatchDeleting(v)}
         title="批量删除字典项"

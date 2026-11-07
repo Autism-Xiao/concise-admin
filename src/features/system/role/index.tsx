@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { saveBlobFile } from '@/lib/download'
@@ -334,14 +334,16 @@ export function RolePage() {
         />
       )}
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={!!deleting}
         onOpenChange={v => !v && setDeleting(null)}
         description={<>即将删除角色「{deleting?.roleName ?? deleting?.roleCode}」，该操作不可恢复。</>}
         onConfirm={handleDelete}
       />
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={batchDeleting}
         onOpenChange={v => !batchBusy && setBatchDeleting(v)}
         title="批量删除角色"

@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { ExcelImportDialog } from '@/components/excel-import-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
@@ -265,14 +265,16 @@ export function LevelPage() {
         />
       )}
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={!!deleting}
         onOpenChange={v => !v && setDeleting(null)}
         description={<>即将删除职级「{deleting?.levelName}」，该操作为硬删除，不可恢复。</>}
         onConfirm={handleDelete}
       />
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={batchDeleting}
         onOpenChange={v => !batchBusy && setBatchDeleting(v)}
         title="批量删除职级"

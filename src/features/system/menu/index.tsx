@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { hasPermission } from '@/lib/auth'
 import { saveBlobFile } from '@/lib/download'
@@ -294,7 +294,8 @@ export function MenuPage() {
         />
       )}
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={!!deleting}
         onOpenChange={v => !v && setDeleting(null)}
         description={<>即将删除菜单「{deleting?.name}」。存在子菜单时删除会被拒绝；删除为软删除，不影响历史授权记录。</>}

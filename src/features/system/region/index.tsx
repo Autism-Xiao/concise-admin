@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { RegionFormDialog } from './components/region-form-dialog'
 import { RegionImportDialog } from './components/region-import-dialog'
 import { deleteRegion, fetchRegionChildren, fetchRegionStats, fetchRegions, type Region, type RegionStats } from './api'
@@ -434,7 +434,8 @@ export function RegionPage() {
 
       <RegionImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={refresh} />
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={!!deleting}
         onOpenChange={v => !v && setDeleting(null)}
         description={<>即将删除区划「{deleting?.name}」。存在下级区划时会被拒绝，请先删除下级。</>}

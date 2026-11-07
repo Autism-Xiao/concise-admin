@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { toastBatchResult } from '@/lib/batch-delete'
@@ -211,7 +211,8 @@ export function OnlineUsersPage() {
         </Card>
       )}
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="强制下线"
         open={!!kicking}
         onOpenChange={v => !v && setKicking(null)}
         title="强制下线"
@@ -219,7 +220,8 @@ export function OnlineUsersPage() {
         onConfirm={handleKick}
       />
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="强制下线"
         open={batchKicking}
         onOpenChange={v => !batchBusy && setBatchKicking(v)}
         title="批量强制下线"

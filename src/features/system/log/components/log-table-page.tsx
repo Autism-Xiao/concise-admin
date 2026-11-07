@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { hasPermission } from '@/lib/auth'
 import { saveBlobFile } from '@/lib/download'
-import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { ExcelImportDialog } from '@/components/excel-import-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
@@ -243,14 +243,16 @@ export function LogTablePage<T extends BaseLog>({
         </Card>
       )}
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={!!deleting}
         onOpenChange={v => !v && setDeleting(null)}
         description={<>即将删除日志 #{deleting?.id}，该操作不可恢复。</>}
         onConfirm={handleDelete}
       />
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="清空"
         open={clearing}
         onOpenChange={setClearing}
         title="确认清空"

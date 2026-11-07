@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/sidebar'
 import { useLocale } from '@/context/locale-provider'
 import { navGroups, type NavGroup, type NavItem } from '@/config/nav'
-import { PAGE_REGISTRY } from '@/config/page-registry'
+import { HOME_PATH, PAGE_REGISTRY } from '@/config/page-registry'
 import { menuPath, useMenuTree, usePermittedPaths } from '@/lib/permissions'
 import { resolveHomePath } from '@/lib/home-path'
 import type { PermissionMenu } from '@/features/auth/api'
@@ -70,7 +70,13 @@ function menuIcon(path?: string): LucideIcon {
   return (path && PAGE_REGISTRY[path]?.icon) || Circle
 }
 
-const visible = (n: PermissionMenu) => n.menuType !== 2 && n.hidden !== 1 && n.status !== '0'
+/**
+ * 菜单节点是否渲染到侧边栏。
+ * 首页（HOME_PATH）在下方有**固定入口**，后端菜单树里若也配了「仪表盘」节点就会重复出现两个，
+ * 所以这里统一剔除 —— 首页入口不依赖菜单授权，是常驻的。
+ */
+const visible = (n: PermissionMenu) =>
+  n.menuType !== 2 && n.hidden !== 1 && n.status !== '0' && menuPath(n) !== HOME_PATH
 const nodeLabel = (n: PermissionMenu) => n.name ?? n.title ?? ''
 const bySort = (a: PermissionMenu, b: PermissionMenu) => (a.sortNo ?? a.sort ?? 0) - (b.sortNo ?? b.sort ?? 0)
 
@@ -147,9 +153,11 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
         if (group.titleKey !== 'group.general' && group.titleKey !== 'group.system' && group.titleKey !== 'group.data' && group.titleKey !== 'group.ops')
           return group
         const items = group.items
+          // 静态菜单里也有「仪表盘」一项，同样剔除，避免和上方固定入口重复
+          .filter(item => item.url !== HOME_PATH)
           .map(item => {
             if (!item.items) return item.url && permitted.has(item.url) ? item : null
-            const subs = item.items.filter(sub => sub.url && permitted.has(sub.url))
+            const subs = item.items.filter(sub => sub.url && sub.url !== HOME_PATH && permitted.has(sub.url))
             return subs.length ? { ...item, items: subs } : null
           })
           .filter((item): item is NavItem => item != null)

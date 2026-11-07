@@ -5,7 +5,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { clearCache, fetchCacheInfo, type CacheInfo, type CacheKeyStat } from './api'
@@ -171,7 +171,8 @@ export function CacheMonitorPage() {
         </>
       )}
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="清理"
         open={!!clearing}
         onOpenChange={v => !v && setClearing(null)}
         title="清理缓存"

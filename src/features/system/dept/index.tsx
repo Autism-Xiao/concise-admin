@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DeptFormDialog } from './components/dept-form-dialog'
 import { createDept, deleteDept, deleteDepts, exportDepts, fetchDepts, updateDept, type Dept, type DeptWritePayload } from './api'
 import { withOperationLog } from '@/features/system/log/api'
@@ -476,14 +476,16 @@ export function DeptPage() {
         </Card>
       )}
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={!!deleting}
         onOpenChange={v => !v && setDeleting(null)}
         description={<>即将删除部门「{deleting?.departName}」。存在子部门或部门下仍有用户时后端会拒绝删除；删除为软删除。</>}
         onConfirm={handleDelete}
       />
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={batchDeleting}
         onOpenChange={v => !batchBusy && setBatchDeleting(v)}
         title="批量删除部门"

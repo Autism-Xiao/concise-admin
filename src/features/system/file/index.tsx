@@ -24,7 +24,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { hasPermission } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 import { FileIcon } from './components/file-icon'
@@ -763,7 +763,8 @@ export function FilePage() {
         />
       )}
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={!!deleting}
         onOpenChange={open => !open && setDeleting(null)}
         description={
@@ -774,7 +775,8 @@ export function FilePage() {
         onConfirm={handleDelete}
       />
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={batchDeleting}
         onOpenChange={setBatchDeleting}
         title="批量删除"
@@ -786,7 +788,8 @@ export function FilePage() {
 
       <PreviewDialog node={previewing} onClose={() => setPreviewing(null)} />
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="彻底删除"
         open={purgeIds.length > 0}
         onOpenChange={open => !open && setPurgeIds([])}
         title="彻底删除"

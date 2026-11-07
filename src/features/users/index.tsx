@@ -26,7 +26,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { UserFormDialog } from './components/user-form-dialog'
@@ -576,14 +576,16 @@ export function UsersPage() {
         />
       )}
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={!!deleting}
         onOpenChange={v => !v && setDeleting(null)}
         description={<>即将删除用户「{deleting?.realname || deleting?.username}」，该操作为软删除，可在「回收站」恢复。</>}
         onConfirm={handleDelete}
       />
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="删除"
         open={batchDeleting}
         onOpenChange={v => !batchBusy && setBatchDeleting(v)}
         title="批量删除用户"
@@ -597,7 +599,9 @@ export function UsersPage() {
 
       <ResetPasswordResultDialog open={!!resetResult} onOpenChange={v => !v && setResetResult(null)} username={resetResult?.username} password={resetResult?.password} />
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText={statusTarget?.next === 2 ? '冻结' : '解冻'}
+        confirmVariant={statusTarget?.next === 2 ? 'destructive' : 'default'}
         open={!!statusTarget}
         onOpenChange={v => !v && setStatusTarget(null)}
         title={statusTarget?.next === 2 ? '确认冻结该账号？' : '确认解冻该账号？'}
@@ -611,7 +615,8 @@ export function UsersPage() {
         onConfirm={handleStatusChange}
       />
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText="强制下线"
         open={!!kickTarget}
         onOpenChange={v => !v && setKickTarget(null)}
         title="确认强制下线？"
@@ -636,7 +641,9 @@ export function UsersPage() {
         />
       )}
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
+        confirmText={batchStatusTarget === 2 ? '停用' : '启用'}
+        confirmVariant={batchStatusTarget === 2 ? 'destructive' : 'default'}
         open={!!batchStatusTarget}
         onOpenChange={v => {
           if (!batchBusy) setBatchStatusTarget(v ? batchStatusTarget : null)
