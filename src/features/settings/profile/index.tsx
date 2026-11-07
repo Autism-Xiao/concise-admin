@@ -101,7 +101,7 @@ export function ProfilePage() {
     setUploading(true)
     const body = new FormData()
     body.append('file', file)
-    getApiResult<{ path: string }>('/backend-api/upload', { method: 'POST', body })
+    getApiResult<{ path: string }>('/backend-api/v1/upload', { method: 'POST', body })
       .then(({ path }) => setMyAvatar(path))
       .then(result => {
         setProfile(prev => (prev ? { ...prev, avatar: result.avatar } : prev))

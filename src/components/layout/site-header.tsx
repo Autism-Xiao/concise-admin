@@ -8,6 +8,7 @@ import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { ReminderBell } from '@/features/system/calendar/components/reminder-bell'
+import { MessageBell } from '@/features/system/message/components/message-bell'
 import { TenantSwitcher } from '@/features/system/tenant/components/tenant-switcher'
 
 export function SiteHeader() {
@@ -24,6 +25,7 @@ export function SiteHeader() {
       <LanguageToggle />
       <ConfigDrawer />
       <ReminderBell />
+      <MessageBell />
       <ProfileDropdown />
     </header>
   )
