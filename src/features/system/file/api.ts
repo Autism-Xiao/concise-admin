@@ -231,3 +231,43 @@ export async function downloadFile(node: FileNode): Promise<void> {
   anchor.click()
   URL.revokeObjectURL(url)
 }
+
+/** 回收站列表（已软删，按删除时间倒序） */
+export async function fetchRecycled(page = 1, pageSize = 20): Promise<PageResult<FileNode>> {
+  const res = await getApiResult<PageResult<RawFile>>(`${API}/recycled?page=${page}&pageSize=${pageSize}`)
+  return { ...res, records: res.records.map(toNode) }
+}
+
+/**
+ * 从回收站恢复
+ *
+ * 后端会把「父目录也被删」的父链一起恢复，避免恢复出孤儿节点；
+ * 若同目录已存在同名文件（删除后又上传过），会自动改名并返回 renamed 计数。
+ */
+export function restoreFiles(ids: number[]): Promise<{ restored: number; renamed: number }> {
+  return getApiResult<{ restored: number; renamed: number }>(`${API}/restore`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids: ids.map(String) })
+  })
+}
+
+/** 彻底删除：记录 + 物理文件（无其它引用时）一起清掉，不可恢复 */
+export function purgeFiles(ids: number[]): Promise<{ purged: number }> {
+  return getApiResult<{ purged: number }>(`${API}/purge`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids: ids.map(String) })
+  })
+}
+
+/**
+ * 预览：拿回 blob 交给 `<img>` / `<iframe>` 渲染
+ *
+ * 不用 `<img src="/backend-api/v1/files/1/preview">` 直连：img 标签带不了 Authorization 头。
+ * 后端只放行位图 / PDF / 纯文本，类型按文件头验过，其它类型会 400，页面据此退回下载。
+ */
+export async function fetchPreviewBlob(node: FileNode): Promise<{ blob: Blob; mime: string }> {
+  const { blob } = await downloadFromApi(`/v1/files/${node.id}/preview`, node.name)
+  return { blob, mime: blob.type || node.mime }
+}

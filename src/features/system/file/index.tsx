@@ -2,6 +2,8 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type DragE
 import {
   ChevronRight,
   Download,
+  Eye,
+  FolderInput,
   FolderPlus,
   LayoutGrid,
   List,
@@ -9,6 +11,7 @@ import {
   MoreHorizontal,
   Pencil,
   RefreshCw,
+  RotateCcw,
   Search,
   Star,
   Trash2,
@@ -25,7 +28,9 @@ import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { hasPermission } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 import { FileIcon } from './components/file-icon'
+import { MoveDialog } from './components/move-dialog'
 import { NameDialog } from './components/name-dialog'
+import { PreviewDialog } from './components/preview-dialog'
 import { QuickAccessCard, type FileView } from './components/quick-access-card'
 import { RecentFilesCard } from './components/recent-files-card'
 import { StorageCard } from './components/storage-card'
@@ -38,8 +43,11 @@ import {
   fetchFileStats,
   fetchFiles,
   fetchRecentFiles,
+  fetchRecycled,
   formatRelativeTime,
   formatSize,
+  purgeFiles,
+  restoreFiles,
   updateFile,
   uploadFile,
   type BreadcrumbItem,
@@ -49,6 +57,13 @@ import {
 
 /** 每页条数（与后端默认一致） */
 const PAGE_SIZE = 20
+
+/** 非目录视图的标题：面包屑与页头共用，避免两处各写一套三元表达式 */
+const VIEW_TITLES: Record<Exclude<FileView, 'browse'>, string> = {
+  starred: '星标文件',
+  recent: '最近文件',
+  recycled: '回收站'
+}
 
 type DialogState = { type: 'folder' } | { type: 'rename'; node: FileNode } | null
 
@@ -81,6 +96,10 @@ export function FilePage() {
   const [dialog, setDialog] = useState<DialogState>(null)
   const [deleting, setDeleting] = useState<FileNode | null>(null)
   const [batchDeleting, setBatchDeleting] = useState(false)
+  const [previewing, setPreviewing] = useState<FileNode | null>(null)
+  const [moving, setMoving] = useState<FileNode | null>(null)
+  /** 待彻底删除的 id（回收站操作，不可恢复，需要二次确认） */
+  const [purgeIds, setPurgeIds] = useState<number[]>([])
   const [busy, setBusy] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -94,6 +113,11 @@ export function FilePage() {
         setRecords(rows)
         setTotal(rows.length)
         setPages(1)
+      } else if (view === 'recycled') {
+        const res = await fetchRecycled(pageIndex, PAGE_SIZE)
+        setRecords(res.records)
+        setTotal(res.total)
+        setPages(Math.max(res.pages, 1))
       } else {
         const res = await fetchFiles({
           parentId: folderId,
@@ -110,7 +134,7 @@ export function FilePage() {
         fetchFileStats().catch(() => null),
         view === 'browse'
           ? fetchBreadcrumb(folderId).catch(() => [{ id: 0, name: '全部文件' }])
-          : Promise.resolve([{ id: 0, name: view === 'starred' ? '星标文件' : '最近文件' }]),
+          : Promise.resolve([{ id: 0, name: VIEW_TITLES[view] }]),
         fetchRecentFiles(4).catch(() => [])
       ])
       setStats(nextStats)
@@ -150,6 +174,12 @@ export function FilePage() {
     setView('browse')
     setPageIndex(1)
     setSelected(new Set())
+  }
+
+  /** 点名称/图标：文件夹进入下一层，文件直接打开预览（不支持预览的类型由弹窗提示并引导下载） */
+  const openNode = (node: FileNode) => {
+    if (node.isFolder) enterFolder(node)
+    else setPreviewing(node)
   }
 
   const switchView = (next: FileView) => {
@@ -199,7 +229,12 @@ export function FilePage() {
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault()
     setDragOver(false)
-    if (event.dataTransfer.files?.length) void handleUpload(event.dataTransfer.files)
+    if (!event.dataTransfer.files?.length) return
+    if (view === 'recycled') {
+      toast.info('回收站不支持上传，请先切回「全部文件」')
+      return
+    }
+    void handleUpload(event.dataTransfer.files)
   }
 
   const handleCreateFolder = async (name: string) => {
@@ -281,7 +316,50 @@ export function FilePage() {
     }
   }
 
-  const title = view === 'starred' ? '星标文件' : view === 'recent' ? '最近文件' : '全部文件'
+  /** 回收站恢复：后端会把被删的父目录一起恢复，重名的自动改名 */
+  const handleRestore = async (ids: number[]) => {
+    if (!ids.length) return
+    try {
+      const result = await restoreFiles(ids)
+      toast.success(`已恢复 ${result.restored} 项${result.renamed ? `，其中 ${result.renamed} 项因重名自动改名` : ''}`)
+      setSelected(new Set())
+      await load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '恢复失败')
+    }
+  }
+
+  /** 彻底删除：物理文件一并清理，不可恢复 */
+  const handlePurge = async () => {
+    const ids = purgeIds
+    if (!ids.length) return
+    setPurgeIds([])
+    try {
+      const result = await purgeFiles(ids)
+      toast.success(`已彻底删除 ${result.purged} 项`)
+      setSelected(new Set())
+      await load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '彻底删除失败')
+    }
+  }
+
+  const handleMove = async (targetId: number) => {
+    if (!moving || busy) return
+    setBusy(true)
+    try {
+      await updateFile(moving.id, { parentId: targetId })
+      toast.success(`已移动「${moving.name}」`)
+      setMoving(null)
+      await load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '移动失败')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const title = view === 'browse' ? '全部文件' : VIEW_TITLES[view]
   const canUpload = hasPermission('system:file:upload')
   const canCreate = hasPermission('system:file:add')
   const canUpdate = hasPermission('system:file:update')
@@ -289,55 +367,89 @@ export function FilePage() {
   const canDownload = hasPermission('system:file:download')
 
   /** 行内操作（列表 / 网格共用） */
-  const renderActions = (node: FileNode) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-8">
-          <MoreHorizontal className="size-4" />
-          <span className="sr-only">操作</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {node.isFolder ? (
-          <DropdownMenuItem onClick={() => enterFolder(node)}>
-            <ChevronRight />
-            打开
-          </DropdownMenuItem>
-        ) : (
-          canDownload && (
-            <DropdownMenuItem onClick={() => void handleDownload(node)}>
-              <Download />
-              下载
+  const renderActions = (node: FileNode) => {
+    // 回收站里能做的只有「恢复」和「彻底删除」，星标/重命名/移动都没有意义
+    if (view === 'recycled') {
+      return (
+        <div className="flex justify-end gap-1">
+          {canUpdate && (
+            <Button variant="ghost" size="sm" className="h-7" onClick={() => void handleRestore([node.id])}>
+              <RotateCcw className="size-3.5" />
+              恢复
+            </Button>
+          )}
+          {canDelete && (
+            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive h-7" onClick={() => setPurgeIds([node.id])}>
+              <Trash2 className="size-3.5" />
+              彻底删除
+            </Button>
+          )}
+        </div>
+      )
+    }
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="size-8">
+            <MoreHorizontal className="size-4" />
+            <span className="sr-only">操作</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {node.isFolder ? (
+            <DropdownMenuItem onClick={() => enterFolder(node)}>
+              <ChevronRight />
+              打开
             </DropdownMenuItem>
-          )
-        )}
-        {canUpdate && (
-          <DropdownMenuItem onClick={() => void toggleStar(node)}>
-            <Star className={cn(node.starred && 'fill-amber-400 text-amber-400')} />
-            {node.starred ? '取消星标' : '星标'}
-          </DropdownMenuItem>
-        )}
-        {canUpdate && (
-          <DropdownMenuItem onClick={() => setDialog({ type: 'rename', node })}>
-            <Pencil />
-            重命名
-          </DropdownMenuItem>
-        )}
-        {canDelete && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => setDeleting(node)}>
-              <Trash2 />
-              删除
+          ) : (
+            canDownload && (
+              <>
+                <DropdownMenuItem onClick={() => setPreviewing(node)}>
+                  <Eye />
+                  预览
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => void handleDownload(node)}>
+                  <Download />
+                  下载
+                </DropdownMenuItem>
+              </>
+            )
+          )}
+          {canUpdate && (
+            <DropdownMenuItem onClick={() => void toggleStar(node)}>
+              <Star className={cn(node.starred && 'fill-amber-400 text-amber-400')} />
+              {node.starred ? '取消星标' : '星标'}
             </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
+          )}
+          {canUpdate && (
+            <DropdownMenuItem onClick={() => setDialog({ type: 'rename', node })}>
+              <Pencil />
+              重命名
+            </DropdownMenuItem>
+          )}
+          {canUpdate && (
+            <DropdownMenuItem onClick={() => setMoving(node)}>
+              <FolderInput />
+              移动到…
+            </DropdownMenuItem>
+          )}
+          {canDelete && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => setDeleting(node)}>
+                <Trash2 />
+                删除
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+  }
 
   const renderName = (node: FileNode) => (
-    <button type="button" className="flex min-w-0 items-center gap-2.5 text-left" onDoubleClick={() => enterFolder(node)} onClick={() => enterFolder(node)}>
+    <button type="button" className="flex min-w-0 items-center gap-2.5 text-left" onClick={() => openNode(node)}>
       <FileIcon item={node} className="size-5 shrink-0" />
       <span className={cn('truncate font-medium', node.isFolder && 'hover:underline')}>{node.name}</span>
       {node.starred && <Star className="size-3.5 shrink-0 fill-amber-400 text-amber-400" />}
@@ -348,6 +460,7 @@ export function FilePage() {
     if (debouncedKeyword) return `没有找到包含「${debouncedKeyword}」的文件`
     if (view === 'starred') return '还没有星标文件，在文件操作里点「星标」即可收藏'
     if (view === 'recent') return '还没有上传过文件'
+    if (view === 'recycled') return '回收站是空的。删除的文件会先放这里，超期后才彻底清理'
     return '这个文件夹是空的，可以点右上角「上传」或直接把文件拖进来'
   }, [debouncedKeyword, view])
 
@@ -361,7 +474,7 @@ export function FilePage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {canUpload && (
+          {canUpload && view !== 'recycled' && (
             <>
               <input
                 ref={fileInputRef}
@@ -379,7 +492,7 @@ export function FilePage() {
               </Button>
             </>
           )}
-          {canCreate && (
+          {canCreate && view !== 'recycled' && (
             <Button onClick={() => setDialog({ type: 'folder' })}>
               <FolderPlus />
               新建文件夹
@@ -391,9 +504,16 @@ export function FilePage() {
       <div className="relative">
         <Search className="text-muted-foreground absolute start-3 top-1/2 size-4 -translate-y-1/2" />
         <Input
-          placeholder={view === 'browse' ? '在当前文件夹中搜索…' : '在这份列表里搜索…'}
+          placeholder={
+            view === 'browse'
+              ? '在当前文件夹中搜索…'
+              : view === 'recycled'
+                ? '回收站暂不支持搜索，可翻页查找'
+                : '在这份列表里搜索…'
+          }
           className="ps-9"
           value={keyword}
+          disabled={view === 'recycled'}
           onChange={event => setKeyword(event.target.value)}
         />
       </div>
@@ -451,11 +571,28 @@ export function FilePage() {
                 {selected.size > 0 && (
                   <span className="text-muted-foreground flex items-center gap-2 text-sm">
                     已选 {selected.size} 项
-                    {canDelete && (
-                      <Button variant="destructive" size="sm" className="h-7" onClick={() => setBatchDeleting(true)}>
-                        <Trash2 />
-                        删除
-                      </Button>
+                    {view === 'recycled' ? (
+                      <>
+                        {canUpdate && (
+                          <Button variant="outline" size="sm" className="h-7" onClick={() => void handleRestore([...selected])}>
+                            <RotateCcw />
+                            恢复
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button variant="destructive" size="sm" className="h-7" onClick={() => setPurgeIds([...selected])}>
+                            <Trash2 />
+                            彻底删除
+                          </Button>
+                        )}
+                      </>
+                    ) : (
+                      canDelete && (
+                        <Button variant="destructive" size="sm" className="h-7" onClick={() => setBatchDeleting(true)}>
+                          <Trash2 />
+                          删除
+                        </Button>
+                      )
                     )}
                   </span>
                 )}
@@ -554,7 +691,6 @@ export function FilePage() {
                       'group hover:bg-accent/50 relative flex flex-col items-center gap-2 rounded-lg border p-4 text-center transition-colors',
                       selected.has(node.id) && 'border-primary bg-accent/50'
                     )}
-                    onDoubleClick={() => enterFolder(node)}
                   >
                     <input
                       type="checkbox"
@@ -564,7 +700,7 @@ export function FilePage() {
                       aria-label={`选择 ${node.name}`}
                     />
                     <div className="absolute end-1 top-1 opacity-0 transition-opacity group-hover:opacity-100">{renderActions(node)}</div>
-                    <button type="button" onClick={() => enterFolder(node)} className="flex flex-col items-center gap-2">
+                    <button type="button" onClick={() => openNode(node)} className="flex flex-col items-center gap-2">
                       <FileIcon item={node} className="size-10" />
                       <div className="w-full">
                         <p className="flex items-center justify-center gap-1 text-sm font-medium">
@@ -644,6 +780,18 @@ export function FilePage() {
         title="批量删除"
         description={<>即将删除勾选的 {selected.size} 项（文件夹会连同内容一起删除）。删除后进入回收站，可再恢复。</>}
         onConfirm={handleBatchDelete}
+      />
+
+      <MoveDialog node={moving} busy={busy} onClose={() => setMoving(null)} onConfirm={targetId => void handleMove(targetId)} />
+
+      <PreviewDialog node={previewing} onClose={() => setPreviewing(null)} />
+
+      <ConfirmDeleteDialog
+        open={purgeIds.length > 0}
+        onOpenChange={open => !open && setPurgeIds([])}
+        title="彻底删除"
+        description={<>即将彻底删除 {purgeIds.length} 项，磁盘上的文件会一并清理，且无法恢复。确定继续？</>}
+        onConfirm={handlePurge}
       />
     </div>
   )
