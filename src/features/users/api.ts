@@ -77,6 +77,23 @@ export interface UserListResult {
   pages: number
 }
 
+/** 用户简要信息（选人控件回显用：只有 id / 账号 / 姓名） */
+export interface UserBrief {
+  id: string
+  username: string
+  realname?: string
+}
+
+/**
+ * 批量按 ID 查账号（选人控件回显）：最多 100 个，后端过滤已软删；
+ * 登录即可调用，不要求 system:user:list，公告/日程等场景也能回显已选人。
+ */
+export function lookupUsers(ids: string[]): Promise<UserBrief[]> {
+  const list = ids.map(id => id.trim()).filter(Boolean).slice(0, 100)
+  if (!list.length) return Promise.resolve([])
+  return getApiResult<UserBrief[]>(`/backend-api/v1/users/lookup?ids=${encodeURIComponent(list.join(','))}`)
+}
+
 /** 分页查询用户列表（大页容量一次拉全，前端表格本地筛选） */
 export function fetchUsers(keyword = '', status = ''): Promise<UserListResult> {
   const params = new URLSearchParams({ page: '1', pageSize: '100' })

@@ -1,30 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { MarkdownEditor } from '@/components/markdown-editor'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { fetchUsers } from '@/features/users/api'
+import { UserMultiSelect } from '@/features/users/components/user-multi-select'
 import { toast } from 'sonner'
 import { NOTICE_CATEGORY_LABEL, NOTICE_PRIORITY_LABEL, NOTICE_TARGET_LABEL, type Notice, type NoticeCategory, type NoticePriority, type NoticeTarget, type NoticeWritePayload } from '../api'
-
-/** 用户列表接口的分页上限（候选下拉最多给这么多账号，更多请直接输入账号） */
-const USER_OPTION_LIMIT = 100
-
-interface UserOption {
-  id: string
-  username: string
-  realname?: string
-}
-
-/** 把逗号分隔的 token 拆开（兼容中英文逗号、空格、换行） */
-function splitUserTokens(raw: string): string[] {
-  return raw
-    .split(/[,，\s]+/)
-    .map(t => t.trim())
-    .filter(Boolean)
-}
 
 interface NoticeFormDialogProps {
   open: boolean
@@ -58,43 +41,10 @@ export function NoticeFormDialog({ open, onOpenChange, notice, onSubmit }: Notic
   }))
   const [pending, setPending] = useState(false)
 
-  /* ---------------- 接收用户：页面输入账号，提交时换算成 ID ---------------- */
+  /* ---------------- 接收用户：多选控件按账号挑人，落库仍是用户 ID ---------------- */
 
-  const [userOptions, setUserOptions] = useState<UserOption[]>([])
-  /** 输入框内容 = 用户账号（逗号分隔）；存量 ID 翻译成账号回显，找不到的以 #id 保留 */
-  const [userInput, setUserInput] = useState('')
-
-  useEffect(() => {
-    if (!open) return
-    let alive = true
-    fetchUsers()
-      .then(res => {
-        if (!alive) return
-        const options = (res.records ?? []).slice(0, USER_OPTION_LIMIT).map(u => ({ id: u.id, username: u.username, realname: u.realname }))
-        setUserOptions(options)
-        // 编辑存量公告：把 userIds 里的 ID 翻译成账号展示；账号已删的保留 #id，提交时原样传回不弄丢
-        if (notice?.userIds) {
-          const ids = notice.userIds.split(',').map(s => s.trim()).filter(Boolean)
-          setUserInput(ids.map(id => options.find(o => o.id === id)?.username ?? `#${id}`).join(','))
-        }
-      })
-      .catch(() => {
-        // 用户表拉取失败：退回显示原始 ID，保证已有配置可见可保存
-        if (notice?.userIds) setUserInput(notice.userIds)
-      })
-    return () => {
-      alive = false
-    }
-  }, [open, notice])
-
-  /** 输入框 → 已选账号的预览（含姓名与未知标记） */
-  const pickedUsers = useMemo(() => {
-    return splitUserTokens(userInput).map(token => {
-      if (token.startsWith('#')) return { token, label: `${token.slice(1)}（账号未知，按 ID 保留）`, known: false }
-      const found = userOptions.find(o => o.username === token)
-      return { token, label: found?.realname ? `${token}（${found.realname}）` : token, known: Boolean(found) }
-    })
-  }, [userInput, userOptions])
+  /** 已选用户 ID（多选，提交时逗号拼接为 userIds；存量数据里已删用户的 ID 也原样保留） */
+  const [userIds, setUserIds] = useState<string[]>(() => (notice?.userIds ? notice.userIds.split(',').map(s => s.trim()).filter(Boolean) : []))
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm(prev => ({ ...prev, [key]: value }))
 
@@ -104,26 +54,14 @@ export function NoticeFormDialog({ open, onOpenChange, notice, onSubmit }: Notic
       return
     }
 
-    // 指定用户：把输入的账号换算回 ID（后端按 ID 做权限过滤）；账号不存在直接阻断，避免发出没人收得到的公告
-    let userIds: string | undefined
+    // 指定用户：选人控件已按账号挑好，这里只把 ID 拼成后端约定的逗号串
+    let targetUserIds: string | undefined
     if (form.msgType === 'USER') {
-      const tokens = splitUserTokens(userInput)
-      if (tokens.length === 0) {
-        toast.error('请填写接收用户账号')
+      if (userIds.length === 0) {
+        toast.error('请选择接收用户')
         return
       }
-      const unknown: string[] = []
-      const ids = tokens.map(token => {
-        if (token.startsWith('#')) return token.slice(1) // 存量里账号已删的用户，按原 ID 保留
-        const found = userOptions.find(o => o.username === token)
-        if (!found) unknown.push(token)
-        return found?.id ?? ''
-      })
-      if (unknown.length > 0) {
-        toast.error(`以下账号不存在，请检查：${unknown.join('、')}`)
-        return
-      }
-      userIds = ids.join(',')
+      targetUserIds = userIds.join(',')
     }
 
     setPending(true)
@@ -134,7 +72,7 @@ export function NoticeFormDialog({ open, onOpenChange, notice, onSubmit }: Notic
         msgCategory: form.msgCategory,
         priority: form.priority,
         msgType: form.msgType,
-        userIds,
+        userIds: targetUserIds,
         startTime: form.startTime ? new Date(form.startTime).toISOString() : undefined,
         endTime: form.endTime ? new Date(form.endTime).toISOString() : undefined,
         sendStatus: form.sendStatus
@@ -219,39 +157,10 @@ export function NoticeFormDialog({ open, onOpenChange, notice, onSubmit }: Notic
 
           {form.msgType === 'USER' && (
             <div className="space-y-2">
-              <Label htmlFor="notice-users">接收用户账号</Label>
-              <Input
-                id="notice-users"
-                list="notice-user-options"
-                autoComplete="off"
-                placeholder="输入用户账号（如 admin），多个用英文逗号分隔"
-                value={userInput}
-                onChange={e => setUserInput(e.target.value)}
-              />
-              <datalist id="notice-user-options">
-                {userOptions.map(o => (
-                  <option key={o.id} value={o.username}>
-                    {o.realname ? `${o.username}（${o.realname}）` : o.username}
-                  </option>
-                ))}
-              </datalist>
-              {pickedUsers.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {pickedUsers.map(u => (
-                    <span
-                      key={u.token}
-                      className={`rounded px-1.5 py-0.5 text-xs ${
-                        u.known ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'
-                      }`}
-                    >
-                      {u.label}
-                    </span>
-                  ))}
-                </div>
-              )}
+              <Label>接收用户</Label>
+              <UserMultiSelect value={userIds} onChange={setUserIds} />
               <p className="text-muted-foreground text-xs">
-                按账号填写，保存后按用户 ID 下发；候选账号来自用户管理（最多前 {USER_OPTION_LIMIT}
-                个，超出请直接输入账号），红色表示账号当前不存在
+                点选即可多选（再点取消），支持按账号 / 姓名搜索全部用户；落库仍是用户 ID，账号已删除的历史用户会标红保留
               </p>
             </div>
           )}
