@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { Info } from 'lucide-react'
+import { Info, ListTodo, LogIn, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -13,7 +13,7 @@ import { NoticesCard } from './components/notices-card'
 import { QuickEntriesCard } from './components/quick-entries-card'
 import { RecentOpersCard } from './components/recent-opers-card'
 import { ServerStateCard } from './components/server-state-card'
-import { WelcomeBar } from './components/welcome-bar'
+import { WelcomeBar, type WelcomeStat } from './components/welcome-bar'
 
 function DashboardSkeleton() {
   return (
@@ -108,6 +108,26 @@ export function DashboardPage() {
     return { notices: check('/system/notice'), tasks: check('/tasks'), logs: check('/system/log/operation') }
   }, [permitted])
 
+  // 欢迎条右侧的迷你统计：逐块按权限构造（null 的块不出现，与下方卡片同一份数据）
+  const welcomeStats = useMemo<WelcomeStat[]>(() => {
+    if (!data) return []
+    const stats: WelcomeStat[] = []
+    if (data.todayLogin) {
+      stats.push({
+        key: 'todayLogin',
+        label: data.todayLogin.scope === 'all' ? '今日登录' : '今日登录（我的）',
+        icon: LogIn,
+        value: data.todayLogin.success.toLocaleString()
+      })
+    }
+    if (data.onlineCount !== null) {
+      stats.push({ key: 'onlineCount', label: '在线', icon: UserCheck, value: data.onlineCount.toLocaleString() })
+    }
+    const openTasks = data.myTasks.pending + data.myTasks.doing
+    stats.push({ key: 'myTasks', label: '我的待办', icon: ListTodo, value: openTasks.toLocaleString() })
+    return stats
+  }, [data])
+
   if (loading) return <DashboardSkeleton />
 
   if (error) {
@@ -131,14 +151,7 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <WelcomeBar
-        profile={data.profile}
-        noticeCount={data.notices.length}
-        refreshing={refreshing}
-        onRefresh={() => void load()}
-        onOpenNotices={() => go('/system/notice')}
-        canOpenNotices={canGo.notices}
-      />
+      <WelcomeBar profile={data.profile} stats={welcomeStats} refreshing={refreshing} onRefresh={() => void load()} />
 
       {restricted && (
         <div className="text-muted-foreground flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm">
