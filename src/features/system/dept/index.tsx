@@ -404,8 +404,8 @@ export function DeptPage() {
     })
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex h-full min-h-0 flex-col gap-6">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold">部门管理</h1>
           <p className="text-muted-foreground text-sm">
@@ -432,16 +432,17 @@ export function DeptPage() {
           </Button>
         </div>
       </div>
+      {/* 整页只占一屏：卡片吃掉剩余高度，部门再多也只在表格内滚动，页面本身不再上下跑 */}
       {loading ? (
-        <Card>
-          <CardContent className="space-y-3 py-6">
-            <Skeleton className="h-9 w-full max-w-md" />
-            <Skeleton className="h-64 w-full" />
+        <Card className="flex min-h-0 flex-1 flex-col">
+          <CardContent className="flex min-h-0 flex-1 flex-col space-y-3 py-6">
+            <Skeleton className="h-9 w-full max-w-md shrink-0" />
+            <Skeleton className="min-h-0 w-full flex-1" />
           </CardContent>
         </Card>
       ) : error ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-12">
+        <Card className="flex min-h-0 flex-1 flex-col">
+          <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 py-12">
             <p className="text-muted-foreground text-sm">{error}</p>
             <Button variant="outline" onClick={load}>
               重试
@@ -449,17 +450,17 @@ export function DeptPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
+        <Card className="flex min-h-0 flex-1 flex-col">
+          <CardContent className="flex min-h-0 flex-1 flex-col gap-4">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               <div className="relative w-full max-w-xs">
                 <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
                 <Input placeholder="搜索部门 / 描述" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
               </div>
             </div>
 
-            <Table>
-              <TableHeader>
+            <Table containerClassName="min-h-0 flex-1 overflow-y-auto rounded-md border">
+              <TableHeader className="bg-card sticky top-0 z-10">
                 <TableRow>
                   <TableHead className="w-10">
                     <input
@@ -494,7 +495,7 @@ export function DeptPage() {
                     )
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-muted-foreground py-10 text-center">
+                      <TableCell colSpan={10} className="text-muted-foreground py-10 text-center">
                         没有匹配的部门
                       </TableCell>
                     </TableRow>
@@ -503,7 +504,7 @@ export function DeptPage() {
                   renderRows(tree, 0)
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-muted-foreground py-10 text-center">
+                    <TableCell colSpan={10} className="text-muted-foreground py-10 text-center">
                       暂无部门，点击右上角「新增部门」创建
                     </TableCell>
                   </TableRow>
