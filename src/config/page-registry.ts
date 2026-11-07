@@ -47,6 +47,7 @@ import { PostPage } from '@/features/system/post'
 import { TenantPage } from '@/features/system/tenant'
 import { NoticePage } from '@/features/system/notice'
 import { MessagePage } from '@/features/system/message'
+import { SupplierPage } from '@/features/supplier'
 import { RegionPage } from '@/features/system/region'
 import { JobPage } from '@/features/ops/job'
 import { OnlineUsersPage } from '@/features/ops/online'
@@ -90,6 +91,7 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
   '/system/dict': { component: DictPage, titleKey: 'nav.system.dict', icon: BookOpen },
   '/system/notice': { component: NoticePage, titleKey: 'nav.system.notice', icon: Megaphone },
   '/system/message': { component: MessagePage, titleKey: 'nav.system.message', icon: Mail },
+  '/system/suppliers': { component: SupplierPage, titleKey: 'nav.system.supplier', icon: Briefcase },
   '/system/region': { component: RegionPage, titleKey: 'nav.system.region', icon: MapPin },
   '/system/log/login': { component: LoginLogPage, titleKey: 'nav.system.logLogin', icon: LogIn },
   '/system/log/operation': { component: OperationLogPage, titleKey: 'nav.system.logOperation', icon: ScrollText },
