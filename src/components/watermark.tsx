@@ -72,17 +72,44 @@ export function Watermark({ content, rotate = -22, fontSize = 14, opacity = 0.08
     drawMark(effW * ratio, effH * ratio)
     const url = `url("${canvas.toDataURL('image/png')}")`
 
+    // 记浏览器**读回**的规范化值再比对：直接拿 url 比会有「设置值 vs 读回值」的格式差异，
+    // 一旦不等就会每次滚动（背景位移触发 style 变更）都重设一遍背景图，白掉帧
+    let appliedBackground = ''
     const apply = () => {
       el.style.backgroundImage = url
+      appliedBackground = el.style.backgroundImage
     }
     apply()
+
+    /* ---------- 随动：底纹跟着内容一起滚 ---------- */
+
+    // 本项目的滚动发生在 <main data-scroll="main" class="overflow-y-auto"> 里，window 本身不滚；
+    // 拿不到该容器（登录页、独立 iframe 等）才退回 window 滚动。
+    // 做法是背景「反向位移」：内容往下滚 100px，底纹就上移 100px，
+    // 视觉上水印钉在内容上随内容走，而不是像贴纸一样浮在视口里。
+    const scroller = document.querySelector<HTMLElement>('main[data-scroll="main"]')
+    let frame = 0
+    const syncPosition = () => {
+      frame = 0
+      const x = scroller?.scrollLeft ?? window.scrollX
+      const y = scroller?.scrollTop ?? window.scrollY
+      el.style.backgroundPosition = `${-x}px ${-y}px`
+    }
+    // rAF 节流：滚动事件按帧合并，避免一次滚动触发几十次样式写入
+    const requestSync = () => {
+      if (!frame) frame = window.requestAnimationFrame(syncPosition)
+    }
+    syncPosition()
+    scroller?.addEventListener('scroll', requestSync, { passive: true })
+    window.addEventListener('scroll', requestSync, { passive: true })
+    window.addEventListener('resize', requestSync)
 
     // 防篡改：水印节点被移除时重新挂回，背景被清掉时重新设置
     const restore = () => {
       if (!document.body.contains(el)) {
         document.body.appendChild(el)
       }
-      if (el.style.backgroundImage !== url) {
+      if (el.style.backgroundImage !== appliedBackground) {
         apply()
       }
     }
@@ -94,6 +121,10 @@ export function Watermark({ content, rotate = -22, fontSize = 14, opacity = 0.08
     return () => {
       bodyObserver.disconnect()
       attrObserver.disconnect()
+      scroller?.removeEventListener('scroll', requestSync)
+      window.removeEventListener('scroll', requestSync)
+      window.removeEventListener('resize', requestSync)
+      if (frame) window.cancelAnimationFrame(frame)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [textKey, rotate, fontSize, opacity, tileW, tileH, resolvedTheme])
