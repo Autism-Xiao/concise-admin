@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { CircleAlert, Pencil, Plus, Search, Trash2, Users, WifiOff } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { CircleAlert, KeyRound, Pencil, Plus, RefreshCw, Search, Trash2, Users, WifiOff } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -14,14 +14,13 @@ import { hasPermission } from '@/lib/auth'
 import { isUnavailableError, userMessageOf } from '@/lib/api-error'
 import { TenantFormDialog } from './components/tenant-form-dialog'
 import { TenantUserDialog } from './components/tenant-user-dialog'
-import { createTenant, deleteTenant, fetchTenants, updateTenant, type Tenant, type TenantPlan } from './api'
+import { createTenant, deleteTenant, fetchTenants, provisionAllTenants, provisionTenant, updateTenant, type Tenant, type TenantPlan, type TenantProvisionRole } from './api'
 
 const columnLabels: Record<string, string> = {
   id: 'ID',
   name: '租户名称',
   code: '租户编码',
-  contact: '联系人',
-  phone: '联系电话',
+  contact: '联系人 / 电话',
   plan: '套餐',
   userCount: '用户数',
   expireAt: '到期日期',
@@ -29,11 +28,36 @@ const columnLabels: Record<string, string> = {
   remark: '备注'
 }
 
+/**
+ * 默认收起的列
+ *
+ * 租户表 11 列在 1280 笔记本上必然横向滚动，把「内部主键」和「长文本备注」先收起来，
+ * 首屏就能看到数据主体与操作列；需要时在右上角「列显示」里打开。
+ * 必须是模块级常量：传给 useDataTable 后进 TanStack 的 initialState，每次渲染新建数组会反复触发重置。
+ */
+const HIDDEN_COLUMNS = ['id', 'remark']
+
 /** 到期日 30 天内高亮提醒 */
 function isExpiringSoon(expireAt: string): boolean {
   if (!expireAt) return false
   const days = (new Date(expireAt).getTime() - Date.now()) / 86400000
   return days >= 0 && days <= 30
+}
+
+/**
+ * 把初始化结果翻译成人话
+ *
+ * 幂等接口重复点是不会变的，必须明确告诉用户「已是最新」，
+ * 否则看到"成功"却什么都没变，会以为按钮坏了。
+ */
+function summarizeProvision(roles: TenantProvisionRole[]): string {
+  const created = roles.filter(role => role.created).length
+  const added = roles.reduce((sum, role) => sum + role.added, 0)
+  if (!created && !added) return '默认角色与授权已是最新'
+  const parts: string[] = []
+  if (created) parts.push(`新建 ${created} 个角色`)
+  if (added) parts.push(`补齐 ${added} 项授权`)
+  return parts.join('，')
 }
 
 export function TenantPage() {
@@ -47,6 +71,8 @@ export function TenantPage() {
   const [deleting, setDeleting] = useState<Tenant | null>(null)
   const [assigning, setAssigning] = useState<Tenant | null>(null)
   const [saving, setSaving] = useState(false)
+  /** 正在初始化的目标：租户 id 或 'all'，用于禁用按钮防重复提交 */
+  const [provisioning, setProvisioning] = useState<number | 'all' | null>(null)
 
   const canAdd = hasPermission('system:tenant:add')
   const canEdit = hasPermission('system:tenant:edit')
@@ -76,6 +102,32 @@ export function TenantPage() {
     setFormOpen(true)
   }
 
+  /**
+   * 补齐单个租户的默认角色
+   *
+   * 用 useCallback 固定引用：它会进 columns 的依赖数组，每次渲染新建函数会让列定义整表重建。
+   */
+  const handleProvision = useCallback((tenant: Tenant) => {
+    setProvisioning(tenant.id)
+    provisionTenant(tenant.id)
+      .then(result => toast.success(`「${tenant.name}」${summarizeProvision(result.roles)}`))
+      .catch(error => toast.error(error instanceof Error ? error.message : '初始化失败'))
+      .finally(() => setProvisioning(null))
+  }, [])
+
+  /** 全部租户一次补齐：平台新增租户级菜单后，各租户的管理员角色需要跟上 */
+  const handleProvisionAll = () => {
+    setProvisioning('all')
+    provisionAllTenants()
+      .then(result => {
+        const changed = result.createdRoles > 0 || result.addedGrants > 0
+        const summary = changed ? `新建 ${result.createdRoles} 个角色，补齐 ${result.addedGrants} 项授权` : '默认角色与授权已是最新'
+        toast.success(`已同步 ${result.tenants} 个租户：${summary}`)
+      })
+      .catch(error => toast.error(error instanceof Error ? error.message : '同步失败'))
+      .finally(() => setProvisioning(null))
+  }
+
   const columns = useMemo<ColumnDef<Tenant>[]>(
     () => [
       {
@@ -93,13 +145,18 @@ export function TenantPage() {
         cell: ({ row }) => <code className="bg-muted rounded px-1.5 py-0.5 text-xs">{row.getValue('code')}</code>
       },
       {
-        accessorKey: 'contact',
-        header: '联系人'
-      },
-      {
-        accessorKey: 'phone',
-        header: '联系电话',
-        cell: ({ row }) => <span className="tabular-nums">{row.getValue('phone')}</span>
+        // 联系人与电话合成一列：两列各占一次单元格内边距，1280 笔记本上正好差这几十像素
+        // （合并前表格内滚 31px，操作列被挤出可视区）
+        id: 'contact',
+        accessorFn: row => `${row.contact ?? ''} ${row.phone ?? ''}`.trim(),
+        header: '联系人',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <div className="flex flex-col leading-tight">
+            <span>{row.original.contact || '—'}</span>
+            {row.original.phone && <span className="text-muted-foreground text-xs tabular-nums">{row.original.phone}</span>}
+          </div>
+        )
       },
       {
         accessorKey: 'plan',
@@ -151,6 +208,18 @@ export function TenantPage() {
         enableHiding: false,
         cell: ({ row }) => (
           <div className="text-end whitespace-nowrap">
+            {canEdit && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleProvision(row.original)}
+                disabled={provisioning !== null}
+                title="初始化默认角色"
+              >
+                <KeyRound className="size-4" />
+                <span className="sr-only">初始化默认角色</span>
+              </Button>
+            )}
             {canAssign && (
               <Button variant="ghost" size="icon" onClick={() => setAssigning(row.original)} title="分配用户">
                 <Users className="size-4" />
@@ -173,11 +242,11 @@ export function TenantPage() {
         )
       }
     ],
-    [canAssign, canEdit, canDelete]
+    [canAssign, canEdit, canDelete, handleProvision, provisioning]
   )
 
   const columnFilters = useMemo(() => (statusFilter === 'all' ? [] : [{ id: 'status', value: statusFilter }]), [statusFilter])
-  const { table, keyword, setKeyword } = useDataTable({ data: tenants, columns, columnFilters })
+  const { table, keyword, setKeyword } = useDataTable({ data: tenants, columns, columnFilters, hiddenColumns: HIDDEN_COLUMNS })
 
   const handleSubmit = (values: Omit<Tenant, 'id' | 'userCount'>) => {
     setSaving(true)
@@ -211,15 +280,23 @@ export function TenantPage() {
         <div>
           <h1 className="text-2xl font-bold">租户管理</h1>
           <p className="text-muted-foreground text-sm">
-            共 {tenants.length} 个租户 · 切换租户后只看到该租户的部门/角色/字典/公告/任务/文件
+            共 {tenants.length} 个租户 · 新建租户会自动生成管理员/编辑者/访客三个角色 · 切换租户后只看到该租户的部门/角色/字典/公告/任务/文件
           </p>
         </div>
-        {canAdd && (
-          <Button onClick={openCreate}>
-            <Plus />
-            新增租户
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {canEdit && (
+            <Button variant="outline" onClick={handleProvisionAll} disabled={provisioning !== null}>
+              <RefreshCw className={provisioning === 'all' ? 'animate-spin' : undefined} />
+              同步全部角色
+            </Button>
+          )}
+          {canAdd && (
+            <Button onClick={openCreate}>
+              <Plus />
+              新增租户
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading ? (

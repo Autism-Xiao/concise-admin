@@ -148,3 +148,38 @@ export function assignTenantUsers(tenantId: number, userIds: string[]): Promise<
     body: JSON.stringify({ userIds })
   })
 }
+
+/* ---------- 默认角色初始化 ---------- */
+
+export interface TenantProvisionRole {
+  roleCode: string
+  roleId: string
+  /** 本次是否新建了角色 */
+  created: boolean
+  /** 本次新增的授权条数（重复执行为 0） */
+  added: number
+  /** 角色应有的授权总数 */
+  total: number
+}
+
+export interface TenantProvisionResult {
+  tenantId: number
+  roles: TenantProvisionRole[]
+}
+
+export interface TenantProvisionAllResult {
+  tenants: number
+  createdRoles: number
+  addedGrants: number
+  details: TenantProvisionResult[]
+}
+
+/** 给单个租户补齐默认角色（空壳租户补建 / 新菜单上线后补齐授权），幂等 */
+export function provisionTenant(id: number): Promise<TenantProvisionResult> {
+  return getApiResult(`${API}/${id}/provision`, { method: 'POST' })
+}
+
+/** 给全部租户补齐默认角色，幂等 */
+export function provisionAllTenants(): Promise<TenantProvisionAllResult> {
+  return getApiResult(`${API}/provision-all`, { method: 'POST' })
+}
