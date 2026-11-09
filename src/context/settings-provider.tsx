@@ -4,6 +4,7 @@ import {
   DEFAULT_SETTINGS,
   FIRST_PAINT_CSS_KEY,
   loadSettings,
+  markSynced,
   persistLocal,
   pushSettings,
   readLocalSnapshot,
@@ -160,13 +161,21 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSyncState('pending')
     if (syncTimer.current) clearTimeout(syncTimer.current)
     syncTimer.current = setTimeout(() => {
-      void pushSettings(next).then(ok => setSyncState(ok ? 'synced' : 'local'))
+      void pushSettings(next).then(ok => {
+        // 推送成功才清 dirty：离线/失败时保持「本地有未同步改动」，下次加载不回滚用户的选择
+        if (ok) markSynced(next)
+        setSyncState(ok ? 'synced' : 'local')
+      })
     }, SYNC_DELAY_MS)
   }, [])
 
   const retrySync = useCallback(() => {
     setSyncState('pending')
-    void pushSettings(settingsRef.current).then(ok => setSyncState(ok ? 'synced' : 'local'))
+    const target = settingsRef.current
+    void pushSettings(target).then(ok => {
+      if (ok) markSynced(target)
+      setSyncState(ok ? 'synced' : 'local')
+    })
   }, [])
 
   return <SettingsContext.Provider value={{ settings, update, syncState, retrySync }}>{children}</SettingsContext.Provider>

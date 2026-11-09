@@ -32,10 +32,19 @@ export const DEFAULT_SETTINGS: AppSettings = {
   direction: 'ltr'
 }
 
-/** 设置快照：内容 + 最后修改时间（毫秒），用于「本地 vs 云端」谁更新的比较 */
+/**
+ * 设置快照
+ *
+ * `dirty` 是「本地有未推送成功的修改」的标记，靠它决定加载时用本地还是云端。
+ * **刻意不再用「谁的时间戳更大」判断**：本地时间来自客户端时钟、云端时间来自服务端时钟，
+ * 两者不可比 —— 机器时钟偏快时（实测偏差几十分钟很常见）云端的新值会被误判成旧值而被忽略。
+ * `updatedAt` 保留只为诊断与首帧缓存，不参与任何比较。
+ */
 export interface SettingsSnapshot {
   settings: AppSettings
   updatedAt: number
+  /** 本地修改尚未成功推送（离线 / 接口失败）；true 时加载以本地为准 */
+  dirty?: boolean
 }
 
 const LOCAL_KEY = 'concise-settings'
@@ -59,24 +68,43 @@ export function readLocalSnapshot(): SettingsSnapshot | null {
   try {
     const raw = localStorage.getItem(LOCAL_KEY)
     if (!raw) return null
-    const parsed = JSON.parse(raw) as { settings?: unknown; updatedAt?: unknown }
+    const parsed = JSON.parse(raw) as { settings?: unknown; updatedAt?: unknown; dirty?: unknown }
     return {
       settings: safeMerge(parsed.settings),
-      updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : 0
+      updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : 0,
+      // 老版本快照没有 dirty 字段：按「已同步」处理（否则老用户会永远压着云端不更新）
+      dirty: parsed.dirty === true
     }
   } catch {
     return null
   }
 }
 
-/** 写入本地缓存（同步、立即生效），返回写入的快照 */
-export function persistLocal(settings: AppSettings, updatedAt = Date.now()): SettingsSnapshot {
+/**
+ * 写入本地缓存（同步、立即生效）
+ *
+ * `dirty` 默认 true —— 本函数绝大多数调用来自「用户改了设置」，此时尚未推送成功。
+ * 从云端回写本地时必须显式传 false，否则下次加载会把云端当成「本地未同步」而拒绝更新。
+ */
+export function persistLocal(settings: AppSettings, updatedAt = Date.now(), dirty = true): SettingsSnapshot {
   try {
-    localStorage.setItem(LOCAL_KEY, JSON.stringify({ settings, updatedAt }))
+    localStorage.setItem(LOCAL_KEY, JSON.stringify({ settings, updatedAt, dirty }))
   } catch {
     // 隐私模式 / 配额满：忽略，界面照常工作
   }
-  return { settings, updatedAt }
+  return { settings, updatedAt, dirty }
+}
+
+/**
+ * 推送成功后调用：把本地标记为「已同步」，下次加载重新以云端为准
+ *
+ * 带内容比对：推送是异步的，回调到达时用户可能已经又改了一版（本地是新内容 + dirty=true）。
+ * 那种情况下不能把旧内容写回去，也不能清掉 dirty —— 否则新改动会被当作「已同步」而永不重推。
+ */
+export function markSynced(settings: AppSettings): void {
+  const local = readLocalSnapshot()
+  if (!local || JSON.stringify(local.settings) !== JSON.stringify(settings)) return
+  persistLocal(local.settings, Date.now(), false)
 }
 
 /** 登出时清除：避免下一个账号继承上一个账号的偏好（也避免 A 的设置在 B 登录时闪一下） */
@@ -134,12 +162,12 @@ export async function pushSettings(settings: AppSettings): Promise<boolean> {
 /* ---------- 对外：加载 ---------- */
 
 /**
- * 加载设置：本地优先，云端更新则覆盖本地
+ * 加载设置：本地有未同步改动则以本地为准，否则以云端为准
  *
- * 三种情况：
- * 1. 云端有值且比本地新（换设备 / 清过缓存）→ 用云端并回写本地
- * 2. 云端有值但比本地旧 → 用本地（本机改过还没同步成功，别把用户的改动回滚）
- * 3. 云端没有 / 接口失败 → 本地 → 内置默认值
+ * 判定顺序（不再比较时间戳，见 SettingsSnapshot 注释）：
+ * 1. 本地 `dirty`（改了但没推成功）→ 用本地，不能让服务端旧值把用户的改动回滚；界面会显示「未同步」
+ * 2. 云端有值 → 用云端并回写本地（dirty=false）：换设备、清过缓存、多端修改都以服务端为准
+ * 3. 云端读不到 / 未登录 → 本地 → 内置默认值
  *
  * 任何一步失败都不抛错：设置读不到就用默认值，不能因为偏好接口挂了打不开系统。
  */
@@ -147,7 +175,9 @@ export async function loadSettings(): Promise<SettingsSnapshot> {
   const local = readLocalSnapshot()
   const remote = await fetchRemote()
 
-  if (remote && (!local || remote.updatedAt >= local.updatedAt)) return persistLocal(remote.settings, remote.updatedAt || Date.now())
+  if (local?.dirty) return local
+  // 回写时 dirty 必须为 false —— 这是「云端值已落地本地」的事实，不是用户改动
+  if (remote) return persistLocal(remote.settings, remote.updatedAt, false)
   if (local) return local
-  return persistLocal({ ...DEFAULT_SETTINGS }, 0)
+  return persistLocal({ ...DEFAULT_SETTINGS }, 0, false)
 }
