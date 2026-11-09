@@ -50,6 +50,8 @@ export interface RegionListParams {
   keyword?: string
   level?: number
   parentCode?: string
+  /** 截断返回条数（后端 clamp 到 2000）；total 仍是真实命中数 */
+  limit?: number
 }
 
 /** 区划列表（分页结构；keyword 匹配名称/简称/拼音/区划代码） */
@@ -58,6 +60,7 @@ export function fetchRegions(params: RegionListParams = {}): Promise<PageResult<
   if (params.keyword?.trim()) qs.set('keyword', params.keyword.trim())
   if (params.level !== undefined) qs.set('level', String(params.level))
   if (params.parentCode) qs.set('parentCode', params.parentCode)
+  if (params.limit !== undefined) qs.set('limit', String(params.limit))
   const query = qs.toString()
   return getApiResult<PageResult<Region>>(`/backend-api/v1/regions${query ? `?${query}` : ''}`)
 }

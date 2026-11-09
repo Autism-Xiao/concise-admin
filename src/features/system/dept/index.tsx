@@ -373,11 +373,19 @@ export function DeptPage() {
           <TableCell className="w-20">
             <StatusBadge ok={node.status !== '0'} label={node.status === '0' ? '停用' : '正常'} />
           </TableCell>
-          <TableCell className="text-muted-foreground max-w-40 truncate text-xs" title={node.description ?? undefined}>
+          <TableCell className="text-muted-foreground max-w-24 truncate text-xs" title={node.description ?? undefined}>
             {node.description ?? '-'}
           </TableCell>
-          <TableCell className="text-muted-foreground w-40 whitespace-nowrap text-xs tabular-nums">{formatDateTime(node.createTime)}</TableCell>
-          <TableCell className="text-muted-foreground w-40 whitespace-nowrap text-xs tabular-nums">{formatDateTime(node.updateTime)}</TableCell>
+          <TableCell className="text-muted-foreground text-xs">
+            <div className="whitespace-nowrap tabular-nums">
+              <span className="text-muted-foreground/70 me-1">建</span>
+              {formatDateTime(node.createTime)}
+            </div>
+            <div className="whitespace-nowrap tabular-nums">
+              <span className="text-muted-foreground/70 me-1">更</span>
+              {formatDateTime(node.updateTime)}
+            </div>
+          </TableCell>
           <TableCell className="text-end whitespace-nowrap">
             {hasPermission('system:dept:add') && (
               <Button variant="ghost" size="sm" className="text-primary hover:text-primary h-7 gap-0.5 px-1.5" title="新增子部门" onClick={() => openCreate(node.id)}>
@@ -480,9 +488,8 @@ export function DeptPage() {
                   <TableHead className="w-20">部门类型</TableHead>
                   <TableHead className="w-14">排序</TableHead>
                   <TableHead className="w-20">状态</TableHead>
-                  <TableHead className="max-w-40">备注</TableHead>
-                  <TableHead className="w-40">创建时间</TableHead>
-                  <TableHead className="w-40">更新时间</TableHead>
+                  <TableHead className="w-24">备注</TableHead>
+                  <TableHead className="w-36">创建 / 更新</TableHead>
                   <TableHead className="w-44 text-end">操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -495,7 +502,7 @@ export function DeptPage() {
                     )
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-muted-foreground py-10 text-center">
+                      <TableCell colSpan={9} className="text-muted-foreground py-10 text-center">
                         没有匹配的部门
                       </TableCell>
                     </TableRow>
@@ -504,7 +511,7 @@ export function DeptPage() {
                   renderRows(tree, 0)
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-muted-foreground py-10 text-center">
+                    <TableCell colSpan={9} className="text-muted-foreground py-10 text-center">
                       暂无部门，点击右上角「新增部门」创建
                     </TableCell>
                   </TableRow>

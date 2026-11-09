@@ -14,8 +14,8 @@ import { deleteRegion, fetchRegionChildren, fetchRegionStats, fetchRegions, type
 
 /** 省级区划的 parentCode 固定为 '0' */
 const ROOT_CODE = '0'
-/** 搜索结果最多渲染条数（关键字太宽时会命中上万条，全量渲染会卡） */
-const SEARCH_LIMIT = 200
+/** 搜索结果最多渲染条数：既是前端渲染上限，也是请求后端的 limit（超出的部分不下发，省流量） */
+const SEARCH_LIMIT = 500
 
 const LEVEL_ITEMS: Record<string, string> = { '': '全部层级', '0': '省份', '1': '城市', '2': '区县', '3': '街道' }
 
@@ -58,6 +58,8 @@ export function RegionPage() {
   const [keyword, setKeyword] = useState('')
   const [levelFilter, setLevelFilter] = useState('')
   const [searchRows, setSearchRows] = useState<Region[] | null>(null)
+  /** 搜索真实命中数（后端 total，可能大于已下发的 SEARCH_LIMIT 条） */
+  const [searchTotal, setSearchTotal] = useState(0)
   const [searching, setSearching] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
   const [formOpen, setFormOpen] = useState(false)
@@ -181,19 +183,23 @@ export function RegionPage() {
   useEffect(() => {
     if (!filtering) {
       setSearchRows(null)
+      setSearchTotal(0)
       setSearching(false)
       return
     }
     let cancelled = false
     setSearching(true)
     const timer = setTimeout(() => {
-      fetchRegions({ keyword, level: levelFilter === '' ? undefined : Number(levelFilter) })
+      fetchRegions({ keyword, level: levelFilter === '' ? undefined : Number(levelFilter), limit: SEARCH_LIMIT })
         .then(res => {
-          if (!cancelled) setSearchRows(res.records)
+          if (cancelled) return
+          setSearchRows(res.records)
+          setSearchTotal(res.total ?? res.records.length)
         })
         .catch(e => {
           if (!cancelled) {
             setSearchRows([])
+            setSearchTotal(0)
             toast.error(e instanceof Error ? e.message : '搜索失败')
           }
         })
@@ -389,9 +395,9 @@ export function RegionPage() {
                   <span className="text-muted-foreground text-xs">
                     {searching
                       ? '搜索中…'
-                      : searchRows && searchRows.length > SEARCH_LIMIT
-                        ? `命中 ${formatCount(searchRows.length)} 条，仅显示前 ${SEARCH_LIMIT} 条，请细化关键字`
-                        : `命中 ${formatCount(searchRows?.length ?? 0)} 条`}
+                      : searchTotal > SEARCH_LIMIT
+                        ? `命中 ${formatCount(searchTotal)} 条，仅显示前 ${SEARCH_LIMIT} 条，请细化关键字`
+                        : `命中 ${formatCount(searchTotal)} 条`}
                   </span>
                 </>
               ) : (

@@ -118,6 +118,8 @@ export interface PageResult<T> {
   current: number
   size: number
   pages: number
+  /** 是否还有下一页（后端 skipCount / limit 截断时下发；total 为 -1 表示未统计） */
+  hasNext?: boolean
 }
 
 function handleUnauthorized(): never {
