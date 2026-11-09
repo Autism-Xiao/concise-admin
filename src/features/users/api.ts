@@ -85,6 +85,8 @@ export interface UserListResult {
   current: number
   size: number
   pages: number
+  /** 是否还有下一页（skipCount 快路径下 total/pages 为 -1，只能看这个） */
+  hasNext?: boolean
 }
 
 /** 用户简要信息（选人控件回显用：只有 id / 账号 / 姓名） */
@@ -104,9 +106,14 @@ export function lookupUsers(ids: string[]): Promise<UserBrief[]> {
   return getApiResult<UserBrief[]>(`/backend-api/v1/users/lookup?ids=${encodeURIComponent(list.join(','))}`)
 }
 
-/** 分页查询用户列表（大页容量一次拉全，前端表格本地筛选） */
+/**
+ * 分页查询用户列表（大页容量一次拉全，前端表格本地筛选）
+ *
+ * skipCount=true：不统计总数。千万行表上 `SELECT COUNT(*) WHERE del_flag=0` 要走全索引扫描
+ * （实测 17.8 秒），而列表页只需要知道「是否还有更多」。返回 total/pages = -1、带 hasNext。
+ */
 export function fetchUsers(keyword = '', status = ''): Promise<UserListResult> {
-  const params = new URLSearchParams({ page: '1', pageSize: '100' })
+  const params = new URLSearchParams({ page: '1', pageSize: '100', skipCount: 'true' })
   if (keyword) params.set('keyword', keyword)
   if (status) params.set('status', status)
   return getApiResult<UserListResult>(`/backend-api/v1/users?${params.toString()}`)

@@ -76,7 +76,10 @@ const columnLabels: Record<string, string> = {
 
 export function UsersPage() {
   const [list, setList] = useState<User[] | null>(null)
-  const [total, setTotal] = useState(0)
+  /** 后端返回的总数；-1 = 本次跳过了 COUNT（skipCount 快路径） */
+  const [total, setTotal] = useState(-1)
+  /** 跳过统计时用它判断「还有更多」，UI 只能说「已加载 N 条」而不能说「共 N 个」 */
+  const [hasNext, setHasNext] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -108,7 +111,8 @@ export function UsersPage() {
     fetchUsers()
       .then(res => {
         setList(res.records ?? [])
-        setTotal(res.total ?? 0)
+        setTotal(res.total ?? -1)
+        setHasNext(res.hasNext ?? false)
       })
       .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
       .finally(() => setLoading(false))
@@ -496,7 +500,10 @@ export function UsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">用户管理</h1>
-          <p className="text-muted-foreground text-sm">共 {total} 个用户</p>
+          <p className="text-muted-foreground text-sm">
+            {/* 跳过 COUNT 时不能谎报总数：结果不足一页说明已经取全了；满一页只能说「还有更多」 */}
+            {total >= 0 ? `共 ${total} 个用户` : hasNext ? `已加载 ${users.length} 条，还有更多` : `共 ${users.length} 个用户`}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {hasPermission('system:user:export') && (
