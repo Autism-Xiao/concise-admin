@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CircleAlert, KeyRound, Pencil, Plus, RefreshCw, Search, Trash2, Users, WifiOff } from 'lucide-react'
+import { CircleAlert, KeyRound, MoreHorizontal, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus, Users, WifiOff } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -7,12 +7,14 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { isUnavailableError, userMessageOf } from '@/lib/api-error'
 import { TenantFormDialog } from './components/tenant-form-dialog'
+import { TenantAdminDialog } from './components/tenant-admin-dialog'
 import { TenantUserDialog } from './components/tenant-user-dialog'
 import { createTenant, deleteTenant, fetchTenants, provisionAllTenants, provisionTenant, updateTenant, type Tenant, type TenantPlan, type TenantProvisionRole } from './api'
 
@@ -70,6 +72,8 @@ export function TenantPage() {
   const [editing, setEditing] = useState<Tenant | null>(null)
   const [deleting, setDeleting] = useState<Tenant | null>(null)
   const [assigning, setAssigning] = useState<Tenant | null>(null)
+  /** 正在开通管理员的目标租户 */
+  const [adminFor, setAdminFor] = useState<Tenant | null>(null)
   const [saving, setSaving] = useState(false)
   /** 正在初始化的目标：租户 id 或 'all'，用于禁用按钮防重复提交 */
   const [provisioning, setProvisioning] = useState<number | 'all' | null>(null)
@@ -207,36 +211,44 @@ export function TenantPage() {
         enableSorting: false,
         enableHiding: false,
         cell: ({ row }) => (
-          <div className="text-end whitespace-nowrap">
-            {canEdit && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleProvision(row.original)}
-                disabled={provisioning !== null}
-                title="初始化默认角色"
-              >
-                <KeyRound className="size-4" />
-                <span className="sr-only">初始化默认角色</span>
-              </Button>
-            )}
+          <div className="flex items-center justify-end gap-0.5 whitespace-nowrap">
             {canAssign && (
-              <Button variant="ghost" size="icon" onClick={() => setAssigning(row.original)} title="分配用户">
+              <Button variant="ghost" size="icon" className="size-7" onClick={() => setAssigning(row.original)} title="分配用户">
                 <Users className="size-4" />
                 <span className="sr-only">分配用户</span>
               </Button>
             )}
             {canEdit && (
-              <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
+              <Button variant="ghost" size="icon" className="size-7" onClick={() => openEdit(row.original)} title="编辑">
                 <Pencil className="size-4" />
                 <span className="sr-only">编辑</span>
               </Button>
             )}
             {canDelete && (
-              <Button variant="ghost" size="icon" onClick={() => setDeleting(row.original)}>
+              <Button variant="ghost" size="icon" className="size-7" onClick={() => setDeleting(row.original)} title="删除">
                 <Trash2 className="text-destructive size-4" />
                 <span className="sr-only">删除</span>
               </Button>
+            )}
+            {canEdit && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="size-7" title="更多操作">
+                    <MoreHorizontal className="size-4" />
+                    <span className="sr-only">更多操作</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setAdminFor(row.original)}>
+                    <UserPlus />
+                    开通管理员
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleProvision(row.original)} disabled={provisioning !== null}>
+                    <KeyRound />
+                    初始化默认角色
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         )
@@ -357,6 +369,10 @@ export function TenantPage() {
       )}
 
       {assigning && <TenantUserDialog tenant={assigning} open onOpenChange={open => !open && setAssigning(null)} onSaved={load} />}
+
+      {adminFor && (
+        <TenantAdminDialog key={adminFor.id} tenant={adminFor} open onOpenChange={open => !open && setAdminFor(null)} onSaved={load} />
+      )}
 
       <ConfirmDialog
         confirmText="删除"

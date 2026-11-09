@@ -149,6 +149,28 @@ export function assignTenantUsers(tenantId: number, userIds: string[]): Promise<
   })
 }
 
+/* ---------- 租户管理员 ---------- */
+
+export interface TenantAdminInput {
+  /** 登录账号（全局唯一，不能与已有账号重名） */
+  username: string
+  realname: string
+  password: string
+}
+
+/**
+ * 为租户开通管理员账号
+ *
+ * 一步完成「建号 + 加入本租户 + 绑本租户 admin 角色」，不需要再单独分配角色。
+ */
+export function createTenantAdmin(tenantId: number, values: TenantAdminInput): Promise<unknown> {
+  return getApiResult(`${API}/${tenantId}/admin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(values)
+  })
+}
+
 /* ---------- 默认角色初始化 ---------- */
 
 export interface TenantProvisionRole {
