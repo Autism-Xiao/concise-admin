@@ -108,8 +108,9 @@ async function fetchRemote(): Promise<SettingsSnapshot | null> {
     if (!res.ok) return null
     const json = (await res.json()) as { code?: number; success?: boolean; result?: { settings?: unknown; updatedAt?: number | null } }
     if (!(json.success ?? json.code === 0)) return null
-    // 服务端从没存过：settings 为 null，交给调用方用本地/默认值
+    // 后端已用服务端默认值补齐，正常一定拿得到完整对象；`!settings` 只是防御老版本后端/异常响应
     if (!json.result?.settings) return null
+    // updatedAt 为 null 表示该账号从未改过设置（后端空行），按 0 处理：本地没有改动时就用服务端值
     return { settings: safeMerge(json.result.settings), updatedAt: json.result.updatedAt ?? 0 }
   } catch {
     return null
