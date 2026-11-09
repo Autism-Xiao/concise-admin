@@ -386,23 +386,24 @@ export function DeptPage() {
               {formatDateTime(node.updateTime)}
             </div>
           </TableCell>
+          {/* 纯图标 + title：三个按钮各带文字时操作列要占 176px，1280 屏会顶出横向滚动条 */}
           <TableCell className="text-end whitespace-nowrap">
             {hasPermission('system:dept:add') && (
-              <Button variant="ghost" size="sm" className="text-primary hover:text-primary h-7 gap-0.5 px-1.5" title="新增子部门" onClick={() => openCreate(node.id)}>
-                <Plus className="size-3.5" />
-                添加
+              <Button variant="ghost" size="icon-sm" className="text-primary hover:text-primary size-7" title="新增子部门" onClick={() => openCreate(node.id)}>
+                <Plus className="size-4" />
+                <span className="sr-only">新增子部门</span>
               </Button>
             )}
             {hasPermission('system:dept:update') && (
-              <Button variant="ghost" size="sm" className="text-primary hover:text-primary h-7 gap-0.5 px-1.5" onClick={() => openEdit(node)}>
-                <SquarePen className="size-3.5" />
-                修改
+              <Button variant="ghost" size="icon-sm" className="text-primary hover:text-primary size-7" title="修改部门" onClick={() => openEdit(node)}>
+                <SquarePen className="size-4" />
+                <span className="sr-only">修改部门</span>
               </Button>
             )}
             {hasPermission('system:dept:delete') && (
-              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive h-7 gap-0.5 px-1.5" onClick={() => setDeleting(node)}>
-                <Trash2 className="size-3.5" />
-                删除
+              <Button variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive size-7" title="删除部门" onClick={() => setDeleting(node)}>
+                <Trash2 className="size-4" />
+                <span className="sr-only">删除部门</span>
               </Button>
             )}
           </TableCell>
@@ -490,7 +491,7 @@ export function DeptPage() {
                   <TableHead className="w-20">状态</TableHead>
                   <TableHead className="w-24">备注</TableHead>
                   <TableHead className="w-36">创建 / 更新</TableHead>
-                  <TableHead className="w-44 text-end">操作</TableHead>
+                  <TableHead className="w-28 text-end">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
