@@ -28,7 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
-import { hasPermission } from '@/lib/auth'
+import { getUsername, hasPermission } from '@/lib/auth'
 import { UserFormDialog } from './components/user-form-dialog'
 import { UserWatermarkDialog } from './components/user-watermark-dialog'
 import { ResetPasswordResultDialog } from './components/reset-password-result-dialog'
@@ -51,6 +51,7 @@ import {
   forceOfflineUser,
   resetUserAvatar,
   resetUserPassword,
+  setUserPlatformAdmin,
   unlockUser,
   updateUser,
   updateUserStatus,
@@ -164,7 +165,20 @@ export function UsersPage() {
       {
         accessorKey: 'username',
         header: ({ column }) => <DataTableColumnHeader column={column} title="账号" />,
-        cell: ({ row }) => <span className="font-medium">{row.getValue('username')}</span>
+        cell: ({ row }) => (
+          // 用内联徽标而不是单开一列：平台管理员通常只有一两个，加列会把表格再挤宽 80px
+          <span className="flex items-center gap-1.5 font-medium whitespace-nowrap">
+            {row.getValue('username')}
+            {Number(row.original.isPlatformAdmin) === 1 && (
+              <span
+                className="inline-flex rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] leading-none font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                title="平台管理员：可跨租户视角、可访问平台级功能"
+              >
+                平台
+              </span>
+            )}
+          </span>
+        )
       },
       {
         accessorKey: 'realname',
@@ -323,6 +337,16 @@ export function UsersPage() {
                       登录日志
                     </DropdownMenuItem>
                   )}
+                  {/* 平台级操作：权限点 scope=platform，后端还会拒绝取消自己/最后一个，所以自己那一行不显示 */}
+                  {hasPermission('system:user:platform') && user.username !== getUsername() && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handlePlatformAdmin(user)}>
+                        <ShieldCheck className="size-4" />
+                        {Number(user.isPlatformAdmin) === 1 ? '取消平台管理员' : '设为平台管理员'}
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   {hasPermission('system:user:delete') && (
                     <>
                       <DropdownMenuSeparator />
@@ -339,6 +363,7 @@ export function UsersPage() {
         }
       }
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 列定义引用的是渲染期调用的 handler（闭包取最新值），不需要随函数标识重建
     []
   )
 
@@ -467,6 +492,17 @@ export function UsersPage() {
     withOperationLog(`解锁用户「${user.realname || user.username}」的登录`, () => unlockUser(user.id))
       .then(() => toast.success(`账号「${user.username}」已解锁`))
       .catch(e => toast.error(e instanceof Error ? e.message : '解锁失败'))
+  }
+
+  /** 授予/取消平台管理员：平台级操作，后端拒绝取消自己与最后一个；改完 alert 提示 30s 内生效 */
+  const handlePlatformAdmin = (user: User) => {
+    const next = Number(user.isPlatformAdmin) !== 1
+    withOperationLog(`${next ? '授予' : '取消'}用户「${user.realname || user.username}」的平台管理员`, () => setUserPlatformAdmin(user.id, next))
+      .then(() => {
+        toast.success(next ? `已授予「${user.username}」平台管理员，最多 30 秒生效` : `已取消「${user.username}」的平台管理员权限`)
+        load()
+      })
+      .catch(e => toast.error(e instanceof Error ? e.message : '操作失败'))
   }
 
   /** 冻结/解冻确认：冻结会踢掉该用户全部在线会话 */

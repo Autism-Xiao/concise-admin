@@ -51,6 +51,8 @@ export interface User {
   watermarkEnforced?: number
   /** 最终是否生效（已合并全局策略） */
   watermarkEffective?: boolean
+  /** 平台管理员：1 是 / 0 否（可跨租户视角、可访问平台级权限点） */
+  isPlatformAdmin?: number
 }
 
 export { batchUpdateUsersWatermark, updateUserWatermark }
@@ -250,6 +252,20 @@ export function forceOfflineUser(id: string): Promise<{ kicked: number }> {
 /** 解锁账号：清零登录失败计数（幂等） */
 export function unlockUser(id: string): Promise<{ unlocked: true }> {
   return getApiResult<{ unlocked: true }>(`/backend-api/v1/users/${id}/lock`, { method: 'DELETE' })
+}
+
+/**
+ * 授予/取消平台管理员
+ *
+ * 平台级操作：后端要求调用者自身就是平台管理员（权限点 scope=platform），
+ * 且拒绝「取消自己」与「取消系统最后一个平台管理员」。
+ */
+export function setUserPlatformAdmin(id: string, isPlatformAdmin: boolean): Promise<User> {
+  return getApiResult<User>(`/backend-api/v1/users/${id}/platform-admin`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isPlatformAdmin })
+  })
 }
 
 /** 回收站：已软删用户分页列表 */
