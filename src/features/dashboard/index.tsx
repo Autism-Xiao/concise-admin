@@ -8,6 +8,7 @@ import { isPathAllowed, usePermittedPaths } from '@/lib/permissions'
 import { fetchOverview, type DashboardOverview } from './api'
 import { LoginTrendChart } from './components/login-trend-chart'
 import { MetricCards } from './components/metric-cards'
+import { MyTasksCard } from './components/my-tasks-card'
 import { NoticesCard } from './components/notices-card'
 import { QuickEntriesCard } from './components/quick-entries-card'
 import { RecentOpersCard } from './components/recent-opers-card'
@@ -104,7 +105,7 @@ export function DashboardPage() {
   const permitted = usePermittedPaths()
   const canGo = useMemo(() => {
     const check = (path: string) => !permitted || isPathAllowed(path, permitted)
-    return { notices: check('/system/notice'), logs: check('/system/log/operation') }
+    return { notices: check('/system/notice'), logs: check('/system/log/operation'), tasks: check('/system/task') }
   }, [permitted])
 
   // 欢迎条右侧的迷你统计：逐块按权限构造（null 的块不出现，与下方卡片同一份数据）
@@ -171,6 +172,7 @@ export function DashboardPage() {
           )}
         </div>
         <div className="min-w-0 space-y-4">
+          <MyTasksCard block={data.myTasks} onOpenTasks={() => go('/system/task')} canOpenTasks={canGo.tasks} />
           <NoticesCard rows={data.notices} onOpenNotices={() => go('/system/notice')} canOpenNotices={canGo.notices} />
           <QuickEntriesCard onNavigate={go} />
           {data.serverState && <ServerStateCard block={data.serverState} onOpenMonitor={() => go('/ops/server')} />}

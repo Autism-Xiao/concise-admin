@@ -78,6 +78,20 @@ export interface ServerStateBlock {
 }
 
 /**
+ * 我的待办（task 表按 assignee_id 统计）
+ *
+ * scope='all' 表示当前账号有全站任务查看权限，统计口径含「未指派」任务（assignee_id='0'）；
+ * scope='self' 时只统计指派给自己的。
+ */
+export interface MyTasksBlock {
+  scope: BlockScope
+  pending: number
+  doing: number
+  done: number
+  cancelled: number
+}
+
+/**
  * 首页聚合数据
  *
  * 所有「可能没权限」的块都是 `| null`：**null 表示没权限，不是没数据**。
@@ -92,6 +106,8 @@ export interface DashboardOverview {
   loginTrend: LoginTrendBlock | null
   recentOpers: RecentOpersBlock | null
   myStorage: StorageBlock
+  /** 我的待办：服务端总是返回（不需要额外权限，只统计指派给本人的任务） */
+  myTasks: MyTasksBlock
   notices: NoticeRow[]
   serverState: ServerStateBlock | null
 }

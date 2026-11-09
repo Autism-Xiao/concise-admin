@@ -14,16 +14,23 @@ interface UserMultiSelectProps {
   onChange: (ids: string[]) => void
   placeholder?: string
   disabled?: boolean
+  /**
+   * 单选模式：选中一人后面板自动收起，再次点同一人则清空。
+   * 供「任务负责人」这类只能有一个人的字段复用同一套搜索/回显逻辑。
+   */
+  single?: boolean
 }
 
 /**
  * 多选用户控件：输入框内是已选 chips + 搜索框，输入走服务端 keyword 搜索（账号/姓名/电话），
  * 点列表项即加入或移除，面板不关闭，可连续勾选多个。
  *
+ * single=true 时退化为单选（选中即收起、单选一人）。
+ *
  * 回显：已选 ID 由 `/users/lookup` 批量翻译成账号（搜索结果只覆盖当前页，不能只靠它），
  * 用户已被删除时退化为红色 `#id`，保存时仍按原 ID 传回，不会静默丢人。
  */
-export function UserMultiSelect({ value, onChange, placeholder = '搜索账号或姓名，可多选', disabled }: UserMultiSelectProps) {
+export function UserMultiSelect({ value, onChange, placeholder = '搜索账号或姓名，可多选', disabled, single = false }: UserMultiSelectProps) {
   const [keyword, setKeyword] = useState('')
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -142,6 +149,13 @@ export function UserMultiSelect({ value, onChange, placeholder = '搜索账号�
     if (!selected) {
       // 顺手缓存账号信息，chip 立刻就有账号显示，不必等 lookup
       setBriefs(prev => (prev[user.id] ? prev : { ...prev, [user.id]: user }))
+    }
+    if (single) {
+      // 单选：点已选中的等于取消，点新的人直接替换并收起面板
+      onChange(selected ? [] : [user.id])
+      setKeyword('')
+      setOpen(false)
+      return
     }
     onChange(selected ? value.filter(id => id !== user.id) : [...value, user.id])
     inputRef.current?.focus()
@@ -277,7 +291,7 @@ export function UserMultiSelect({ value, onChange, placeholder = '搜索账号�
             )}
           </div>
           <div className="border-border/60 flex items-center justify-between border-t px-2 py-1.5">
-            <span className="text-muted-foreground text-xs">已选 {value.length} 人</span>
+            <span className="text-muted-foreground text-xs">{single ? (value.length ? '已指派（点其他人可替换）' : '未指派') : `已选 ${value.length} 人`}</span>
             {value.length > 0 && (
               <button
                 type="button"

@@ -45,6 +45,7 @@ import { Route as AuthenticatedSystemPostRouteImport } from './routes/_authentic
 import { Route as AuthenticatedSystemRegionRouteImport } from './routes/_authenticated/system/region'
 import { Route as AuthenticatedSystemRoleRouteImport } from './routes/_authenticated/system/role'
 import { Route as AuthenticatedSystemSuppliersRouteImport } from './routes/_authenticated/system/suppliers'
+import { Route as AuthenticatedSystemTaskRouteImport } from './routes/_authenticated/system/task'
 import { Route as AuthenticatedSystemTenantRouteImport } from './routes/_authenticated/system/tenant'
 import { Route as AuthenticatedSystemUsersRouteImport } from './routes/_authenticated/system/users'
 import { Route as AuthenticatedSystemLogLoginRouteImport } from './routes/_authenticated/system/log/login'
@@ -242,6 +243,11 @@ const AuthenticatedSystemSuppliersRoute =
     path: '/system/suppliers',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedSystemTaskRoute = AuthenticatedSystemTaskRouteImport.update({
+  id: '/system/task',
+  path: '/system/task',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedSystemTenantRoute =
   AuthenticatedSystemTenantRouteImport.update({
     id: '/system/tenant',
@@ -302,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/system/region': typeof AuthenticatedSystemRegionRoute
   '/system/role': typeof AuthenticatedSystemRoleRoute
   '/system/suppliers': typeof AuthenticatedSystemSuppliersRoute
+  '/system/task': typeof AuthenticatedSystemTaskRoute
   '/system/tenant': typeof AuthenticatedSystemTenantRoute
   '/system/users': typeof AuthenticatedSystemUsersRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
@@ -342,6 +349,7 @@ export interface FileRoutesByTo {
   '/system/region': typeof AuthenticatedSystemRegionRoute
   '/system/role': typeof AuthenticatedSystemRoleRoute
   '/system/suppliers': typeof AuthenticatedSystemSuppliersRoute
+  '/system/task': typeof AuthenticatedSystemTaskRoute
   '/system/tenant': typeof AuthenticatedSystemTenantRoute
   '/system/users': typeof AuthenticatedSystemUsersRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
@@ -385,6 +393,7 @@ export interface FileRoutesById {
   '/_authenticated/system/region': typeof AuthenticatedSystemRegionRoute
   '/_authenticated/system/role': typeof AuthenticatedSystemRoleRoute
   '/_authenticated/system/suppliers': typeof AuthenticatedSystemSuppliersRoute
+  '/_authenticated/system/task': typeof AuthenticatedSystemTaskRoute
   '/_authenticated/system/tenant': typeof AuthenticatedSystemTenantRoute
   '/_authenticated/system/users': typeof AuthenticatedSystemUsersRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
@@ -428,6 +437,7 @@ export interface FileRouteTypes {
     | '/system/region'
     | '/system/role'
     | '/system/suppliers'
+    | '/system/task'
     | '/system/tenant'
     | '/system/users'
     | '/settings/'
@@ -468,6 +478,7 @@ export interface FileRouteTypes {
     | '/system/region'
     | '/system/role'
     | '/system/suppliers'
+    | '/system/task'
     | '/system/tenant'
     | '/system/users'
     | '/settings'
@@ -510,6 +521,7 @@ export interface FileRouteTypes {
     | '/_authenticated/system/region'
     | '/_authenticated/system/role'
     | '/_authenticated/system/suppliers'
+    | '/_authenticated/system/task'
     | '/_authenticated/system/tenant'
     | '/_authenticated/system/users'
     | '/_authenticated/settings/'
@@ -778,6 +790,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemSuppliersRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/system/task': {
+      id: '/_authenticated/system/task'
+      path: '/system/task'
+      fullPath: '/system/task'
+      preLoaderRoute: typeof AuthenticatedSystemTaskRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/system/tenant': {
       id: '/_authenticated/system/tenant'
       path: '/system/tenant'
@@ -877,6 +896,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSystemRegionRoute: typeof AuthenticatedSystemRegionRoute
   AuthenticatedSystemRoleRoute: typeof AuthenticatedSystemRoleRoute
   AuthenticatedSystemSuppliersRoute: typeof AuthenticatedSystemSuppliersRoute
+  AuthenticatedSystemTaskRoute: typeof AuthenticatedSystemTaskRoute
   AuthenticatedSystemTenantRoute: typeof AuthenticatedSystemTenantRoute
   AuthenticatedSystemUsersRoute: typeof AuthenticatedSystemUsersRoute
 }
@@ -908,6 +928,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSystemRegionRoute: AuthenticatedSystemRegionRoute,
   AuthenticatedSystemRoleRoute: AuthenticatedSystemRoleRoute,
   AuthenticatedSystemSuppliersRoute: AuthenticatedSystemSuppliersRoute,
+  AuthenticatedSystemTaskRoute: AuthenticatedSystemTaskRoute,
   AuthenticatedSystemTenantRoute: AuthenticatedSystemTenantRoute,
   AuthenticatedSystemUsersRoute: AuthenticatedSystemUsersRoute,
 }
