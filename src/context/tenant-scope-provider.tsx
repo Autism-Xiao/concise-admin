@@ -23,7 +23,7 @@ import { switchTenant } from '@/features/system/tenant/api'
  *    **克隆成一张快照**盖在原位，等新页面的请求全部结束（`waitForApiIdle`）再淡出。
  *    用户看到的是「旧数据 → 新数据」，中间没有骨架也没有白屏。
  *
- * 回退方式：把 `tenant-switcher.tsx` 里 `applySwitch` 换回 `switchTenant + reload`
+ * 回退方式：把 `use-tenant-switch.ts` 里 `applySwitch` 换回 `switchTenant + reload`
  * 即可，本上下文不影响其他逻辑。
  */
 export interface TenantSnapshot {
