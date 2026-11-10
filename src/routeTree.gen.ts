@@ -30,6 +30,7 @@ import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings/account'
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings/appearance'
 import { Route as AuthenticatedSettingsDisplayRouteImport } from './routes/_authenticated/settings/display'
+import { Route as AuthenticatedSettingsMyWatermarkRouteImport } from './routes/_authenticated/settings/my-watermark'
 import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes/_authenticated/settings/notifications'
 import { Route as AuthenticatedSettingsShortcutsRouteImport } from './routes/_authenticated/settings/shortcuts'
 import { Route as AuthenticatedSettingsWatermarkRouteImport } from './routes/_authenticated/settings/watermark'
@@ -159,6 +160,12 @@ const AuthenticatedSettingsDisplayRoute =
   AuthenticatedSettingsDisplayRouteImport.update({
     id: '/display',
     path: '/display',
+    getParentRoute: () => AuthenticatedSettingsRouteRoute,
+  } as any)
+const AuthenticatedSettingsMyWatermarkRoute =
+  AuthenticatedSettingsMyWatermarkRouteImport.update({
+    id: '/my-watermark',
+    path: '/my-watermark',
     getParentRoute: () => AuthenticatedSettingsRouteRoute,
   } as any)
 const AuthenticatedSettingsNotificationsRoute =
@@ -300,6 +307,7 @@ export interface FileRoutesByFullPath {
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/display': typeof AuthenticatedSettingsDisplayRoute
+  '/settings/my-watermark': typeof AuthenticatedSettingsMyWatermarkRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/settings/shortcuts': typeof AuthenticatedSettingsShortcutsRoute
   '/settings/watermark': typeof AuthenticatedSettingsWatermarkRoute
@@ -342,6 +350,7 @@ export interface FileRoutesByTo {
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/display': typeof AuthenticatedSettingsDisplayRoute
+  '/settings/my-watermark': typeof AuthenticatedSettingsMyWatermarkRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/settings/shortcuts': typeof AuthenticatedSettingsShortcutsRoute
   '/settings/watermark': typeof AuthenticatedSettingsWatermarkRoute
@@ -387,6 +396,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/_authenticated/settings/display': typeof AuthenticatedSettingsDisplayRoute
+  '/_authenticated/settings/my-watermark': typeof AuthenticatedSettingsMyWatermarkRoute
   '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/_authenticated/settings/shortcuts': typeof AuthenticatedSettingsShortcutsRoute
   '/_authenticated/settings/watermark': typeof AuthenticatedSettingsWatermarkRoute
@@ -432,6 +442,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/appearance'
     | '/settings/display'
+    | '/settings/my-watermark'
     | '/settings/notifications'
     | '/settings/shortcuts'
     | '/settings/watermark'
@@ -474,6 +485,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/appearance'
     | '/settings/display'
+    | '/settings/my-watermark'
     | '/settings/notifications'
     | '/settings/shortcuts'
     | '/settings/watermark'
@@ -518,6 +530,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/appearance'
     | '/_authenticated/settings/display'
+    | '/_authenticated/settings/my-watermark'
     | '/_authenticated/settings/notifications'
     | '/_authenticated/settings/shortcuts'
     | '/_authenticated/settings/watermark'
@@ -698,6 +711,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsDisplayRouteImport
       parentRoute: typeof AuthenticatedSettingsRouteRoute
     }
+    '/_authenticated/settings/my-watermark': {
+      id: '/_authenticated/settings/my-watermark'
+      path: '/my-watermark'
+      fullPath: '/settings/my-watermark'
+      preLoaderRoute: typeof AuthenticatedSettingsMyWatermarkRouteImport
+      parentRoute: typeof AuthenticatedSettingsRouteRoute
+    }
     '/_authenticated/settings/notifications': {
       id: '/_authenticated/settings/notifications'
       path: '/notifications'
@@ -852,6 +872,7 @@ interface AuthenticatedSettingsRouteRouteChildren {
   AuthenticatedSettingsAccountRoute: typeof AuthenticatedSettingsAccountRoute
   AuthenticatedSettingsAppearanceRoute: typeof AuthenticatedSettingsAppearanceRoute
   AuthenticatedSettingsDisplayRoute: typeof AuthenticatedSettingsDisplayRoute
+  AuthenticatedSettingsMyWatermarkRoute: typeof AuthenticatedSettingsMyWatermarkRoute
   AuthenticatedSettingsNotificationsRoute: typeof AuthenticatedSettingsNotificationsRoute
   AuthenticatedSettingsShortcutsRoute: typeof AuthenticatedSettingsShortcutsRoute
   AuthenticatedSettingsWatermarkRoute: typeof AuthenticatedSettingsWatermarkRoute
@@ -863,6 +884,8 @@ const AuthenticatedSettingsRouteRouteChildren: AuthenticatedSettingsRouteRouteCh
     AuthenticatedSettingsAccountRoute: AuthenticatedSettingsAccountRoute,
     AuthenticatedSettingsAppearanceRoute: AuthenticatedSettingsAppearanceRoute,
     AuthenticatedSettingsDisplayRoute: AuthenticatedSettingsDisplayRoute,
+    AuthenticatedSettingsMyWatermarkRoute:
+      AuthenticatedSettingsMyWatermarkRoute,
     AuthenticatedSettingsNotificationsRoute:
       AuthenticatedSettingsNotificationsRoute,
     AuthenticatedSettingsShortcutsRoute: AuthenticatedSettingsShortcutsRoute,

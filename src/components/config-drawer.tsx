@@ -2,16 +2,13 @@ import { useEffect, useState, type ComponentType, type ReactNode } from 'react'
 import { Check, CircleCheck, Monitor, Moon, RotateCcw, Settings, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import { useLocale } from '@/context/locale-provider'
 import { useSettings } from '@/context/settings-provider'
-import { useWatermark } from '@/context/watermark-provider'
 import { startThemeTransition } from '@/lib/theme'
 import { THEME_COLORS } from '@/lib/theme-presets'
 import type { Direction, FontSize, LayoutMode, SidebarVariant } from '@/lib/settings'
-import type { WatermarkDensity } from '@/lib/watermark'
 import type { TranslationKey } from '@/config/i18n'
 import { cn } from '@/lib/utils'
 
@@ -42,12 +39,6 @@ const LAYOUT_MODES: { value: LayoutMode; labelKey: TranslationKey }[] = [
 const DIRECTIONS: { value: Direction; labelKey: TranslationKey }[] = [
   { value: 'ltr', labelKey: 'direction.ltr' },
   { value: 'rtl', labelKey: 'direction.rtl' }
-]
-
-const WATERMARK_DENSITIES: { value: WatermarkDensity; labelKey: TranslationKey }[] = [
-  { value: 'compact', labelKey: 'density.compact' },
-  { value: 'default', labelKey: 'density.default' },
-  { value: 'loose', labelKey: 'density.loose' }
 ]
 
 // 带缩略图的选择卡片
@@ -203,31 +194,7 @@ export function ConfigDrawer() {
   const { t } = useLocale()
   const { theme, setTheme, resolvedTheme } = useTheme()
   const { settings, update } = useSettings()
-  const wm = useWatermark()
-  const wmConfig = wm.config
   const [mounted, setMounted] = useState(false)
-  const [wmContent, setWmContent] = useState('')
-  const [wmError, setWmError] = useState<string | null>(null)
-
-  // 远端内容变化时同步输入框（自定义内容允许留空 = 跟随全局）
-  useEffect(() => {
-    if (wmConfig) {
-      setWmContent(wmConfig.custom.content ?? '')
-    }
-  }, [wmConfig?.custom.content]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const applyWatermark = async (patch: { enabled?: boolean | null; content?: string | null; density?: WatermarkDensity | null }) => {
-    try {
-      await wm.update(patch)
-      setWmError(null)
-    } catch (e) {
-      setWmError(e instanceof Error ? e.message : String(e))
-    }
-  }
-
-  /** 水印被管理员锁定时所有输入都置灰，并展示后端给的原因文案 */
-  const wmLocked = wmConfig ? !wmConfig.editable : false
-  const effectiveDensity = (wmConfig?.density ?? 'default') as WatermarkDensity
 
   useEffect(() => {
     setMounted(true)
@@ -424,52 +391,6 @@ export function ConfigDrawer() {
                 <span className="text-sm">{t('config.colorWeak')}</span>
                 <Switch checked={settings.colorWeak} onCheckedChange={checked => update({ colorWeak: checked })} />
               </div>
-              {/* 安全水印：开关/内容/密度由后端按用户下发，这里只是远程配置的入口 */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm">{t('config.watermark')}</span>
-                <Switch
-                  checked={wmConfig?.enabled ?? false}
-                  disabled={wmLocked || !wmConfig}
-                  onCheckedChange={checked => void applyWatermark({ enabled: checked })}
-                />
-              </div>
-              {wmConfig && wmLocked && <p className="text-muted-foreground text-xs">{wmConfig.reason}</p>}
-              {wmConfig?.enabled && !wmLocked && (
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Input
-                      value={wmContent}
-                      onChange={e => setWmContent(e.target.value)}
-                      onBlur={() => {
-                        if (wmContent !== (wmConfig.custom.content ?? '')) {
-                          void applyWatermark({ content: wmContent || null })
-                        }
-                      }}
-                      placeholder={t('config.watermarkContentPlaceholder')}
-                    />
-                    <p className="text-muted-foreground text-xs">{t('config.watermarkContentHint')}</p>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">{t('config.watermarkDensity')}</span>
-                    <div className="bg-muted flex rounded-md p-0.5">
-                      {WATERMARK_DENSITIES.map(option => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => void applyWatermark({ density: option.value })}
-                          className={cn(
-                            'rounded-sm px-2.5 py-1 text-xs transition-colors',
-                            effectiveDensity === option.value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                          )}
-                        >
-                          {t(option.labelKey)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  {wmError && <p className="text-destructive text-xs">{wmError}</p>}
-                </div>
-              )}
             </div>
           </section>
         </div>

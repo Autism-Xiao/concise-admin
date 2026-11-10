@@ -1,6 +1,6 @@
 import { Outlet } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
-import { Bell, Droplets, Keyboard, Monitor, Palette, UserCog, Wrench } from 'lucide-react'
+import { Bell, Droplets, Keyboard, Monitor, Palette, Stamp, UserCog, Wrench } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { hasPermission } from '@/lib/auth'
 import { SidebarNav, type SettingsNavItem } from './components/sidebar-nav'
@@ -18,6 +18,7 @@ const sidebarNavItems: SettingsNavItemEx[] = [
   { title: '通知', href: '/settings/notifications', icon: <Bell size={18} /> },
   { title: '显示', href: '/settings/display', icon: <Monitor size={18} /> },
   { title: '快捷键', href: '/settings/shortcuts', icon: <Keyboard size={18} /> },
+  { title: '我的水印', href: '/settings/my-watermark', icon: <Stamp size={18} /> },
   { title: '水印策略', href: '/settings/watermark', icon: <Droplets size={18} />, requirePerm: 'system:watermark:edit' }
 ]
 
