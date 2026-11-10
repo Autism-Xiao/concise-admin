@@ -13,9 +13,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useLocale } from '@/context/locale-provider'
+import { useTenantScope } from '@/context/tenant-scope-provider'
 import { AUTH_CHANGED_EVENT, getName, getUsername, logout } from '@/lib/auth'
 import { TenantSwitchDialog } from '@/features/system/tenant/components/tenant-switch-dialog'
-import { useTenantSwitch } from '@/features/system/tenant/use-tenant-switch'
 
 export function NavUser() {
   const navigate = useNavigate()
@@ -25,9 +25,9 @@ export function NavUser() {
   // 姓名改完（个人资料页）会广播 AUTH_CHANGED_EVENT，这里重新读一次 localStorage，
   // 否则要等整页刷新侧边栏才跟着变
   const [name, setName] = useState(getName)
-  // 租户切换入口：单租户普通用户 switchable=false，菜单项不渲染（与原顶栏行为一致）。
-  // hook 只在这一处实例化，弹窗通过 props 共用同一份状态，切换后「当前租户」自动刷新。
-  const tenantSwitch = useTenantSwitch()
+  // 租户信息来自全局 TenantScopeProvider（与顶栏角标同一份状态）；
+  // 单租户普通用户 switchable=false，菜单项不渲染
+  const { tenants, isSuper, current, currentLabel, switchable, tenantInfoLoaded, switching, switchTo } = useTenantScope()
   const [switchOpen, setSwitchOpen] = useState(false)
   useEffect(() => {
     const sync = () => setName(getName())
@@ -62,10 +62,10 @@ export function NavUser() {
               <div className="flex flex-col gap-1">
                 <p className="text-sm font-medium">{name}</p>
                 <p className="text-muted-foreground text-xs">@{username}</p>
-                {tenantSwitch.loaded && tenantSwitch.switchable ? (
+                {tenantInfoLoaded && switchable ? (
                   <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
                     <Building2 className="size-3 shrink-0 opacity-60" />
-                    当前租户：{tenantSwitch.currentLabel}
+                    当前租户：{currentLabel}
                   </p>
                 ) : null}
               </div>
@@ -90,7 +90,7 @@ export function NavUser() {
                 <Settings />
                 {t('profile.settings')}
               </DropdownMenuItem>
-              {tenantSwitch.switchable ? (
+              {switchable ? (
                 <DropdownMenuItem
                   onClick={() => {
                     closeMobileSidebar()
@@ -121,11 +121,11 @@ export function NavUser() {
     <TenantSwitchDialog
       open={switchOpen}
       onOpenChange={setSwitchOpen}
-      tenants={tenantSwitch.tenants}
-      isSuper={tenantSwitch.isSuper}
-      current={tenantSwitch.current}
-      busy={tenantSwitch.busy}
-      onSwitch={id => void tenantSwitch.switchTo(id, tenantSwitch.tenants)}
+      tenants={tenants}
+      isSuper={isSuper}
+      current={current}
+      busy={switching}
+      onSwitch={id => void switchTo(id)}
     />
     </>
   )

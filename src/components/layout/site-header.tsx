@@ -9,6 +9,7 @@ import { Search } from '@/components/search'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { ReminderBell } from '@/features/system/calendar/components/reminder-bell'
 import { MessageBell } from '@/features/system/message/components/message-bell'
+import { TenantBadge } from '@/features/system/tenant/components/tenant-badge'
 
 export function SiteHeader() {
   return (
@@ -17,6 +18,7 @@ export function SiteHeader() {
       <Separator orientation="vertical" className="mr-2 h-4! self-center!" />
       <BreadcrumbNav />
       <div className="flex-1" />
+      <TenantBadge />
       <Search />
       <FullscreenToggle />
       <ThemeToggle />

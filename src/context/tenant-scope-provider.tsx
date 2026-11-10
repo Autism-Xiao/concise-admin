@@ -1,7 +1,9 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { toast } from 'sonner'
 import { setTenantId } from '@/lib/auth'
 import { getInflightCount } from '@/lib/api-activity'
-import { switchTenant } from '@/features/system/tenant/api'
+import { userMessageOf } from '@/lib/api-error'
+import { fetchMyTenants, switchTenant, type MyTenant } from '@/features/system/tenant/api'
 
 /**
  * 租户作用域上下文（软切换）
@@ -23,7 +25,7 @@ import { switchTenant } from '@/features/system/tenant/api'
  *    **克隆成一张快照**盖在原位，等新页面的请求全部结束（`waitForApiIdle`）再淡出。
  *    用户看到的是「旧数据 → 新数据」，中间没有骨架也没有白屏。
  *
- * 回退方式：把 `use-tenant-switch.ts` 里 `applySwitch` 换回 `switchTenant + reload`
+ * 回退方式：把本文件 `switchTo` 里的 `applySwitch` 换回 `switchTenant + reload`
  * 即可，本上下文不影响其他逻辑。
  */
 export interface TenantSnapshot {
@@ -51,6 +53,20 @@ interface TenantScopeValue {
   snapshot: TenantSnapshot | null
   /** 执行切换：接口 + localStorage + 推进 epoch，**不整页刷新**；返回后端确认的租户 id */
   applySwitch: (tenantId: number) => Promise<number | null>
+
+  // ---- 我可用的租户信息（GET /v1/tenants/mine，切换后随代次自动刷新） ----
+  tenants: MyTenant[]
+  isSuper: boolean
+  /** 当前生效租户 id，null = 平台视角（仅超管） */
+  current: number | null
+  /** mine 数据是否已加载（未加载前入口别急着显示/隐藏） */
+  tenantInfoLoaded: boolean
+  /** 当前生效的展示名：具体租户 / 平台视角 / 未分配 */
+  currentLabel: string
+  /** 是否值得展示切换入口：超管，或可用租户多于一个 */
+  switchable: boolean
+  /** 切换并 toast 结果（顶栏角标、头像菜单、弹窗共用同一个动作） */
+  switchTo: (tenantId: number) => Promise<void>
 }
 
 const TenantScopeContext = createContext<TenantScopeValue | null>(null)
@@ -119,6 +135,30 @@ export function TenantScopeProvider({ children }: { children: ReactNode }) {
   // 连续切换时用代次号作废前一次的释放流程，避免旧的定时器提前撤掉新快照
   const releaseTokenRef = useRef(0)
 
+  // ---- 我可用的租户信息：Provider 挂在 _authenticated 内（必已登录），可放心拉取 ----
+  const [tenants, setTenants] = useState<MyTenant[]>([])
+  const [isSuper, setIsSuper] = useState(false)
+  const [current, setCurrent] = useState<number | null>(null)
+  const [tenantInfoLoaded, setTenantInfoLoaded] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    fetchMyTenants()
+      .then(res => {
+        if (!alive) return
+        setTenants(res?.tenants ?? [])
+        setIsSuper(Boolean(res?.isSuper))
+        // 后端算出的生效租户优先（首次登录本地还没写过）
+        setCurrent(res?.current ?? null)
+        setTenantInfoLoaded(true)
+      })
+      .catch(() => undefined)
+    return () => {
+      alive = false
+    }
+    // 依赖代次：切换成功后重新拉取，所有入口的「当前租户」同步更新
+  }, [epoch])
+
   const releaseSnapshot = useCallback((token: number) => {
     const startedAt = performance.now()
     let calmSince = startedAt
@@ -185,9 +225,41 @@ export function TenantScopeProvider({ children }: { children: ReactNode }) {
     [releaseSnapshot]
   )
 
+  /** 带结果提示的切换动作：给 UI 入口用的就是它，不是裸的 applySwitch */
+  const switchTo = useCallback(
+    async (tenantId: number) => {
+      if (switching) return
+      try {
+        const applied = await applySwitch(tenantId)
+        setCurrent(applied)
+        const name = tenants.find(item => item.id === applied)?.name
+        toast.success(applied ? `已切换到「${name ?? applied}」` : '已回到平台视角')
+      } catch (error) {
+        toast.error(userMessageOf(error, '切换租户失败'))
+      }
+    },
+    [applySwitch, switching, tenants]
+  )
+
+  const active = tenants.find(item => item.id === current)
+  const currentLabel = active?.name ?? (isSuper ? '平台视角' : '未分配租户')
+  const switchable = isSuper || tenants.filter(item => item.usable).length > 1
+
   const value = useMemo<TenantScopeValue>(
-    () => ({ epoch, switching, snapshot, applySwitch }),
-    [epoch, switching, snapshot, applySwitch]
+    () => ({
+      epoch,
+      switching,
+      snapshot,
+      applySwitch,
+      tenants,
+      isSuper,
+      current,
+      tenantInfoLoaded,
+      currentLabel,
+      switchable,
+      switchTo
+    }),
+    [epoch, switching, snapshot, applySwitch, tenants, isSuper, current, tenantInfoLoaded, currentLabel, switchable, switchTo]
   )
 
   return <TenantScopeContext.Provider value={value}>{children}</TenantScopeContext.Provider>
