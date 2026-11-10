@@ -15,7 +15,7 @@ const THEME_OPTIONS = [
 ]
 
 export function AppearancePage() {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, resolvedTheme } = useTheme()
   const { settings, update } = useSettings()
   const [mounted, setMounted] = useState(false)
 
@@ -62,6 +62,9 @@ export function AppearancePage() {
           <div className="flex flex-wrap gap-3">
             {THEME_COLORS.map(color => {
               const selected = settings.themeColor === color.name
+              // 色板跟随当前明暗模式展示（默认色在深色下显示为浅色圆点），与偏好抽屉保持一致
+              const swatch = mounted && resolvedTheme === 'dark' ? (color.swatchDark ?? color.swatch) : color.swatch
+              const lightSwatch = mounted && resolvedTheme === 'dark' && !!color.swatchDark
               return (
                 <button
                   key={color.name}
@@ -70,12 +73,12 @@ export function AppearancePage() {
                   aria-label={color.label}
                   onClick={() => update({ themeColor: color.name })}
                   className={cn(
-                    'flex size-7 items-center justify-center rounded-full transition-transform hover:scale-110',
+                    'flex size-7 items-center justify-center rounded-full border border-black/10 transition-transform hover:scale-110 dark:border-white/20',
                     selected && 'ring-primary ring-offset-background ring-2 ring-offset-2'
                   )}
-                  style={{ backgroundColor: color.swatch }}
+                  style={{ backgroundColor: swatch }}
                 >
-                  {selected && <Check className="size-4 text-white" />}
+                  {selected && <Check className={cn('size-4', lightSwatch ? 'text-black' : 'text-white')} />}
                 </button>
               )
             })}
@@ -84,7 +87,7 @@ export function AppearancePage() {
               title="自定义"
               aria-label="自定义"
               className={cn(
-                'relative flex size-7 cursor-pointer items-center justify-center rounded-full transition-transform hover:scale-110',
+                'relative flex size-7 cursor-pointer items-center justify-center rounded-full border border-black/10 transition-transform hover:scale-110 dark:border-white/20',
                 settings.themeColor === 'custom' && 'ring-primary ring-offset-background ring-2 ring-offset-2'
               )}
               style={{
