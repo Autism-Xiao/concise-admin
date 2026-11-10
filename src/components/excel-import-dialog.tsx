@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { saveBlobFile } from '@/lib/download'
 import { humanizeImportError } from '@/lib/import-error'
+import { isApiError } from '@/lib/api-error'
+import { isImportTemplateError } from '@/lib/biz-code'
 
 /** 后端所有导入接口的统一返回结构（层级/字典/岗位/用户/角色/公告一致） */
 export interface ImportResult {
@@ -90,7 +92,14 @@ export function ExcelImportDialog({ open, onOpenChange, title, description, warn
           toast.warning(`导入完成，但有 ${result.failed} 行失败，请查看下方明细`)
         }
       })
-      .catch(e => toast.error(e instanceof Error ? e.message : '导入失败'))
+      .catch(e => {
+        // 模板问题（缺列/没数据行）不是用户操作错了，引导回「下载模板」；其余原样透出
+        if (isApiError(e) && isImportTemplateError(e.code)) {
+          toast.error(`${e.message}。可点击上方「下载模板」，按模板列顺序填写后再导入`)
+        } else {
+          toast.error(e instanceof Error ? e.message : '导入失败')
+        }
+      })
       .finally(() => setImporting(false))
   }
 
