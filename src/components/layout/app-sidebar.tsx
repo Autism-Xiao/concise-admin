@@ -2,7 +2,6 @@ import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { useMemo, useState, type ReactNode } from 'react'
 import { ChevronRight, Circle, LayoutDashboard, Search, type LucideIcon } from 'lucide-react'
 import { Collapsible } from '@base-ui/react/collapsible'
-import { Logo } from '@/assets/logo'
 import { NavUser } from '@/components/layout/nav-user'
 import { useSearch } from '@/context/search-provider'
 import { useShortcutAction } from '@/context/shortcut-provider'
@@ -39,6 +38,7 @@ import { menuPath, useMenuTree, usePermittedPaths } from '@/lib/permissions'
 import { resolveHomePath } from '@/lib/home-path'
 import type { PermissionMenu } from '@/features/auth/api'
 import { ICON_MAP } from '@/features/system/menu/components/icon-picker'
+import { TenantWorkspace } from '@/features/system/tenant/components/tenant-workspace'
 import { cn } from '@/lib/utils'
 
 import type { Direction, SidebarVariant } from '@/lib/settings'
@@ -237,19 +237,8 @@ export function AppSidebar({ variant = 'sidebar', collapsible = 'icon', directio
   return (
     <Sidebar collapsible={collapsible} variant={variant} side={direction === 'rtl' ? 'right' : 'left'}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link to={homePath as never} className="group-data-[collapsible=icon]:justify-center" onClick={closeMobileSidebar}>
-                <Logo className="text-sidebar-primary size-8! shrink-0" />
-                <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-                  <span className="font-medium">{import.meta.env.VITE_APP_NAME}</span>
-                  <span className="text-muted-foreground text-xs">v1.0.0</span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        {/* logo 区即租户切换器（下拉直接切换）；单租户普通用户渲染回 logo + 应用名链接 */}
+        <TenantWorkspace homePath={homePath} />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup className="pb-0">
