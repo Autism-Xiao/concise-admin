@@ -265,13 +265,16 @@
 }
 
 .captcha-slider .rc-slider-captcha-panel {
-  padding-bottom: 10px;
+  padding-bottom: 12px;
 }
 
-/* 图片区：细边框 + 极轻投影，避免「贴上去」的生硬感 */
+/* 图片区：极淡描边 + 柔和投影
+ * 原来用 var(--border)（深色下是 10% 白）1px 实线，在深色弹窗上会形成一圈明显的「白框」，
+ * 图片像是被贴了个相框；这里按前景色取 6%，只保留"图片到边缘"的过渡，不抢画面。
+ */
 .captcha-slider .rc-slider-captcha-panel-inner {
-  border: 1px solid var(--border);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  border: 1px solid color-mix(in oklab, var(--foreground) 6%, transparent);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.06);
 }
 
 /* 右上角刷新：毛玻璃圆形按钮，替代默认的裸白色图标 */

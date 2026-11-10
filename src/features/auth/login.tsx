@@ -395,7 +395,8 @@ export function LoginPage() {
               '--rcsc-button-color': 'var(--primary)',
               '--rcsc-button-hover-color': 'var(--primary-foreground)',
               '--rcsc-button-bg-color': 'var(--card)',
-              '--rcsc-panel-border-radius': 'calc(var(--radius) + 2px)',
+              // 图片圆角与滑块条保持一致（原来 +2px，图比条更圆，看着不齐）
+              '--rcsc-panel-border-radius': 'var(--radius)',
               '--rcsc-control-border-radius': 'var(--radius)',
               '--rcsc-control-height': '40px'
             }}
