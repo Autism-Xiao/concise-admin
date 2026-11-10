@@ -100,7 +100,6 @@ export const zh = {
   'lock.wrongPassword': '密码不正确',
   'lock.backToLogin': '返回登录',
   // 快捷键设置
-  'config.shortcuts': '快捷键',
   'shortcut.commandMenu': '命令面板 / 全局搜索',
   'shortcut.toggleSidebar': '折叠 / 展开侧边栏',
   'shortcut.lockScreen': '锁定屏幕',
@@ -245,7 +244,6 @@ export const en: Record<TranslationKey, string> = {
   'lock.wrongPassword': 'Incorrect password',
   'lock.backToLogin': 'Back to login',
   // Shortcut settings
-  'config.shortcuts': 'Shortcuts',
   'shortcut.commandMenu': 'Command menu / Search',
   'shortcut.toggleSidebar': 'Toggle sidebar',
   'shortcut.lockScreen': 'Lock screen',

@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
-import { ShortcutSettings } from '@/components/shortcut-settings'
 import { useLocale } from '@/context/locale-provider'
 import { useSettings } from '@/context/settings-provider'
 import { useWatermark } from '@/context/watermark-provider'
@@ -472,11 +471,6 @@ export function ConfigDrawer() {
                 </div>
               )}
             </div>
-          </section>
-          {/* 快捷键：展示项目用到的全局快捷键，支持改绑（存 localStorage） */}
-          <section>
-            <h3 className="text-muted-foreground mb-2 text-sm font-semibold">{t('config.shortcuts')}</h3>
-            <ShortcutSettings />
           </section>
         </div>
 

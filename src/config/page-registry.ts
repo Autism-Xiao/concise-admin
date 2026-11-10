@@ -18,6 +18,7 @@ import {
   MapPin,
   Medal,
   Megaphone,
+  Keyboard,
   Monitor,
   Network,
   Palette,
@@ -60,6 +61,7 @@ import { AppearancePage } from '@/features/settings/appearance'
 import { WatermarkSettingPage } from '@/features/settings/watermark'
 import { NotificationsPage } from '@/features/settings/notifications'
 import { DisplayPage } from '@/features/settings/display'
+import { ShortcutsPage } from '@/features/settings/shortcuts'
 
 // 页签栏/页面渲染共用的路由登记表：path → 页面组件 + 标题 + 图标
 // 注意：这里的组件绕过了路由 Outlet 直接渲染，新增页面时需要在此登记
@@ -109,7 +111,8 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
   '/settings/appearance': { component: AppearancePage, label: '外观', icon: Palette, settings: true },
   '/settings/watermark': { component: WatermarkSettingPage, label: '水印策略', icon: Droplets, settings: true },
   '/settings/notifications': { component: NotificationsPage, label: '通知', icon: Bell, settings: true },
-  '/settings/display': { component: DisplayPage, label: '显示', icon: Monitor, settings: true }
+  '/settings/display': { component: DisplayPage, label: '显示', icon: Monitor, settings: true },
+  '/settings/shortcuts': { component: ShortcutsPage, label: '快捷键', icon: Keyboard, settings: true }
 }
 
 export function isRegisteredPage(path: string): boolean {
