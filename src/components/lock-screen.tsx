@@ -16,8 +16,12 @@ import { setLocked } from '@/lib/lock-screen'
  *
  * **锁屏页不记住密码**：登录页勾过的「记住密码」只服务于下次登录，不能带进锁屏 ——
  * 锁屏的意义就是「人离开座位时挡住旁人」，密码预填好、点一下就能进，等于没锁。
- * 因此这里既不读本地保存的密码，也不让浏览器密码管理器回填（`new-password`
- * 是唯一能可靠阻止 Chrome 自动填充的写法，`off` 对密码框会被忽略）。
+ * 防快捷录入的四道防线：
+ * 1. `type` 切换（text 起步、聚焦才变 password）：浏览器自动回填只认加载时的 password
+ *    字段，回填窗口彻底错过，且不吞第一个按键（readOnly 方案会吞）；
+ * 2. `new-password` + 非常规字段名 + 三家管理器忽略标记，多层兜底；
+ * 3. 不用 `<form>`：记住密码气泡由表单提交触发，无 form 则不会弹；
+ * 4. 禁粘贴/拖放/右键：只能手动敲键，旁人无法从剪贴板快捷录入。
  */
 export function LockScreen() {
   const { t } = useLocale()
@@ -27,6 +31,10 @@ export function LockScreen() {
   const [submitting, setSubmitting] = useState(false)
   // 后端返回「账号已锁定」后本地禁用输入，避免用户在锁定期内继续徒劳尝试
   const [lockedOut, setLockedOut] = useState(false)
+  // readOnly 延迟解锁：浏览器密码管理器的自动回填发生在「页面加载、字段可编辑」时，
+  // 挂载后保持 readOnly 让回填窗口直接错过；用户点击/Tab 聚焦后才解锁为可输入。
+  // 失焦再锁回去，防止回填在之后任何时点重新出现。
+  const [focused, setFocused] = useState(false)
 
   const submit = async () => {
     if (!password || submitting || lockedOut) return
@@ -68,23 +76,35 @@ export function LockScreen() {
           <p className="text-base font-semibold">{getName()}</p>
           <p className="text-muted-foreground text-xs">@{getUsername()}</p>
         </div>
-        <form
-          className="w-full space-y-3"
-          autoComplete="off"
-          onSubmit={e => {
-            e.preventDefault()
-            void submit()
-          }}
-        >
+        {/* 特意不用 <form>：浏览器「记住密码」气泡由表单提交事件触发，无 form 则不会弹 */}
+        <div className="w-full space-y-3">
           <Input
-            type="password"
-            // 不叫 password：配合 new-password 可避免浏览器按字段名回填已保存的密码
+            // 加载时是 text、聚焦后才切 password：密码管理器的自动回填只认「页面加载时的
+            // password 字段」，text 起步 + 聚焦切换让回填窗口彻底错过，且不吞用户第一个按键
+            type={focused ? 'password' : 'text'}
+            // 不叫 password：避免浏览器按字段名回填已保存的密码
             name="lock-password"
             autoComplete="new-password"
+            // 第三方管理器（1Password/LastPass/Dashlane）各认各的忽略标记，一并加上
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
             value={password}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            // 只允许手动敲键：粘贴/拖放/右键菜单全禁，旁人无法从剪贴板快捷录入
+            onPaste={e => e.preventDefault()}
+            onDrop={e => e.preventDefault()}
+            onContextMenu={e => e.preventDefault()}
             onChange={e => {
               setPassword(e.target.value)
               if (error) setError(null)
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                void submit()
+              }
             }}
             placeholder={t('lock.passwordPlaceholder')}
             autoFocus
@@ -96,11 +116,11 @@ export function LockScreen() {
               <span className="leading-relaxed">{error}</span>
             </div>
           )}
-          <Button type="submit" className="w-full" disabled={!password || submitting || lockedOut}>
+          <Button type="button" className="w-full" onClick={() => void submit()} disabled={!password || submitting || lockedOut}>
             {submitting && <Loader2 className="size-4 animate-spin" />}
             {submitting ? t('lock.unlocking') : t('lock.unlock')}
           </Button>
-        </form>
+        </div>
         <button type="button" onClick={backToLogin} className="text-muted-foreground hover:text-foreground text-xs transition-colors">
           {t('lock.backToLogin')}
         </button>
