@@ -51,6 +51,8 @@ export const API_UNAVAILABLE_EVENT = 'concise:api-unavailable'
 
 export class ApiError extends Error {
   readonly kind: ApiErrorKind
+  /** 后端业务错误码（BizErrorCode，见后端 src/common/enums/biz-error-code.enum.ts）；网络类错误没有 */
+  readonly code?: number
   readonly status?: number
   /** 技术细节（接口路径、状态码、代理目标、原始响应片段），只给开发者和控制台看 */
   readonly detail?: string
@@ -60,14 +62,16 @@ export class ApiError extends Error {
   /**
    * @param userMessage 后端已经给了中文文案时（业务校验失败）直接用它，
    *   不要用兜底话术覆盖 —— 「部门编码已被占用」比「操作没成功，请重试」有用得多
+   * @param code 后端业务码：调用方按它分支（如 1009 锁定要禁用提交按钮），别再解析 message 文本
    */
-  constructor(kind: ApiErrorKind, detail?: string, status?: number, userMessage?: string) {
+  constructor(kind: ApiErrorKind, detail?: string, status?: number, userMessage?: string, code?: number) {
     // 开发环境把细节附在文案后面，方便本机联调时一眼看到是哪一步断的；
     // 生产构建里 detail 只进控制台，用户只看人话。
     const base = userMessage || KIND_MESSAGE[kind] || KIND_MESSAGE.unknown
     super(import.meta.env.DEV && detail && !userMessage ? `${base}（${detail}）` : base)
     this.name = 'ApiError'
     this.kind = kind
+    this.code = code
     this.detail = detail
     this.status = status
     this.retryable = UNAVAILABLE_KINDS.includes(kind)

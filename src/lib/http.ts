@@ -150,10 +150,14 @@ export async function getApiResult<T>(url: string, init?: RequestInit): Promise<
       ...init?.headers
     }
   })
+  // 401 必须在解析响应体之前判：后端 401 的 body code 是 1003/1007（不是 401），
+  // 而且响应体可能不是合法 JSON —— 认证失效的可靠载体只有 HTTP 状态码
   if (res.status === 401 && !isLoginRequest) {
     handleUnauthorized()
   }
   const json = await parseJsonBody<ApiEnvelope<T>>(res, url)
+  // 兼容分支：个别网关/旧服务用 HTTP 200 + code 401 表达认证失效，也要踢下线
+  // （tests/http-unauthorized.test.cjs 锁定了这个约定，别当死代码删掉）
   if (json.code === 401 && !isLoginRequest) {
     handleUnauthorized()
   }
@@ -164,9 +168,10 @@ export async function getApiResult<T>(url: string, init?: RequestInit): Promise<
   }
   const ok = json.success ?? json.code === 0
   if (!ok) {
-    // 业务失败：后端 message 本身就是给用户看的（如「部门编码已被占用」），直接沿用
+    // 业务失败：后端 message 本身就是给用户看的（如「部门编码已被占用」），直接沿用；
+    // code 一并透传，调用方按码分支（如登录页 1009 锁定禁用提交），不要解析 message 文本
     const message = typeof json.message === 'string' ? json.message : ''
-    throw new ApiError('business', `${url} → code ${json.code} ${message}`, res.status, message || undefined)
+    throw new ApiError('business', `${url} → code ${json.code} ${message}`, res.status, message || undefined, json.code)
   }
   reportRecovered()
   // 删除等无返回体接口的 result 为 null，属正常成功，不能当失败处理

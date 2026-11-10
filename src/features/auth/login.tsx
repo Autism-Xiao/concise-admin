@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useLocale } from '@/context/locale-provider'
+import { isApiError } from '@/lib/api-error'
 import { login, setMenuTree, setMustChangePassword, setPermissions, setTokens } from '@/lib/auth'
 import { resolveHomePath } from '@/lib/home-path'
 import { notifyPermissionsChanged } from '@/lib/permissions'
@@ -151,7 +152,8 @@ export function LoginPage() {
       // 后端 message 直接透出：验证码错误 / 用户名或密码错误，还可尝试 4 次 / 账号已锁定 24 小时
       const message = err instanceof Error ? err.message : t('login.credentialsError')
       setSubmitError(message)
-      setLockedOut(message.includes('已锁定'))
+      // 锁定判定按业务码 1009（可靠），message 文本匹配只作旧版本兜底
+      setLockedOut(isApiError(err) ? err.code === 1009 : message.includes('已锁定'))
       toast.error(message)
       resetCaptcha()
     } finally {
