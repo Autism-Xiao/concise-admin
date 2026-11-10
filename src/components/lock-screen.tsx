@@ -39,8 +39,11 @@ export function LockScreen() {
   // Chromium/Safari 支持 -webkit-text-security：全程 type="text" 用 CSS 打点伪装密码，
   // 浏览器根本不把它当密码框 —— 凭据下拉/自动回填/记住密码气泡统统无从谈起。
   // （Chrome 在聚焦 password 字段时仍会弹已存凭据下拉，type 切换挡不住，只能让它
-  //  压根看不见 password 字段。）Firefox 不支持该 CSS，回落 type 切换方案。
-  const [maskedViaCss] = useState(() => typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('-webkit-text-security', 'disc'))
+  //  压根看不见 password 字段。）
+  // 探测不用 CSS.supports：个别版本对私有属性返回 false，会误跌进 password 分支，
+  // 改用 UA 判定 —— 只有 Firefox 走回落（text 起步、聚焦切 password）。
+  const [isFirefox] = useState(() => /firefox/i.test(navigator.userAgent))
+  const [maskedViaCss] = useState(() => !isFirefox)
 
   const submit = async () => {
     if (!password || submitting || lockedOut) return
@@ -89,9 +92,11 @@ export function LockScreen() {
             // Firefox：text 起步、聚焦切 password，让加载期回填错过（聚焦下拉 Firefox 不弹）
             type={maskedViaCss || focused ? 'password' : 'text'}
             style={maskedViaCss ? ({ WebkitTextSecurity: 'disc' } as CSSProperties) : undefined}
-            // 不叫 password：避免浏览器按字段名回填已保存的密码
+            // 字段名不用 password：避免浏览器按字段名回填已保存的密码
             name="lock-password"
-            autoComplete="new-password"
+            // Chromium 路径下字段是 text，"off" 有效且不会触发凭据下拉；
+            // Firefox password 路径用 new-password（off 对密码框会被忽略）
+            autoComplete={maskedViaCss ? 'off' : 'new-password'}
             // 第三方管理器（1Password/LastPass/Dashlane）各认各的忽略标记，一并加上
             data-1p-ignore
             data-lpignore="true"
