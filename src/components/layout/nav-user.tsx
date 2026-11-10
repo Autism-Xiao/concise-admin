@@ -125,7 +125,7 @@ export function NavUser() {
       isSuper={isSuper}
       current={current}
       busy={switching}
-      onSwitch={id => void switchTo(id)}
+      onSwitch={switchTo}
     />
     </>
   )

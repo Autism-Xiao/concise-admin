@@ -10,19 +10,25 @@ interface TenantSwitchDialogProps {
   isSuper: boolean
   current: number | null
   busy: boolean
-  onSwitch: (tenantId: number) => void
+  /** 切换动作：解析为 true 表示成功，弹窗随即关闭（失败保持打开，用户可重选） */
+  onSwitch: (tenantId: number) => Promise<boolean>
 }
 
 /**
- * 切换租户弹窗（头像下拉菜单的「切换租户」入口打开）
+ * 切换租户弹窗（顶栏角标 / 头像下拉菜单的「切换租户」入口共用）
  *
- * 纯展示组件：数据与切换动作由头像菜单（NavUser）里的 useTenantSwitch 持有，
- * 保证弹窗和菜单里的「当前租户」是同一份状态。
+ * 纯展示组件：数据与切换动作来自全局 TenantScopeProvider，保证各处
+ * 「当前租户」是同一份状态。
  *
  * 列出可切换的租户 + 超管的「平台视角」，当前项打勾、停用/到期项禁用；
- * 切换走软切换（tenant-scope-provider），成功后列表原地刷新打勾位置，可继续切或手动关闭。
+ * 切换成功后**自动关闭**（页面由软切换的快照遮罩过渡），失败则留在弹窗里可重选。
  */
 export function TenantSwitchDialog({ open, onOpenChange, tenants, isSuper, current, busy, onSwitch }: TenantSwitchDialogProps) {
+  const pick = async (tenantId: number) => {
+    const ok = await onSwitch(tenantId)
+    if (ok) onOpenChange(false)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
@@ -36,7 +42,7 @@ export function TenantSwitchDialog({ open, onOpenChange, tenants, isSuper, curre
               key={item.id}
               type="button"
               disabled={!item.usable || item.id === current || busy}
-              onClick={() => onSwitch(item.id)}
+              onClick={() => void pick(item.id)}
               className="hover:bg-accent flex items-center gap-2.5 rounded-md px-2 py-2 text-left disabled:cursor-not-allowed disabled:opacity-55"
             >
               <Building2 className="text-muted-foreground size-4 shrink-0 opacity-60" />
@@ -56,7 +62,7 @@ export function TenantSwitchDialog({ open, onOpenChange, tenants, isSuper, curre
               <button
                 type="button"
                 disabled={current === null || busy}
-                onClick={() => onSwitch(0)}
+                onClick={() => void pick(0)}
                 className="hover:bg-accent flex items-center gap-2.5 rounded-md px-2 py-2 text-left disabled:cursor-not-allowed disabled:opacity-55"
               >
                 <Globe className="text-muted-foreground size-4 shrink-0 opacity-60" />

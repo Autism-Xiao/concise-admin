@@ -65,8 +65,8 @@ interface TenantScopeValue {
   currentLabel: string
   /** 是否值得展示切换入口：超管，或可用租户多于一个 */
   switchable: boolean
-  /** 切换并 toast 结果（顶栏角标、头像菜单、弹窗共用同一个动作） */
-  switchTo: (tenantId: number) => Promise<void>
+  /** 切换并 toast 结果（顶栏角标、头像菜单、弹窗共用同一个动作）；返回是否切换成功，调用方据此关闭弹窗 */
+  switchTo: (tenantId: number) => Promise<boolean>
 }
 
 const TenantScopeContext = createContext<TenantScopeValue | null>(null)
@@ -228,14 +228,16 @@ export function TenantScopeProvider({ children }: { children: ReactNode }) {
   /** 带结果提示的切换动作：给 UI 入口用的就是它，不是裸的 applySwitch */
   const switchTo = useCallback(
     async (tenantId: number) => {
-      if (switching) return
+      if (switching) return false
       try {
         const applied = await applySwitch(tenantId)
         setCurrent(applied)
         const name = tenants.find(item => item.id === applied)?.name
         toast.success(applied ? `已切换到「${name ?? applied}」` : '已回到平台视角')
+        return true
       } catch (error) {
         toast.error(userMessageOf(error, '切换租户失败'))
+        return false
       }
     },
     [applySwitch, switching, tenants]

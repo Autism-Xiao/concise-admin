@@ -31,7 +31,7 @@ export function TenantBadge() {
         isSuper={isSuper}
         current={current}
         busy={switching}
-        onSwitch={id => void switchTo(id)}
+        onSwitch={switchTo}
       />
     </>
   )
