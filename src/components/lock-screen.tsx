@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Loader2, LockKeyhole, TriangleAlert } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -16,12 +16,15 @@ import { setLocked } from '@/lib/lock-screen'
  *
  * **锁屏页不记住密码**：登录页勾过的「记住密码」只服务于下次登录，不能带进锁屏 ——
  * 锁屏的意义就是「人离开座位时挡住旁人」，密码预填好、点一下就能进，等于没锁。
- * 防快捷录入的四道防线：
- * 1. `type` 切换（text 起步、聚焦才变 password）：浏览器自动回填只认加载时的 password
- *    字段，回填窗口彻底错过，且不吞第一个按键（readOnly 方案会吞）；
- * 2. `new-password` + 非常规字段名 + 三家管理器忽略标记，多层兜底；
- * 3. 不用 `<form>`：记住密码气泡由表单提交触发，无 form 则不会弹；
- * 4. 禁粘贴/拖放/右键：只能手动敲键，旁人无法从剪贴板快捷录入。
+ * 防快捷录入的防线（按浏览器分支）：
+ * 1. Chromium/Safari：全程 `type="text"` + `-webkit-text-security: disc` CSS 打点 ——
+ *    浏览器根本不把它当密码字段，凭据下拉/自动回填/记住气泡统统无从谈起
+ *    （Chrome 聚焦 password 字段时仍会弹已存凭据下拉，任何 autoComplete 写法都挡不住，
+ *     只有让它看不见 password 字段才行）；
+ * 2. Firefox（不支持该 CSS）：text 起步、聚焦切 password，加载期回填错过，且不吞按键；
+ * 3. `new-password` + 非常规字段名 + 三家管理器忽略标记，多层兜底；
+ * 4. 不用 `<form>`：记住密码气泡由表单提交触发，无 form 则不会弹；
+ * 5. 禁粘贴/复制/剪切/拖放/右键：只能手动敲键，旁人无法快捷录入或带出明文。
  */
 export function LockScreen() {
   const { t } = useLocale()
@@ -31,10 +34,13 @@ export function LockScreen() {
   const [submitting, setSubmitting] = useState(false)
   // 后端返回「账号已锁定」后本地禁用输入，避免用户在锁定期内继续徒劳尝试
   const [lockedOut, setLockedOut] = useState(false)
-  // readOnly 延迟解锁：浏览器密码管理器的自动回填发生在「页面加载、字段可编辑」时，
-  // 挂载后保持 readOnly 让回填窗口直接错过；用户点击/Tab 聚焦后才解锁为可输入。
-  // 失焦再锁回去，防止回填在之后任何时点重新出现。
+  // 聚焦状态：Firefox（不支持 text-security）回落「text 起步、聚焦切 password」方案用
   const [focused, setFocused] = useState(false)
+  // Chromium/Safari 支持 -webkit-text-security：全程 type="text" 用 CSS 打点伪装密码，
+  // 浏览器根本不把它当密码框 —— 凭据下拉/自动回填/记住密码气泡统统无从谈起。
+  // （Chrome 在聚焦 password 字段时仍会弹已存凭据下拉，type 切换挡不住，只能让它
+  //  压根看不见 password 字段。）Firefox 不支持该 CSS，回落 type 切换方案。
+  const [maskedViaCss] = useState(() => typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('-webkit-text-security', 'disc'))
 
   const submit = async () => {
     if (!password || submitting || lockedOut) return
@@ -79,9 +85,10 @@ export function LockScreen() {
         {/* 特意不用 <form>：浏览器「记住密码」气泡由表单提交事件触发，无 form 则不会弹 */}
         <div className="w-full space-y-3">
           <Input
-            // 加载时是 text、聚焦后才切 password：密码管理器的自动回填只认「页面加载时的
-            // password 字段」，text 起步 + 聚焦切换让回填窗口彻底错过，且不吞用户第一个按键
-            type={focused ? 'password' : 'text'}
+            // Chromium/Safari：全程 text + CSS 打点（见 maskedViaCss 注释），浏览器不认得密码框；
+            // Firefox：text 起步、聚焦切 password，让加载期回填错过（聚焦下拉 Firefox 不弹）
+            type={maskedViaCss || focused ? 'password' : 'text'}
+            style={maskedViaCss ? ({ WebkitTextSecurity: 'disc' } as CSSProperties) : undefined}
             // 不叫 password：避免浏览器按字段名回填已保存的密码
             name="lock-password"
             autoComplete="new-password"
@@ -92,8 +99,11 @@ export function LockScreen() {
             value={password}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
-            // 只允许手动敲键：粘贴/拖放/右键菜单全禁，旁人无法从剪贴板快捷录入
+            // 只允许手动敲键：粘贴/拖放/右键全禁，旁人无法从剪贴板快捷录入；
+            // 复制/剪切也禁 —— text-security 打点下的文本选中复制会拿到明文
             onPaste={e => e.preventDefault()}
+            onCopy={e => e.preventDefault()}
+            onCut={e => e.preventDefault()}
             onDrop={e => e.preventDefault()}
             onContextMenu={e => e.preventDefault()}
             onChange={e => {
