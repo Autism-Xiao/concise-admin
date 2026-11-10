@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { changeMyPassword, fetchMyProfile, setMyAvatar, updateMyProfile, type MyProfilePatch, type User } from '@/features/users/api'
 import { getApiResult } from '@/lib/http'
-import { getUsername, setDisplayName } from '@/lib/auth'
+import { getAvatar, getUsername, resolveAvatarUrl, setAvatar, setDisplayName } from '@/lib/auth'
 
 /** 密码规则与后端 ChangePasswordDto 保持一致：8~32 位，字母 + 数字 */
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).{8,32}$/
@@ -75,6 +75,8 @@ export function ProfilePage() {
   const applyProfile = useCallback((user: User) => {
     setProfile(user)
     setForm(toForm(user))
+    // 顶栏/侧边栏/锁屏读本地缓存渲染头像，资料加载后顺手对齐一次
+    setAvatar(user.avatar)
   }, [])
 
   const load = useCallback(() => {
@@ -105,6 +107,7 @@ export function ProfilePage() {
       .then(({ path }) => setMyAvatar(path))
       .then(result => {
         setProfile(prev => (prev ? { ...prev, avatar: result.avatar } : prev))
+        setAvatar(result.avatar) // 顶栏/侧边栏立即跟随，不用刷新整页
         toast.success('头像已更新')
       })
       .catch(error => toast.error(error instanceof Error ? error.message : '头像上传失败'))
@@ -113,9 +116,10 @@ export function ProfilePage() {
 
   const handleAvatarReset = () => {
     setUploading(true)
-    setMyAvatar(null)
+      setMyAvatar(null)
       .then(result => {
         setProfile(prev => (prev ? { ...prev, avatar: result.avatar } : prev))
+        setAvatar(result.avatar)
         toast.success('头像已重置为系统默认')
       })
       .catch(error => toast.error(error instanceof Error ? error.message : '重置失败'))
@@ -170,11 +174,13 @@ export function ProfilePage() {
       .finally(() => setChanging(false))
   }
 
-  /** 头像是不依赖资料的独立卡片，加载中也能先渲染骨架之外的固定部分 */
-  const avatarNode = profile?.avatar ? (
+  /** 头像是不依赖资料的独立卡片，加载中也能先渲染骨架之外的固定部分；
+   *  src 经 resolveAvatarUrl 归一（缓存兜底：资料没回来时也用上次缓存的头像） */
+  const avatarSrc = resolveAvatarUrl(profile?.avatar ?? getAvatar())
+  const avatarNode = avatarSrc ? (
     <Avatar className="size-16">
-      <AvatarImage src={profile.avatar} alt="头像" />
-      <AvatarFallback className="text-lg">{(profile.realname || profile.username).slice(0, 2)}</AvatarFallback>
+      <AvatarImage src={avatarSrc} alt="头像" />
+      <AvatarFallback className="text-lg">{((loading ? '' : profile?.realname) || getUsername()).slice(0, 2)}</AvatarFallback>
     </Avatar>
   ) : (
     <Avatar className="size-16">

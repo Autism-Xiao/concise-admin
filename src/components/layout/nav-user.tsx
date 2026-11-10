@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Building2, ChevronsUpDown, LogOut, Settings, User } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +14,7 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useLocale } from '@/context/locale-provider'
 import { useTenantScope } from '@/context/tenant-scope-provider'
-import { AUTH_CHANGED_EVENT, getName, getUsername, logout } from '@/lib/auth'
+import { AUTH_CHANGED_EVENT, getAvatar, getName, getUsername, logout, resolveAvatarUrl } from '@/lib/auth'
 import { TenantSwitchDialog } from '@/features/system/tenant/components/tenant-switch-dialog'
 
 export function NavUser() {
@@ -25,12 +25,16 @@ export function NavUser() {
   // 姓名改完（个人资料页）会广播 AUTH_CHANGED_EVENT，这里重新读一次 localStorage，
   // 否则要等整页刷新侧边栏才跟着变
   const [name, setName] = useState(getName)
+  const [avatar, setAvatarPath] = useState(getAvatar)
   // 租户信息来自全局 TenantScopeProvider（与顶栏角标同一份状态）；
   // 单租户普通用户 switchable=false，菜单项不渲染
   const { tenants, isSuper, current, currentLabel, switchable, tenantInfoLoaded, switching, switchTo } = useTenantScope()
   const [switchOpen, setSwitchOpen] = useState(false)
   useEffect(() => {
-    const sync = () => setName(getName())
+    const sync = () => {
+      setName(getName())
+      setAvatarPath(getAvatar())
+    }
     window.addEventListener(AUTH_CHANGED_EVENT, sync)
     return () => window.removeEventListener(AUTH_CHANGED_EVENT, sync)
   }, [])
@@ -48,6 +52,7 @@ export function NavUser() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton size="lg">
               <Avatar className="size-8">
+                <AvatarImage src={resolveAvatarUrl(avatar)} alt={name} />
                 <AvatarFallback>{name.slice(0, 1)}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col gap-0.5 leading-none">

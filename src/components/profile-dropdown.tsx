@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Lock, LogOut, Settings, User } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -14,7 +15,7 @@ import {
 import { useLocale } from '@/context/locale-provider'
 import { useLock } from '@/context/lock-provider'
 import { useShortcuts } from '@/context/shortcut-provider'
-import { getName, getUsername, logout } from '@/lib/auth'
+import { AUTH_CHANGED_EVENT, getAvatar, getName, getUsername, logout, resolveAvatarUrl } from '@/lib/auth'
 import { SHORTCUT_DEFAULTS, displayCombo } from '@/lib/shortcuts'
 
 export function ProfileDropdown() {
@@ -24,20 +25,33 @@ export function ProfileDropdown() {
   // 菜单里展示锁屏快捷键（跟随用户改绑后的设置，异常时回退默认值）
   const { shortcuts } = useShortcuts()
   const lockCombo = shortcuts.lockScreen || SHORTCUT_DEFAULTS.lockScreen
+  // 姓名/头像读本地缓存；个人资料页改完会广播 AUTH_CHANGED_EVENT，这里跟着重新读，
+  // 否则要等整页刷新顶栏头像才变
+  const [name, setName] = useState(getName)
+  const [avatar, setAvatarPath] = useState(getAvatar)
+  useEffect(() => {
+    const sync = () => {
+      setName(getName())
+      setAvatarPath(getAvatar())
+    }
+    window.addEventListener(AUTH_CHANGED_EVENT, sync)
+    return () => window.removeEventListener(AUTH_CHANGED_EVENT, sync)
+  }, [])
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative size-8 rounded-full">
           <Avatar className="size-8">
-            <AvatarFallback>{getName().slice(0, 1)}</AvatarFallback>
+            <AvatarImage src={resolveAvatarUrl(avatar)} alt={name} />
+            <AvatarFallback>{name.slice(0, 1)}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" sideOffset={8}>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium">{getName()}</p>
+            <p className="text-sm font-medium">{name}</p>
             <p className="text-muted-foreground text-xs">@{getUsername()}</p>
           </div>
         </DropdownMenuLabel>

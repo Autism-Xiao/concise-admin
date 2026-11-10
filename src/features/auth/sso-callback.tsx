@@ -4,7 +4,7 @@ import { Loader2, TriangleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Logo } from '@/assets/logo'
-import { login, setMenuTree, setMustChangePassword, setPermissions, setTokens } from '@/lib/auth'
+import { login, setAvatar, setMenuTree, setMustChangePassword, setPermissions, setTokens } from '@/lib/auth'
 import { resolveHomePath } from '@/lib/home-path'
 import { notifyPermissionsChanged } from '@/lib/permissions'
 import { exchangeSsoCode, fetchPermissions } from './api'
@@ -35,6 +35,7 @@ export function SsoCallbackPage({ ssoCode, error }: { ssoCode?: string; error?: 
         const firstRole = Array.isArray(user.roles) ? user.roles[0] : undefined
         const roleCode = typeof firstRole === 'string' ? firstRole : (firstRole?.roleCode ?? user.role ?? 'viewer')
         login({ username, name: user.nickname ?? user.realname ?? user.name ?? username, role: roleCode })
+        setAvatar(user.avatar)
         setMustChangePassword(!!data.mustChangePassword)
         try {
           const perm = await fetchPermissions()

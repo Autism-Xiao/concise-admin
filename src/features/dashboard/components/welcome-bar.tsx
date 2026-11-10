@@ -1,6 +1,8 @@
 import { RefreshCw, type LucideIcon } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { resolveAvatarUrl } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 import { formatDateTime, greeting, type DashboardProfile } from '../api'
 
@@ -19,12 +21,15 @@ interface WelcomeBarProps {
   onRefresh: () => void
 }
 
-/** 头像占位：没有头像时用真名首字，避免请求 404 图片 */
-function AvatarFallback({ name }: { name: string }) {
+/** 头像：有头像显示图片，没传/加载失败回落真名首字（渐变底），避免请求 404 图片 */
+function AvatarNode({ avatar, name }: { avatar?: string | null; name: string }) {
   return (
-    <div className="from-primary to-primary/60 text-primary-foreground shadow-primary/25 flex size-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-lg font-semibold shadow-lg">
-      {name.slice(0, 1).toUpperCase()}
-    </div>
+    <Avatar className="shadow-primary/25 size-12 shadow-lg">
+      <AvatarImage src={resolveAvatarUrl(avatar)} alt={name} />
+      <AvatarFallback className="from-primary to-primary/60 text-primary-foreground bg-gradient-to-br text-lg font-semibold">
+        {name.slice(0, 1).toUpperCase()}
+      </AvatarFallback>
+    </Avatar>
   )
 }
 
@@ -57,7 +62,7 @@ export function WelcomeBar({ profile, stats, refreshing, onRefresh }: WelcomeBar
       {/* CardContent 基础类是 flex-col，这里必须显式 flex-row，否则左右两列会垂直堆叠 */}
       <CardContent className="relative flex flex-row flex-wrap items-center justify-between gap-x-8 gap-y-4 py-6">
         <div className="flex min-w-0 items-center gap-4">
-          <AvatarFallback name={profile.realname || profile.username} />
+          <AvatarNode avatar={profile.avatar} name={profile.realname || profile.username} />
           <div className="min-w-0">
             <h1 className="truncate text-xl font-semibold tracking-tight">
               {greeting()}，{profile.realname}

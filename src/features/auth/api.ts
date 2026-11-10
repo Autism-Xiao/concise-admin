@@ -44,6 +44,8 @@ export interface LoginResult {
     realname?: string
     name?: string
     role?: string
+    /** 头像相对路径（/upload/...），登录后缓存供顶栏/侧边栏显示 */
+    avatar?: string | null
     /** 后端实际返回角色对象数组 [{ roleCode }] */
     roles?: Array<string | { roleCode?: string }>
   }
@@ -53,6 +55,7 @@ export interface LoginResult {
     realname?: string
     name?: string
     role?: string
+    avatar?: string | null
     roles?: Array<string | { roleCode?: string }>
   }
 }

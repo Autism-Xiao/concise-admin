@@ -3,6 +3,8 @@ import { clearLocalSettings } from '@/lib/settings'
 const AUTH_KEY = 'concise-auth'
 const USER_KEY = 'concise-user'
 const NAME_KEY = 'concise-name'
+/** 头像相对路径（/upload/...），顶栏/侧边栏/锁屏的水合源，个人资料页改头像后同步 */
+const AVATAR_KEY = 'concise-avatar'
 const ROLE_KEY = 'concise-role'
 const TOKEN_KEY = 'concise-token'
 const REFRESH_TOKEN_KEY = 'concise-refresh-token'
@@ -64,6 +66,39 @@ export function setDisplayName(name: string): void {
   notifyAuthChanged()
 }
 
+/* ---------- 头像缓存 ---------- */
+
+export function getAvatar(): string {
+  return localStorage.getItem(AVATAR_KEY) || ''
+}
+
+/**
+ * 更新本地缓存的头像路径（个人资料页上传/重置后调用）
+ *
+ * 与 setDisplayName 同理要广播事件：顶栏 ProfileDropdown 只读一次 localStorage，
+ * 不广播的话头像要等整页刷新才变。
+ */
+export function setAvatar(url?: string | null): void {
+  if (url) localStorage.setItem(AVATAR_KEY, url)
+  else localStorage.removeItem(AVATAR_KEY)
+  notifyAuthChanged()
+}
+
+/**
+ * 头像存储路径 → 可访问地址
+ *
+ * 后端上传接口返回相对路径（/upload/{日期}/{类型}/{文件名}，静态目录挂后端根）：
+ * - 空值 → undefined，组件只渲染首字兜底，不去请求不存在的图
+ * - 绝对 URL / 以 / 开头 → 原样返回（开发环境 vite 已代理 /upload 到后端，生产由网关/Nginx 转发）
+ * - 其余（不带前导斜杠的脏数据）→ 补一个斜杠
+ */
+export function resolveAvatarUrl(avatar?: string | null): string | undefined {
+  const value = (avatar ?? '').trim()
+  if (!value) return undefined
+  if (/^https?:\/\//i.test(value) || value.startsWith('/')) return value
+  return `/${value}`
+}
+
 /** 当前用户角色 code（对应 roles.json 的 code 字段），默认超级管理员 */
 export function getRoleCode(): string {
   return localStorage.getItem(ROLE_KEY) || 'superadmin'
@@ -87,6 +122,7 @@ export function logout(): void {
   localStorage.removeItem(AUTH_KEY)
   localStorage.removeItem(USER_KEY)
   localStorage.removeItem(NAME_KEY)
+  localStorage.removeItem(AVATAR_KEY)
   localStorage.removeItem(ROLE_KEY)
   localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(REFRESH_TOKEN_KEY)

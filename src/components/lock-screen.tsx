@@ -1,11 +1,11 @@
 import { useState, type CSSProperties } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Loader2, LockKeyhole, TriangleAlert } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useLocale } from '@/context/locale-provider'
-import { getName, getUsername, logout } from '@/lib/auth'
+import { getAvatar, getName, getUsername, logout, resolveAvatarUrl } from '@/lib/auth'
 import { getApiResult } from '@/lib/http'
 import { setLocked } from '@/lib/lock-screen'
 
@@ -80,6 +80,7 @@ export function LockScreen() {
         </div>
         <div className="flex flex-col items-center gap-1.5">
           <Avatar className="size-14">
+            <AvatarImage src={resolveAvatarUrl(getAvatar())} alt={getName()} />
             <AvatarFallback className="text-xl">{getName().slice(0, 1)}</AvatarFallback>
           </Avatar>
           <p className="text-base font-semibold">{getName()}</p>
