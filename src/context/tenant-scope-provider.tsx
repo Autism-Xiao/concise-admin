@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
-import { setTenantId } from '@/lib/auth'
+import { setTenantId, getUsername } from '@/lib/auth'
 import { getInflightCount } from '@/lib/api-activity'
 import { userMessageOf } from '@/lib/api-error'
 import { fetchMyTenants, switchTenant, type MyTenant } from '@/features/system/tenant/api'
@@ -84,6 +84,46 @@ const IDLE_CALM_MS = 400
 const SNAPSHOT_MIN_HOLD_MS = 60
 
 /**
+ * mine 结果的本地缓存：解决「页面刷新后顶栏先闪默认值（平台视角/未分配租户），
+ * 等 mine 返回才变成真实租户名」的跳变。
+ *
+ * 刷新时 Provider 同步水合缓存，第一帧就渲染上次的租户名与当前 id；后台仍会拉
+ * mine 校准（改名/停用/角色变化都能在下一次刷新后体现）。缓存按登录账号隔离，
+ * 换账号（非登出路径）时 user 不匹配直接作废，不会串台。
+ */
+const TENANT_INFO_CACHE_KEY = 'concise-tenant-info'
+
+interface TenantInfoCache {
+  user: string
+  tenants: MyTenant[]
+  isSuper: boolean
+  current: number | null
+}
+
+function readTenantInfoCache(): TenantInfoCache | null {
+  try {
+    const raw = localStorage.getItem(TENANT_INFO_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as TenantInfoCache
+    if (!parsed || typeof parsed.user !== 'string') return null
+    // 只信同一账号的缓存：username 对不上就当没有，回落到「加载后修正」的旧行为
+    if (parsed.user !== getUsername()) return null
+    if (!Array.isArray(parsed.tenants)) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writeTenantInfoCache(cache: Omit<TenantInfoCache, 'user'>): void {
+  try {
+    localStorage.setItem(TENANT_INFO_CACHE_KEY, JSON.stringify({ ...cache, user: getUsername() }))
+  } catch {
+    // 配额满/隐私模式：缓存写不进去也只是退回旧的闪烁表现，不值得报错
+  }
+}
+
+/**
  * 判断「下层新页面是否已经可以拿出来给用户看」
  *
  * 分两种情况，避免把还在加载的骨架或空表格露出来：
@@ -136,21 +176,28 @@ export function TenantScopeProvider({ children }: { children: ReactNode }) {
   const releaseTokenRef = useRef(0)
 
   // ---- 我可用的租户信息：Provider 挂在 _authenticated 内（必已登录），可放心拉取 ----
-  const [tenants, setTenants] = useState<MyTenant[]>([])
-  const [isSuper, setIsSuper] = useState(false)
-  const [current, setCurrent] = useState<number | null>(null)
-  const [tenantInfoLoaded, setTenantInfoLoaded] = useState(false)
+  // 初始值优先取本地缓存（同步水合）：刷新后第一帧就是真实租户名，不闪默认值
+  const [cachedInfo] = useState(readTenantInfoCache)
+  const [tenants, setTenants] = useState<MyTenant[]>(cachedInfo?.tenants ?? [])
+  const [isSuper, setIsSuper] = useState(cachedInfo?.isSuper ?? false)
+  const [current, setCurrent] = useState<number | null>(cachedInfo?.current ?? null)
+  // 有缓存即可信（同账号校验过）：入口菜单立即渲染；无缓存仍等 mine 回来再显示
+  const [tenantInfoLoaded, setTenantInfoLoaded] = useState(Boolean(cachedInfo))
 
   useEffect(() => {
     let alive = true
     fetchMyTenants()
       .then(res => {
         if (!alive) return
-        setTenants(res?.tenants ?? [])
-        setIsSuper(Boolean(res?.isSuper))
+        const nextTenants = res?.tenants ?? []
+        const nextIsSuper = Boolean(res?.isSuper)
+        const nextCurrent = res?.current ?? null
+        setTenants(nextTenants)
+        setIsSuper(nextIsSuper)
         // 后端算出的生效租户优先（首次登录本地还没写过）
-        setCurrent(res?.current ?? null)
+        setCurrent(nextCurrent)
         setTenantInfoLoaded(true)
+        writeTenantInfoCache({ tenants: nextTenants, isSuper: nextIsSuper, current: nextCurrent })
       })
       .catch(() => undefined)
     return () => {

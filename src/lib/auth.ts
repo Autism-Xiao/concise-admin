@@ -97,6 +97,8 @@ export function logout(): void {
   clearLocalSettings()
   // 清掉多标签页缓存，避免下个账号登录后恢复上一个会话打开的页面
   localStorage.removeItem(TABS_KEY)
+  // 租户信息缓存（顶栏租户名的水合源）：按账号隔离，登出直接清掉最干净
+  localStorage.removeItem('concise-tenant-info')
   // 强制改密标记同样不能跨账号残留
   clearMustChangePassword()
   notifyAuthChanged()
