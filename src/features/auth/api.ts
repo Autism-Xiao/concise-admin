@@ -29,6 +29,8 @@ export interface LoginPayload {
   password: string
   /** 滑块验证通过后换取的一次性票据 */
   captchaTicket?: string
+  /** 两步验证 6 位动态码（账号开启 2FA 后登录必填，见 BIZ_CODE.TOTP_REQUIRED） */
+  totpCode?: string
 }
 
 /** 登录成功返回的 data：字段名做宽松兼容，接后端联调后再收紧 */
@@ -121,6 +123,40 @@ export function fetchSsoConfig(): Promise<{ enabled: boolean }> {
 /** SSO 回调一次性 code 换取令牌：与密码登录同构的返回结构 */
 export function exchangeSsoCode(code: string): Promise<LoginResult> {
   return getApiResult<LoginResult>('/backend-api/v1/auth/sso/exchange', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code })
+  })
+}
+
+/* ---------- 两步验证（TOTP）：GET/POST /backend-api/v1/auth/2fa/* ---------- */
+
+/** 当前账号是否已开启两步验证 */
+export function fetchTwoFactorStatus(): Promise<{ enabled: boolean }> {
+  return getApiResult<{ enabled: boolean }>('/backend-api/v1/auth/2fa/status')
+}
+
+/** 发起绑定：生成密钥与 otpauth:// URI（前端渲染二维码）；重复调用换新密钥，旧二维码作废 */
+export function setupTwoFactor(): Promise<{ otpauthUrl: string }> {
+  return getApiResult<{ otpauthUrl: string }>('/backend-api/v1/auth/2fa/setup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}'
+  })
+}
+
+/** 用认证器 6 位动态码激活；成功后登录必须携带 totpCode */
+export function activateTwoFactor(code: string): Promise<{ enabled: true }> {
+  return getApiResult<{ enabled: true }>('/backend-api/v1/auth/2fa/activate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code })
+  })
+}
+
+/** 验码关闭两步验证并清除密钥 */
+export function deactivateTwoFactor(code: string): Promise<{ enabled: false }> {
+  return getApiResult<{ enabled: false }>('/backend-api/v1/auth/2fa/deactivate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code })

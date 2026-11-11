@@ -17,6 +17,8 @@ export interface Role {
   updateTime?: string
   /** 详情/列表接口带出的已授权菜单（列表接口含完整菜单对象，这里只关心 id） */
   permissions?: Array<{ id: string }>
+  /** 归属租户名：平台视角下后端为租户角色（tenant_id>0）附加，用于区分各租户的同名角色模板 */
+  tenantName?: string
 }
 
 /* ---------- 角色增删改查（/api/v1/roles） ---------- */

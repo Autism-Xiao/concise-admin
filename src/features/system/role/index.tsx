@@ -146,7 +146,14 @@ export function RolePage() {
       {
         accessorKey: 'roleName',
         header: ({ column }) => <DataTableColumnHeader column={column} title="角色名称" />,
-        cell: ({ row }) => <span className="font-medium">{row.getValue('roleName') ?? '-'}</span>
+        cell: ({ row }) => (
+          <div className="flex flex-col">
+            <span className="font-medium">{row.original.roleName ?? '-'}</span>
+            {/* 平台视角会看到多个租户各自的 admin/editor/viewer 模板（同名同码是设计如此），
+                不标归属会被当成重复数据；tenantName 由后端在平台视角下附加 */}
+            {row.original.tenantName ? <span className="text-muted-foreground text-xs">租户：{row.original.tenantName}</span> : null}
+          </div>
+        )
       },
       {
         accessorKey: 'roleCode',

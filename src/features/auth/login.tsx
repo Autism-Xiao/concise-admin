@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { AppWindow, ChevronRight, CircleCheckBig, Eye, EyeOff, Loader2, Lock, Palette, ShieldCheck, TriangleAlert, User } from 'lucide-react'
+import { AppWindow, ChevronRight, CircleCheckBig, Eye, EyeOff, Loader2, Lock, Palette, ShieldCheck, Smartphone, TriangleAlert, User } from 'lucide-react'
 import { toast } from 'sonner'
 import SliderCaptcha, { type ActionType, type VerifyParam } from 'rc-slider-captcha'
 import { cn } from 'cn'
@@ -49,6 +49,9 @@ export function LoginPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   // 触发锁定后本地禁用提交，避免用户继续在已锁定账号上徒劳尝试（后端仍会拒）
   const [lockedOut, setLockedOut] = useState(false)
+  // 两步验证：后端返回 2105（账号开了 2FA 但没带动态码）时展开输入框，下次提交带上 totpCode
+  const [needTotp, setNeedTotp] = useState(false)
+  const [totpCode, setTotpCode] = useState('')
   // SSO 开关：后端启用才显示「单点登录」按钮；查询失败静默降级为隐藏（不影响密码登录）
   const [ssoEnabled, setSsoEnabled] = useState(false)
 
@@ -117,12 +120,18 @@ export function LoginPage() {
       toast.error(t('login.captchaRequired'))
       return
     }
+    if (needTotp && !/^\d{6}$/.test(totpCode)) {
+      setSubmitError('请输入认证器上的 6 位动态验证码')
+      return
+    }
     setSubmitting(true)
     try {
       const data = await loginRequest({
         username: account.trim(),
         password,
-        captchaTicket: ticketRef.current
+        captchaTicket: ticketRef.current,
+        // 未开启 2FA 的账号传了后端也不校验，统一带上有状态更简单
+        totpCode: needTotp ? totpCode : undefined
       })
       // 宽松兼容后端返回的 token / 用户字段
       const user = data.userInfo ?? data.user ?? {}
@@ -157,6 +166,12 @@ export function LoginPage() {
       setSubmitError(message)
       // 锁定判定按业务码（可靠），message 文本匹配只作旧版本兜底
       setLockedOut(isApiError(err) ? err.code === BIZ_CODE.ACCOUNT_LOCKED : message.includes('已锁定'))
+      // 2105：账号开了两步验证 → 展开动态码输入框（提示同时落在错误条上）
+      // 2106：动态码不对 → 清空输入等用户重输；两者都不动「记住密码」，密码本身是验过的
+      if (isApiError(err)) {
+        if (err.code === BIZ_CODE.TOTP_REQUIRED) setNeedTotp(true)
+        if (err.code === BIZ_CODE.TOTP_INVALID) setTotpCode('')
+      }
       toast.error(message)
       resetCaptcha()
     } finally {
@@ -343,6 +358,25 @@ export function LoginPage() {
                 </span>
               </button>
             </div>
+            {/* 两步验证：账号开启 2FA 后（后端 2105）才展开的 6 位动态码输入框 */}
+            {needTotp && (
+              <div className="space-y-2">
+                <Label htmlFor="totp-code">动态验证码</Label>
+                <div className="relative">
+                  <Smartphone className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                  <Input
+                    id="totp-code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    placeholder="认证器上的 6 位动态码"
+                    className="pl-9 tracking-[0.4em]"
+                    value={totpCode}
+                    onChange={e => setTotpCode(e.target.value.replace(/\D/g, ''))}
+                  />
+                </div>
+              </div>
+            )}
             {/* 常驻错误条：toast 一闪而过，剩余尝试次数/锁定信息需要停在这里让用户看清 */}
             {submitError && (
               <div className="border-destructive/40 bg-destructive/5 text-destructive flex items-start gap-2 rounded-md border px-3 py-2 text-xs">

@@ -4,12 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import { changeMyPassword } from '@/features/users/api'
+import { TwoFactorCard } from './two-factor-card'
 
 export function AccountPage() {
   const [form, setForm] = useState({ current: '', next: '', confirm: '' })
-  const [twoFactor, setTwoFactor] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,18 +73,7 @@ export function AccountPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>两步验证</CardTitle>
-          <CardDescription>登录时额外要求验证码（mock）</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <span className="text-sm">启用两步验证</span>
-            <Switch checked={twoFactor} onCheckedChange={setTwoFactor} />
-          </div>
-        </CardContent>
-      </Card>
+      <TwoFactorCard />
     </div>
   )
 }
