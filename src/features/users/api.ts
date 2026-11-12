@@ -11,7 +11,7 @@ import {
 } from '@/lib/watermark'
 import { fetchRoleOptions, type Role } from '@/features/system/role/api'
 
-/** 后端 sys_user（对齐 JeecgBoot），只保留页面需要的字段 */
+/** 后端 sys_user，只保留页面需要的字段 */
 export interface User {
   id: string
   username: string

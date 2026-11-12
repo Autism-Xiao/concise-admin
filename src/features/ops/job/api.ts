@@ -1,7 +1,7 @@
 import { downloadFromApi } from '@/lib/download'
 import { getApiResult } from '@/lib/http'
 
-/** 任务状态（对齐 JeecgBoot sys_quartz_job.status）：0 正常（运行中）/ -1 停止 */
+/** 任务状态：0 正常（运行中）/ -1 停止 */
 export type JobStatus = 0 | -1
 
 export const JOB_STATUS_LABEL: Record<JobStatus, string> = {

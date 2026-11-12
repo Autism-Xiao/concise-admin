@@ -30,7 +30,7 @@ export interface ServerInfo {
   disks: { name: string; total: number; used: number; usage: number }[]
 }
 
-/** 服务监控（后端实时采集 os 指标，JeecgBoot 也没有对应表） */
+/** 服务监控（后端实时采集 os 指标，不落表） */
 export function fetchServerInfo(): Promise<ServerInfo> {
   return getApiResult<ServerInfo>('/backend-api/v1/monitor/server')
 }

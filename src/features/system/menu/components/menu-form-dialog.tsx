@@ -61,7 +61,7 @@ function resolveOpenMode(menu: Menu | null): FormState['openMode'] {
   return 'component'
 }
 
-/** 单行单选组（原生 radio，样式对齐 jeecg 的横向 radio） */
+/** 单行单选组（原生 radio，横向排列） */
 function RadioLine<T extends string | number>({
   value,
   options,

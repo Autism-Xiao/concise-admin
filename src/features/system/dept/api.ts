@@ -34,7 +34,7 @@ export interface DeptWritePayload {
   status?: string
 }
 
-/** 部门类型展示（对齐 jeecg 机构类别） */
+/** 部门类型展示 */
 export const orgCategoryMap: Record<string, string> = { '1': '公司', '2': '部门', '3': '岗位', '4': '子公司' }
 
 /** 部门扁平列表（统一分页结构，全量返回；keyword 模糊匹配名称），前端自行组树 */

@@ -16,7 +16,7 @@ interface JobFormDialogProps {
 }
 
 /**
- * 定时任务表单（字段对齐 JeecgBoot sys_quartz_job）
+ * 定时任务表单（字段与后端 sys_quartz_job 一致）
  * - 任务类名从后端执行器注册表取，选不到就无法执行
  * - cron 前端只做必填校验，格式由后端 CronTime 校验并回显具体错误
  */
@@ -72,7 +72,7 @@ export function JobFormDialog({ open, onOpenChange, job, onSubmit }: JobFormDial
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{job ? '编辑定时任务' : '新增定时任务'}</DialogTitle>
-          <DialogDescription>字段与 JeecgBoot sys_quartz_job 一致；任务类名对应后端已注册的执行器</DialogDescription>
+          <DialogDescription>任务类名对应后端已注册的执行器</DialogDescription>
         </DialogHeader>
         <form
           className="space-y-4"

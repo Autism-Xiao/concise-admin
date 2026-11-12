@@ -17,7 +17,7 @@ interface PermNodesTransferProps {
 const checkboxClass = 'accent-primary size-4 cursor-pointer'
 
 /**
- * 权限节点穿梭框（对齐 jeecg 菜单表单）：
+ * 权限节点穿梭框：
  * 左栏「全部节点」勾选后 > 移入右栏「已赋予节点」，右栏勾选后 < 移回。
  * 仅操作表单内存状态，点「保存」时才随表单一起提交（全量替换语义）。
  */

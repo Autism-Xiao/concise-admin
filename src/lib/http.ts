@@ -104,7 +104,7 @@ export interface ApiEnvelope<T> {
 }
 
 /**
- * 统一分页结构（后端 Pagination，对齐 jeecg IPage）
+ * 统一分页结构（后端 Pagination：records / total / current / size / pages）
  *
  * 后端已经把所有列表接口统一成这个形状：即使是角色/部门/职级这类
  * 数据量小、一次全量返回的接口，也放在 records 里（size = total、pages = 1），

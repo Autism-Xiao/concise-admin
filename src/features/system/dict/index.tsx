@@ -47,7 +47,7 @@ const itemColumnLabels: Record<string, string> = {
 /**
  * 数据字典页：左侧字典类型、右侧该字典下的字典项
  *
- * 数据来源 /backend-api/v1/dicts 与 /v1/dict-items（后端对齐 JeecgBoot sys_dict / sys_dict_item）。
+ * 数据来源 /backend-api/v1/dicts 与 /v1/dict-items（对应后端 sys_dict / sys_dict_item）。
  * 字典项一次取 200 条后走前端分页（字典项数量通常很小）。
  */
 export function DictPage() {

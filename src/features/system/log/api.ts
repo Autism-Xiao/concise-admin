@@ -32,9 +32,9 @@ export interface OperationLog {
   status: LogStatus
 }
 
-/* ---------- 真实后端：/api/v1/logs（单表 sys_log，对齐 jeecg） ---------- */
+/* ---------- 真实后端：/api/v1/logs（单表 sys_log） ---------- */
 
-/** 后端 sys_log 行（jeecg 语义：log_type 0登录/1操作；status 0成功/1失败） */
+/** 后端 sys_log 行（log_type 0登录/1操作；status 0成功/1失败） */
 interface BackendSysLog {
   id: string
   logContent: string

@@ -1,7 +1,7 @@
 import { downloadFromApi } from '@/lib/download'
 import { getApiResult, type PageResult } from '@/lib/http'
 
-/** 后端 sys_permission（对齐 JeecgBoot），菜单管理页用的完整结构 */
+/** 后端 sys_permission，菜单管理页用的完整结构 */
 export interface Menu {
   id: string
   parentId?: string | null
@@ -83,7 +83,7 @@ export function savePermNodes(id: string, nodes: PermNode[]): Promise<{ added: s
 }
 
 /**
- * 标准按钮权限节点池（对齐 jeecg「权限节点」穿梭框的左侧来源）。
+ * 标准按钮权限节点池（「权限节点」穿梭框的左侧来源）。
  * perms 前缀由菜单路由地址推导：/system/user + add → system:user:add
  */
 export const PERM_NODE_POOL: Array<{ name: string; action: string }> = [

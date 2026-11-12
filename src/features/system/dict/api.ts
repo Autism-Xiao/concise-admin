@@ -3,7 +3,7 @@ import { downloadFromApi } from '@/lib/download'
 import type { ImportResult } from '@/components/excel-import-dialog'
 import { getApiResult, type PageResult } from '@/lib/http'
 
-/** 字典（对齐后端 sys_dict，JeecgBoot 字段） */
+/** 字典（对应后端 sys_dict 表字段） */
 export interface Dict {
   id: string
   dictName: string

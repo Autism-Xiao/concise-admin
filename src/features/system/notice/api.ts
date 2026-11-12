@@ -1,9 +1,9 @@
 import { batchDeleteRequest, type BatchDeleteResult } from '@/lib/batch-delete'
 import { getApiResult } from '@/lib/http'
 
-/** 消息类型（jeecg msg_category）：1 通知公告 / 2 系统消息 */
+/** 消息类型（msg_category）：1 通知公告 / 2 系统消息 */
 export type NoticeCategory = '1' | '2'
-/** 发布状态（jeecg send_status）：0 未发布 / 1 已发布 / 2 已撤销 */
+/** 发布状态（send_status）：0 未发布 / 1 已发布 / 2 已撤销 */
 export type NoticeSendStatus = '0' | '1' | '2'
 /** 优先级：L 低 / M 中 / H 高 */
 export type NoticePriority = 'L' | 'M' | 'H'
