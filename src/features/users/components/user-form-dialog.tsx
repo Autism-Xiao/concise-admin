@@ -14,6 +14,7 @@ import {
 } from '../api'
 import { fetchPosts, type Post } from '@/features/system/post/api'
 import { fetchLevels, type Level } from '@/features/system/level/api'
+import { useDict } from '@/lib/dict'
 
 interface UserFormDialogProps {
   open: boolean
@@ -78,6 +79,8 @@ function CheckList({
 
 /** 由父组件按 key 控制重挂载，保证打开时表单初始化为对应用户 */
 export function UserFormDialog({ open, onOpenChange, user, onSubmit }: UserFormDialogProps) {
+  /** 性别选项来自字典 sys_user_gender（兜底值保证字典被删/接口失败时下拉不空） */
+  const genderItems = useDict('sys_user_gender', { 0: '未知', 1: '男', 2: '女' })
   const [form, setForm] = useState<FormState>(() =>
     user
       ? {
@@ -196,14 +199,16 @@ export function UserFormDialog({ open, onOpenChange, user, onSubmit }: UserFormD
             </div>
             <div className="space-y-2">
               <Label>性别</Label>
-              <Select value={String(form.sex)} onValueChange={v => set('sex', Number(v))} items={{ 0: '未知', 1: '男', 2: '女' }}>
+              <Select value={String(form.sex)} onValueChange={v => set('sex', Number(v))} items={genderItems}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">未知</SelectItem>
-                  <SelectItem value="1">男</SelectItem>
-                  <SelectItem value="2">女</SelectItem>
+                  {Object.entries(genderItems).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

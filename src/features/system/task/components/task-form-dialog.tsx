@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { UserMultiSelect } from '@/features/users/components/user-multi-select'
+import { useDict } from '@/lib/dict'
 import { TASK_UNASSIGNED, type Task, type TaskPriority, type TaskWritePayload } from '../api'
 
 interface TaskFormDialogProps {
@@ -33,6 +34,7 @@ function toLocalInput(iso?: string | null): string {
  * 不选代表「未指派」，提交时传 '0'（后端约定的哨兵值）。
  */
 export function TaskFormDialog({ open, onOpenChange, task, onSubmit }: TaskFormDialogProps) {
+  const priorityItems = useDict('sys_task_priority', { '0': '低', '1': '中', '2': '高' })
   const [form, setForm] = useState(() => ({
     title: task?.title ?? '',
     description: task?.description ?? '',
@@ -89,14 +91,16 @@ export function TaskFormDialog({ open, onOpenChange, task, onSubmit }: TaskFormD
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>优先级</Label>
-              <Select value={form.priority} onValueChange={v => set('priority', v as '0' | '1' | '2')} items={{ '0': '低', '1': '中', '2': '高' }}>
+              <Select value={form.priority} onValueChange={v => set('priority', v as '0' | '1' | '2')} items={priorityItems}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">低</SelectItem>
-                  <SelectItem value="1">中</SelectItem>
-                  <SelectItem value="2">高</SelectItem>
+                  {Object.entries(priorityItems).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

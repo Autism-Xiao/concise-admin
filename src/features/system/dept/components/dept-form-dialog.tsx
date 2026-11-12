@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from 'cn'
+import { useDict } from '@/lib/dict'
 import type { Dept, DeptWritePayload } from '../api'
 
 interface DeptFormDialogProps {
@@ -49,6 +50,8 @@ function RadioLine<T extends string>({ value, options, onChange }: { value: T; o
 
 /** 由父组件按 key 控制重挂载，保证打开时表单初始化为对应部门 */
 export function DeptFormDialog({ open, onOpenChange, dept, parentId, depts, onSubmit }: DeptFormDialogProps) {
+  /** 机构类型走字典 sys_org_category */
+  const orgCategoryItems = useDict('sys_org_category', { '1': '公司', '2': '部门', '3': '岗位', '4': '子公司' })
   const [form, setForm] = useState<FormState>(() =>
     dept
       ? {
@@ -123,15 +126,16 @@ export function DeptFormDialog({ open, onOpenChange, dept, parentId, depts, onSu
             </div>
             <div className={field}>
               <Label>部门类型</Label>
-              <Select value={form.orgCategory} onValueChange={v => set('orgCategory', v)} items={{ '1': '公司', '2': '部门', '3': '岗位', '4': '子公司' }}>
+              <Select value={form.orgCategory} onValueChange={v => set('orgCategory', v)} items={orgCategoryItems}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">公司</SelectItem>
-                  <SelectItem value="2">部门</SelectItem>
-                  <SelectItem value="3">岗位</SelectItem>
-                  <SelectItem value="4">子公司</SelectItem>
+                  {Object.entries(orgCategoryItems).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

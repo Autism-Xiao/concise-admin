@@ -13,16 +13,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { changeMyPassword, fetchMyProfile, setMyAvatar, updateMyProfile, type MyProfilePatch, type User } from '@/features/users/api'
 import { getApiResult } from '@/lib/http'
 import { getAvatar, getUsername, resolveAvatarUrl, setAvatar, setDisplayName } from '@/lib/auth'
+import { useDict } from '@/lib/dict'
 
 /** 密码规则与后端 ChangePasswordDto 保持一致：8~32 位，字母 + 数字 */
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).{8,32}$/
 
-/** 性别选项：值与 sys_user.sex 对齐（0 未知 / 1 男 / 2 女） */
-const SEX_OPTIONS = [
-  { value: '0', label: '保密' },
-  { value: '1', label: '男' },
-  { value: '2', label: '女' }
-]
+/** 性别选项来自字典 sys_user_gender（原写死的「保密」并入字典文案，全站统一） */
+const SEX_FALLBACK = { '0': '未知', '1': '男', '2': '女' }
 
 /** 页面表单：全部用字符串存，Select 的值天然是字符串，提交时再转数字 */
 interface ProfileForm {
@@ -61,6 +58,7 @@ function InfoItem({ label, value }: { label: string; value: string }) {
 }
 
 export function ProfilePage() {
+  const sexItems = useDict('sys_user_gender', SEX_FALLBACK)
   /** 后端拿到的完整资料（角色/部门/岗位/创建时间都从这里读，不再用本地缓存猜） */
   const [profile, setProfile] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -294,14 +292,14 @@ export function ProfilePage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="profile-sex">性别</Label>
-                <Select value={form.sex} onValueChange={value => setForm({ ...form, sex: value })} items={SEX_OPTIONS} disabled={loading}>
+                <Select value={form.sex} onValueChange={value => setForm({ ...form, sex: value })} items={sexItems} disabled={loading}>
                   <SelectTrigger id="profile-sex" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {SEX_OPTIONS.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                    {Object.entries(sexItems).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
                       </SelectItem>
                     ))}
                   </SelectContent>

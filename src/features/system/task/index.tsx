@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
+import { useDict } from '@/lib/dict'
 import { TaskFormDialog } from './components/task-form-dialog'
 import {
   TASK_PRIORITY_LABEL,
@@ -62,6 +63,8 @@ const TRANSITION_ACTIONS: Record<number, { label: string; icon: typeof Play }> =
 }
 
 export function TaskPage() {
+  // 优先级走字典（状态是状态机，保持写死）
+  const priorityItems = useDict('sys_task_priority', TASK_PRIORITY_LABEL)
   const canListAll = hasPermission('system:task:list')
   const [scope, setScope] = useState<'all' | 'mine'>(canListAll ? 'all' : 'mine')
   const [list, setList] = useState<Task[]>([])
@@ -169,7 +172,7 @@ export function TaskPage() {
         header: ({ column }) => <DataTableColumnHeader column={column} title="优先级" />,
         cell: ({ row }) => (
           <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${priorityClass[row.original.priority] ?? priorityClass[1]}`}>
-            {TASK_PRIORITY_LABEL[row.original.priority] ?? '-'}
+            {priorityItems[row.original.priority] ?? '-'}
           </span>
         ),
         filterFn: (row, id, value) => String(row.getValue(id)) === value
@@ -251,8 +254,8 @@ export function TaskPage() {
         }
       }
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleStatus/busyId 变化时重建列以刷新禁用态
-    [busyId]
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleStatus/busyId 变化时重建列以刷新禁用态；字典加载后重建以刷新标签
+    [busyId, priorityItems]
   )
 
   const columnFilters = useMemo(() => {
@@ -351,16 +354,18 @@ export function TaskPage() {
               <Select
                 value={priorityFilter}
                 onValueChange={v => setPriorityFilter(v as 'all' | `${TaskPriority}`)}
-                items={{ all: '全部优先级', '0': '低', '1': '中', '2': '高' }}
+                items={{ all: '全部优先级', ...priorityItems }}
               >
                 <SelectTrigger className="h-9 w-32">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">全部优先级</SelectItem>
-                  <SelectItem value="0">低</SelectItem>
-                  <SelectItem value="1">中</SelectItem>
-                  <SelectItem value="2">高</SelectItem>
+                  {Object.entries(priorityItems).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <DataTableViewOptions table={table} columnLabels={columnLabels} />

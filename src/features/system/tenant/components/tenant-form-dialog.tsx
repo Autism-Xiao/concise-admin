@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useDict } from '@/lib/dict'
 import type { Tenant, TenantPlan, TenantStatus } from '../api'
 
 interface TenantFormDialogProps {
@@ -30,6 +31,8 @@ const emptyForm = {
 
 /** 由父组件按 key 控制重挂载，保证打开时表单初始化为对应租户 */
 export function TenantFormDialog({ open, onOpenChange, tenant, submitting = false, onSubmit }: TenantFormDialogProps) {
+  /** 套餐走字典 sys_tenant_plan */
+  const planItems = useDict('sys_tenant_plan', { 试用版: '试用版', 标准版: '标准版', 企业版: '企业版' })
   const [form, setForm] = useState(() =>
     tenant
       ? {
@@ -81,14 +84,16 @@ export function TenantFormDialog({ open, onOpenChange, tenant, submitting = fals
             </div>
             <div className="space-y-2">
               <Label>套餐</Label>
-              <Select value={form.plan} onValueChange={v => set('plan', v as TenantPlan)} items={{ 试用版: '试用版', 标准版: '标准版', 企业版: '企业版' }}>
+              <Select value={form.plan} onValueChange={v => set('plan', v as TenantPlan)} items={planItems}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="试用版">试用版</SelectItem>
-                  <SelectItem value="标准版">标准版</SelectItem>
-                  <SelectItem value="企业版">企业版</SelectItem>
+                  {Object.entries(planItems).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

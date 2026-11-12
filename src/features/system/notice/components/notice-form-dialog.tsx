@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { UserMultiSelect } from '@/features/users/components/user-multi-select'
 import { toast } from 'sonner'
+import { useDict } from '@/lib/dict'
 import { NOTICE_CATEGORY_LABEL, NOTICE_PRIORITY_LABEL, NOTICE_TARGET_LABEL, type Notice, type NoticeCategory, type NoticePriority, type NoticeTarget, type NoticeWritePayload } from '../api'
 
 interface NoticeFormDialogProps {
@@ -28,6 +29,10 @@ function toLocalInput(iso?: string): string {
 
 /** 由父组件按 key 控制重挂载，保证打开时表单初始化为对应公告 */
 export function NoticeFormDialog({ open, onOpenChange, notice, onSubmit }: NoticeFormDialogProps) {
+  // 三个下拉都走字典，运营改文案/排序不用发版；字典缺失时回落到代码内默认
+  const categoryItems = useDict('sys_notice_category', NOTICE_CATEGORY_LABEL)
+  const priorityItems = useDict('sys_notice_priority', NOTICE_PRIORITY_LABEL)
+  const targetItems = useDict('sys_notice_target', NOTICE_TARGET_LABEL)
   const [form, setForm] = useState(() => ({
     title: notice?.title ?? '',
     msgContent: notice?.msgContent ?? '',
@@ -106,38 +111,46 @@ export function NoticeFormDialog({ open, onOpenChange, notice, onSubmit }: Notic
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>消息类型</Label>
-              <Select value={form.msgCategory} onValueChange={v => set('msgCategory', v as NoticeCategory)} items={NOTICE_CATEGORY_LABEL}>
+              <Select value={form.msgCategory} onValueChange={v => set('msgCategory', v as NoticeCategory)} items={categoryItems}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">通知公告</SelectItem>
-                  <SelectItem value="2">系统消息</SelectItem>
+                  {Object.entries(categoryItems).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>优先级</Label>
-              <Select value={form.priority} onValueChange={v => set('priority', v as NoticePriority)} items={NOTICE_PRIORITY_LABEL}>
+              <Select value={form.priority} onValueChange={v => set('priority', v as NoticePriority)} items={priorityItems}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="H">高</SelectItem>
-                  <SelectItem value="M">中</SelectItem>
-                  <SelectItem value="L">低</SelectItem>
+                  {Object.entries(priorityItems).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>通告对象</Label>
-              <Select value={form.msgType} onValueChange={v => set('msgType', v as NoticeTarget)} items={NOTICE_TARGET_LABEL}>
+              <Select value={form.msgType} onValueChange={v => set('msgType', v as NoticeTarget)} items={targetItems}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">全体用户</SelectItem>
-                  <SelectItem value="USER">指定用户</SelectItem>
+                  {Object.entries(targetItems).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

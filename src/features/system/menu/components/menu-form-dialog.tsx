@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from 'cn'
+import { useDict } from '@/lib/dict'
 import { derivePermsPrefix, PERM_NODE_POOL, type Menu, type MenuWritePayload, type PermNode } from '../api'
 import { IconPicker } from './icon-picker'
 import { PermNodesTransfer } from './perm-nodes-transfer'
@@ -88,6 +89,8 @@ function RadioLine<T extends string | number>({
 
 /** 由父组件按 key 控制重挂载，保证打开时表单初始化为对应菜单 */
 export function MenuFormDialog({ open, onOpenChange, menu, parentId, menus, onSubmit }: MenuFormDialogProps) {
+  /** 启用/停用走字典 sys_menu_status */
+  const statusItems = useDict('sys_menu_status', { '1': '启用', '0': '停用' })
   const [form, setForm] = useState<FormState>(() => {
     if (menu) {
       return {
@@ -279,10 +282,7 @@ export function MenuFormDialog({ open, onOpenChange, menu, parentId, menus, onSu
             <Label>状态</Label>
             <RadioLine
               value={form.status}
-              options={[
-                { value: '1', label: '启用' },
-                { value: '0', label: '停用' }
-              ]}
+              options={Object.entries(statusItems).map(([value, label]) => ({ value, label }))}
               onChange={v => set('status', v)}
             />
           </div>

@@ -12,6 +12,7 @@ import { ExcelImportDialog } from '@/components/excel-import-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
+import { clearDictCache } from '@/lib/dict'
 import { toastBatchResult } from '@/lib/batch-delete'
 import { saveBlobFile } from '@/lib/download'
 import { cn } from '@/lib/utils'
@@ -99,6 +100,8 @@ export function DictPage() {
   }, [])
 
   const loadItems = (dictId: string) => {
+    // 字典改完要让业务页下次进来自动拿新数据，否则缓存里还是旧文案
+    clearDictCache()
     setLoadingItems(true)
     fetchDictItems({ dictId })
       .then(rows => setItems(rows))

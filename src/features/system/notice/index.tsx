@@ -11,6 +11,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
+import { useDict } from '@/lib/dict'
 import { NoticeFormDialog } from './components/notice-form-dialog'
 import { NoticeImportDialog } from './components/notice-import-dialog'
 import { toastBatchResult } from '@/lib/batch-delete'
@@ -52,6 +53,9 @@ const priorityClass: Record<NoticePriority, string> = {
 }
 
 export function NoticePage() {
+  // 类型/优先级走字典（文案可运营改），状态仍写死——状态机由后端分支，字典加项就是死选项
+  const categoryItems = useDict('sys_notice_category', NOTICE_CATEGORY_LABEL)
+  const priorityItems = useDict('sys_notice_priority', NOTICE_PRIORITY_LABEL)
   const [list, setList] = useState<Notice[]>([])
   const [total, setTotal] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -133,7 +137,7 @@ export function NoticePage() {
       {
         accessorKey: 'msgCategory',
         header: ({ column }) => <DataTableColumnHeader column={column} title="类型" />,
-        cell: ({ row }) => NOTICE_CATEGORY_LABEL[row.original.msgCategory] ?? '-',
+        cell: ({ row }) => categoryItems[row.original.msgCategory] ?? '-',
         filterFn: (row, id, value) => row.getValue(id) === value
       },
       {
@@ -142,7 +146,7 @@ export function NoticePage() {
         cell: ({ row }) => {
           const priority = row.original.priority
           if (!priority) return '-'
-          return <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${priorityClass[priority]}`}>{NOTICE_PRIORITY_LABEL[priority]}</span>
+          return <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${priorityClass[priority]}`}>{priorityItems[priority] ?? priority}</span>
         },
         filterFn: (row, id, value) => row.getValue(id) === value
       },
@@ -210,8 +214,8 @@ export function NoticePage() {
         }
       }
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleStatusChange/busyId 变化时重建列以刷新按钮禁用态
-    [busyId]
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleStatusChange/busyId 变化时重建列以刷新按钮禁用态；字典加载完成后重建列以刷新标签文案
+    [busyId, categoryItems, priorityItems]
   )
 
   const columnFilters = useMemo(() => {
@@ -353,15 +357,18 @@ export function NoticePage() {
               <Select
                 value={categoryFilter}
                 onValueChange={v => setCategoryFilter(v as 'all' | NoticeCategory)}
-                items={{ all: '全部类型', '1': '通知公告', '2': '系统消息' }}
+                items={{ all: '全部类型', ...categoryItems }}
               >
                 <SelectTrigger className="h-9 w-32">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">全部类型</SelectItem>
-                  <SelectItem value="1">通知公告</SelectItem>
-                  <SelectItem value="2">系统消息</SelectItem>
+                  {Object.entries(categoryItems).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
