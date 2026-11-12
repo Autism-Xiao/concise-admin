@@ -23,20 +23,28 @@ export function DataTable<TData>({ table, emptyText = '没有匹配的数据', s
   const lastHeader = visibleHeaders[visibleHeaders.length - 1]
   const stickyId = stickyActions && lastHeader?.column.id === 'actions' ? 'actions' : null
 
+  // 多选列（id=select）统一提到最左，排在序号前面：
+  // 勾选框与行首对齐，序号紧跟其后，视觉上「先选人、再看第几条」。
+  const renderHeaderCell = (header: (typeof visibleHeaders)[number]) => (
+    <TableHead key={header.id} colSpan={header.colSpan} className={header.column.id === stickyId ? 'table-sticky-action' : undefined}>
+      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+    </TableHead>
+  )
+
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
-          {table.getHeaderGroups().map(headerGroup => (
-            <TableRow key={headerGroup.id}>
-              {showSerial && <TableHead className="w-14 text-center">序号</TableHead>}
-              {headerGroup.headers.map(header => (
-                <TableHead key={header.id} colSpan={header.colSpan} className={header.column.id === stickyId ? 'table-sticky-action' : undefined}>
-                  {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
+          {table.getHeaderGroups().map(headerGroup => {
+            const selectHeader = headerGroup.headers.find(h => h.column.id === 'select')
+            return (
+              <TableRow key={headerGroup.id}>
+                {selectHeader && renderHeaderCell(selectHeader)}
+                {showSerial && <TableHead className="w-14 text-center">序号</TableHead>}
+                {headerGroup.headers.filter(h => h.column.id !== 'select').map(renderHeaderCell)}
+              </TableRow>
+            )
+          })}
         </TableHeader>
         <TableBody>
           {rows.length === 0 ? (
@@ -46,16 +54,25 @@ export function DataTable<TData>({ table, emptyText = '没有匹配的数据', s
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((row, index) => (
-              <TableRow key={row.id} data-state={row.getIsSelected() ? 'selected' : undefined}>
-                {showSerial && <TableCell className="text-muted-foreground w-14 text-center tabular-nums">{serialBase + index + 1}</TableCell>}
-                {row.getVisibleCells().map(cell => (
-                  <TableCell key={cell.id} className={cell.column.id === stickyId ? 'table-sticky-action' : undefined}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            rows.map((row, index) => {
+              const cells = row.getVisibleCells()
+              const selectCell = cells.find(c => c.column.id === 'select')
+              return (
+                <TableRow key={row.id} data-state={row.getIsSelected() ? 'selected' : undefined}>
+                  {selectCell && (
+                    <TableCell key={selectCell.id}>{flexRender(selectCell.column.columnDef.cell, selectCell.getContext())}</TableCell>
+                  )}
+                  {showSerial && <TableCell className="text-muted-foreground w-14 text-center tabular-nums">{serialBase + index + 1}</TableCell>}
+                  {cells
+                    .filter(c => c.column.id !== 'select')
+                    .map(cell => (
+                      <TableCell key={cell.id} className={cell.column.id === stickyId ? 'table-sticky-action' : undefined}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                </TableRow>
+              )
+            })
           )}
         </TableBody>
       </Table>
