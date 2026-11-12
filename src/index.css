@@ -160,6 +160,37 @@
   }
 }
 
+/* ---------- 表格固定操作列（sticky right） ----------
+ * 列多的表格会横向滚动，操作按钮原本会跟着滚出视野；这一层把「操作」列贴在右边缘。
+ * 必须自己给背景色：sticky 单元格不设背景时，滚动内容会从它下面透出来。
+ * 背景取 --card（表格都在 Card 里），hover / 选中态手动对齐 tr 的底色，否则操作列不跟着高亮。
+ */
+.table-sticky-action {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background-color: var(--card);
+  /* 左侧渐隐投影，提示「这一列浮在内容之上」 */
+  box-shadow: -8px 0 10px -8px rgb(0 0 0 / 0.18);
+}
+
+tr:hover > .table-sticky-action {
+  background-color: color-mix(in oklab, var(--muted) 50%, var(--card));
+}
+
+tr[data-state='selected'] > .table-sticky-action {
+  background-color: var(--muted);
+}
+
+/* 弹窗 / 抽屉里的表格背景是 --popover，不是 --card，单独一套底色 */
+.table-sticky-action-popover {
+  background-color: var(--popover);
+}
+
+tr:hover > .table-sticky-action-popover {
+  background-color: color-mix(in oklab, var(--muted) 50%, var(--popover));
+}
+
 /* 状态标签呼吸灯：只给「活的」状态用（运行中 / 在线 / 进行中），静态终态不加 */
 @keyframes status-breathe {
   0%,

@@ -297,7 +297,7 @@ export function RegionPage() {
           <TableCell>
             <span className="text-muted-foreground text-xs tabular-nums">{node.lng && node.lat ? `${node.lng}, ${node.lat}` : '-'}</span>
           </TableCell>
-          <TableCell className="text-end">
+          <TableCell className="table-sticky-action text-end">
             <Button variant="ghost" size="icon" onClick={() => openEdit(node)}>
               <Pencil className="size-4" />
               <span className="sr-only">编辑</span>
@@ -425,7 +425,7 @@ export function RegionPage() {
                   <TableHead className="w-32">上级代码</TableHead>
                   <TableHead className="w-24">邮编</TableHead>
                   <TableHead className="w-44">经纬度</TableHead>
-                  <TableHead className="w-24 text-end">操作</TableHead>
+                  <TableHead className="table-sticky-action w-24 text-end">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

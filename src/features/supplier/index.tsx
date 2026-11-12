@@ -80,7 +80,7 @@ export function SupplierPage() {
                     <th className="px-3 py-2 font-medium">联系人</th>
                     <th className="px-3 py-2 font-medium">级别</th>
                     <th className="px-3 py-2 font-medium">备注</th>
-                    <th className="w-24 px-3 py-2 font-medium">操作</th>
+                    <th className="table-sticky-action w-24 px-3 py-2 font-medium">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -91,7 +91,7 @@ export function SupplierPage() {
                   <td className="px-3 py-2 text-sm">{row.contact ?? '-'}</td>
                   <td className="px-3 py-2 text-sm">{row.level ?? '-'}</td>
                   <td className="px-3 py-2 text-sm">{row.remark ?? '-'}</td>
-                      <td className="px-3 py-2">
+                      <td className="table-sticky-action px-3 py-2">
                         <div className="flex items-center gap-1">
                           {canEdit && (
                             <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setEditing(row)}>

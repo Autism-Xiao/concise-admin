@@ -655,7 +655,7 @@ export function FilePage() {
                     <TableHead className="hidden md:table-cell">类型</TableHead>
                     <TableHead className="hidden sm:table-cell">修改时间</TableHead>
                     <TableHead className="hidden sm:table-cell">大小</TableHead>
-                    <TableHead className="w-10" />
+                    <TableHead className="table-sticky-action w-10" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -679,7 +679,7 @@ export function FilePage() {
                       <TableCell className="text-muted-foreground hidden tabular-nums sm:table-cell">
                         {node.isFolder ? '-' : formatSize(node.size)}
                       </TableCell>
-                      <TableCell>{renderActions(node)}</TableCell>
+                      <TableCell className="table-sticky-action">{renderActions(node)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

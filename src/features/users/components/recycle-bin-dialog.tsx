@@ -96,7 +96,7 @@ export function RecycleBinDialog({ open, onOpenChange, onRestored }: RecycleBinD
                   <th className="px-3 py-2 font-medium">姓名</th>
                   <th className="px-3 py-2 font-medium">手机号</th>
                   <th className="px-3 py-2 font-medium">删除时间</th>
-                  <th className="px-3 py-2 text-right font-medium">操作</th>
+                  <th className="sticky right-0 z-[2] px-3 py-2 text-right font-medium">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -107,7 +107,7 @@ export function RecycleBinDialog({ open, onOpenChange, onRestored }: RecycleBinD
                     <td className="px-3 py-2">{user.realname || '-'}</td>
                     <td className="px-3 py-2">{user.phone || '-'}</td>
                     <td className="text-muted-foreground px-3 py-2 font-mono text-xs">{user.updateTime?.replace('T', ' ').slice(0, 19) || '-'}</td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="table-sticky-action table-sticky-action-popover px-3 py-2 text-right">
                       <Button variant="outline" size="sm" onClick={() => setRestoring(user)}>
                         <ArchiveRestore className="size-3.5" />
                         恢复

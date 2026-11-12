@@ -389,7 +389,7 @@ export function DeptPage() {
             </div>
           </TableCell>
           {/* 纯图标 + title：三个按钮各带文字时操作列要占 176px，1280 屏会顶出横向滚动条 */}
-          <TableCell className="text-end whitespace-nowrap">
+          <TableCell className="table-sticky-action text-end whitespace-nowrap">
             {hasPermission('system:dept:add') && (
               <Button variant="ghost" size="icon-sm" className="text-primary hover:text-primary size-7" title="新增子部门" onClick={() => openCreate(node.id)}>
                 <Plus className="size-4" />
@@ -494,7 +494,7 @@ export function DeptPage() {
                   <TableHead className="w-20">状态</TableHead>
                   <TableHead className="w-24">备注</TableHead>
                   <TableHead className="w-36">创建 / 更新</TableHead>
-                  <TableHead className="w-28 text-end">操作</TableHead>
+                  <TableHead className="table-sticky-action w-28 text-end">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

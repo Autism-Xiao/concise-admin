@@ -29,7 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { getUsername, hasPermission } from '@/lib/auth'
-import { UserFormDialog } from './components/user-form-dialog'
+import { UserFormDrawer } from './components/user-form-drawer'
 import { UserWatermarkDialog } from './components/user-watermark-dialog'
 import { ResetPasswordResultDialog } from './components/reset-password-result-dialog'
 import { RecycleBinDialog } from './components/recycle-bin-dialog'
@@ -641,7 +641,7 @@ export function UsersPage() {
         </Card>
       )}
 
-      {formOpen && <UserFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} user={editing} onSubmit={handleSubmit} />}
+      {formOpen && <UserFormDrawer key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} user={editing} onSubmit={handleSubmit} />}
 
       {importOpen && <UserImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={load} />}
 

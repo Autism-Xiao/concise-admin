@@ -197,7 +197,7 @@ export function MenuPage() {
             <StatusBadge ok={node.status === '1'} label={node.status === '1' ? '正常' : '停用'} />
           </TableCell>
           <TableCell className="text-muted-foreground w-40 whitespace-nowrap text-xs tabular-nums">{formatDateTime(node.createTime)}</TableCell>
-          <TableCell className="text-end whitespace-nowrap">
+          <TableCell className="table-sticky-action text-end whitespace-nowrap">
             {hasPermission('system:menu:add') && (
               <Button variant="ghost" size="sm" className="text-primary hover:text-primary h-7 gap-0.5 px-1.5" onClick={() => openCreate(node.id)}>
                 <Plus className="size-3.5" />
@@ -310,7 +310,7 @@ export function MenuPage() {
                   <TableHead className="w-14">排序</TableHead>
                   <TableHead className="w-24">状态</TableHead>
                   <TableHead className="w-40">创建时间</TableHead>
-                  <TableHead className="text-end">操作</TableHead>
+                  <TableHead className="table-sticky-action text-end">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
