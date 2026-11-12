@@ -297,7 +297,8 @@ export function DeptPage() {
       .finally(() => setSaving(false))
   }
 
-  const renderRows = (nodes: DeptNode[], depth: number): ReactNode[] =>
+  // counter 贯穿递归，保证序号按「展开后的视觉顺序」连续递增
+  const renderRows = (nodes: DeptNode[], depth: number, counter: { n: number } = { n: 0 }): ReactNode[] =>
     nodes.flatMap(node => {
       const hasChildren = node.children.length > 0
       const isCollapsed = collapsed.has(node.id)
@@ -343,6 +344,7 @@ export function DeptPage() {
               onChange={() => toggleSelection(node.id)}
             />
           </TableCell>
+          <TableCell className="text-muted-foreground w-14 text-center tabular-nums">{++counter.n}</TableCell>
           <TableCell>
             <div className="flex items-center gap-1" style={{ paddingInlineStart: depth * 20 }}>
               {!filtering && <GripVertical className="text-muted-foreground size-4 shrink-0 cursor-grab" />}
@@ -409,7 +411,7 @@ export function DeptPage() {
           </TableCell>
         </TableRow>
       )
-      return isCollapsed ? [row] : [row, ...renderRows(node.children, depth + 1)]
+      return isCollapsed ? [row] : [row, ...renderRows(node.children, depth + 1, counter)]
     })
 
   return (
@@ -484,6 +486,7 @@ export function DeptPage() {
                       onChange={toggleVisibleSelection}
                     />
                   </TableHead>
+                  <TableHead className="w-14 text-center">序号</TableHead>
                   <TableHead>部门名称</TableHead>
                   <TableHead className="w-32">部门编码</TableHead>
                   <TableHead className="w-20">部门类型</TableHead>
@@ -503,7 +506,7 @@ export function DeptPage() {
                     )
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-muted-foreground py-10 text-center">
+                      <TableCell colSpan={10} className="text-muted-foreground py-10 text-center">
                         没有匹配的部门
                       </TableCell>
                     </TableRow>
@@ -512,7 +515,7 @@ export function DeptPage() {
                   renderRows(tree, 0)
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-muted-foreground py-10 text-center">
+                    <TableCell colSpan={10} className="text-muted-foreground py-10 text-center">
                       暂无部门，点击右上角「新增部门」创建
                     </TableCell>
                   </TableRow>

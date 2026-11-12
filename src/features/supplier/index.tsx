@@ -75,6 +75,7 @@ export function SupplierPage() {
               <table className="w-full">
                 <thead>
                   <tr className="text-muted-foreground border-b text-left text-xs">
+                    <th className="w-14 px-3 py-2 text-center font-medium">序号</th>
                     <th className="px-3 py-2 font-medium">供应商名称</th>
                     <th className="px-3 py-2 font-medium">联系人</th>
                     <th className="px-3 py-2 font-medium">级别</th>
@@ -83,8 +84,9 @@ export function SupplierPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {list.map(row => (
+                  {list.map((row, index) => (
                     <tr key={row.id} className="hover:bg-muted/40">
+                  <td className="text-muted-foreground px-3 py-2 text-center text-sm tabular-nums">{index + 1}</td>
                   <td className="px-3 py-2 text-sm">{row.name ?? '-'}</td>
                   <td className="px-3 py-2 text-sm">{row.contact ?? '-'}</td>
                   <td className="px-3 py-2 text-sm">{row.level ?? '-'}</td>
@@ -107,7 +109,7 @@ export function SupplierPage() {
                   ))}
                   {list.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="text-muted-foreground py-10 text-center text-sm">
+                      <td colSpan={6} className="text-muted-foreground py-10 text-center text-sm">
                         暂无数据
                       </td>
                     </tr>

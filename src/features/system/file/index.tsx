@@ -650,6 +650,7 @@ export function FilePage() {
                         aria-label="全选"
                       />
                     </TableHead>
+                    <TableHead className="w-14 text-center">序号</TableHead>
                     <TableHead>名称</TableHead>
                     <TableHead className="hidden md:table-cell">类型</TableHead>
                     <TableHead className="hidden sm:table-cell">修改时间</TableHead>
@@ -658,7 +659,7 @@ export function FilePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {records.map(node => (
+                  {records.map((node, index) => (
                     <TableRow key={node.id} data-state={selected.has(node.id) ? 'selected' : undefined}>
                       <TableCell>
                         <input
@@ -669,6 +670,7 @@ export function FilePage() {
                           aria-label={`选择 ${node.name}`}
                         />
                       </TableCell>
+                      <TableCell className="text-muted-foreground w-14 text-center tabular-nums">{index + 1}</TableCell>
                       <TableCell>{renderName(node)}</TableCell>
                       <TableCell className="text-muted-foreground hidden md:table-cell">
                         <span className="text-xs">{node.isFolder ? '文件夹' : (node.ext || '未知').toUpperCase()}</span>

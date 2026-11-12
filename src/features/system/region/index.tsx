@@ -255,7 +255,7 @@ export function RegionPage() {
   const visibleSearchRows = useMemo(() => (searchRows ? searchRows.slice(0, SEARCH_LIMIT) : []), [searchRows])
 
   /** 渲染树行：只有展开且已加载的节点才递归渲染子级 */
-  const renderRows = (nodes: Region[], depth: number, expandable: boolean): ReactNode[] =>
+  const renderRows = (nodes: Region[], depth: number, expandable: boolean, counter: { n: number } = { n: 0 }): ReactNode[] =>
     nodes.flatMap(node => {
       const children = childMap[node.areaCode]
       const hasChildren = expandable && (children ? children.length > 0 : node.level < 3)
@@ -264,6 +264,7 @@ export function RegionPage() {
 
       const row = (
         <TableRow key={node.id}>
+          <TableCell className="text-muted-foreground w-14 text-center tabular-nums">{++counter.n}</TableCell>
           <TableCell>
             <div className="flex items-center gap-1" style={{ paddingInlineStart: depth * 20 }}>
               {hasChildren ? (
@@ -312,19 +313,19 @@ export function RegionPage() {
       if (!isOpen) return [row]
       const hintCell = (text: string) => (
         <TableRow key={`${node.id}-hint`}>
-          <TableCell colSpan={7} className="text-muted-foreground py-2 text-xs" style={{ paddingInlineStart: depth * 20 + 56 }}>
+          <TableCell colSpan={8} className="text-muted-foreground py-2 text-xs" style={{ paddingInlineStart: depth * 20 + 56 }}>
             {text}
           </TableCell>
         </TableRow>
       )
       if (loadingKids) return [row, hintCell('加载下级区划…')]
       if (!children || children.length === 0) return [row, hintCell('暂无下级区划')]
-      return [row, ...renderRows(children, depth + 1, expandable)]
+      return [row, ...renderRows(children, depth + 1, expandable, counter)]
     })
 
   const emptyRow = (text: string) => (
     <TableRow>
-      <TableCell colSpan={7} className="text-muted-foreground py-10 text-center">
+      <TableCell colSpan={8} className="text-muted-foreground py-10 text-center">
         {text}
       </TableCell>
     </TableRow>
@@ -417,6 +418,7 @@ export function RegionPage() {
             <Table containerClassName="min-h-0 flex-1 overflow-y-auto rounded-md border">
               <TableHeader className="bg-card sticky top-0 z-10">
                 <TableRow>
+                  <TableHead className="w-14 text-center">序号</TableHead>
                   <TableHead>名称</TableHead>
                   <TableHead className="w-40">区划代码</TableHead>
                   <TableHead className="w-20">层级</TableHead>

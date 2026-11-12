@@ -91,6 +91,7 @@ export function RecycleBinDialog({ open, onOpenChange, onRestored }: RecycleBinD
             <table className="w-full text-sm">
               <thead className="bg-muted/50 sticky top-0">
                 <tr className="text-left">
+                  <th className="w-14 px-3 py-2 text-center font-medium">序号</th>
                   <th className="px-3 py-2 font-medium">账号</th>
                   <th className="px-3 py-2 font-medium">姓名</th>
                   <th className="px-3 py-2 font-medium">手机号</th>
@@ -99,8 +100,9 @@ export function RecycleBinDialog({ open, onOpenChange, onRestored }: RecycleBinD
                 </tr>
               </thead>
               <tbody>
-                {rows.map(user => (
+                {rows.map((user, index) => (
                   <tr key={user.id} className="border-t">
+                    <td className="text-muted-foreground px-3 py-2 text-center tabular-nums">{index + 1}</td>
                     <td className="px-3 py-2 font-mono text-xs">{user.username}</td>
                     <td className="px-3 py-2">{user.realname || '-'}</td>
                     <td className="px-3 py-2">{user.phone || '-'}</td>

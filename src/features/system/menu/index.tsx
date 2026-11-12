@@ -154,13 +154,15 @@ export function MenuPage() {
       return next
     })
 
-  const renderRows = (nodes: MenuNode[], depth: number): ReactNode[] =>
+  // counter 贯穿递归，保证序号按「展开后的视觉顺序」连续递增
+  const renderRows = (nodes: MenuNode[], depth: number, counter: { n: number } = { n: 0 }): ReactNode[] =>
     nodes.flatMap(node => {
       const hasChildren = node.children.length > 0
       const isCollapsed = collapsed.has(node.id)
       const isButton = node.menuType === 2
       const row = (
         <TableRow key={node.id}>
+          <TableCell className="text-muted-foreground w-14 text-center tabular-nums">{++counter.n}</TableCell>
           <TableCell>
             <div className="flex items-center gap-1" style={{ paddingInlineStart: depth * 20 }}>
               {hasChildren ? (
@@ -217,7 +219,7 @@ export function MenuPage() {
           </TableCell>
         </TableRow>
       )
-      return isCollapsed ? [row] : [row, ...renderRows(node.children, depth + 1)]
+      return isCollapsed ? [row] : [row, ...renderRows(node.children, depth + 1, counter)]
     })
 
   return (
@@ -299,6 +301,7 @@ export function MenuPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-14 text-center">序号</TableHead>
                   <TableHead>菜单名称</TableHead>
                   <TableHead className="w-20">菜单类型</TableHead>
                   <TableHead>路由地址</TableHead>
@@ -319,7 +322,7 @@ export function MenuPage() {
                     )
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-muted-foreground py-10 text-center">
+                      <TableCell colSpan={10} className="text-muted-foreground py-10 text-center">
                         没有匹配的菜单
                       </TableCell>
                     </TableRow>

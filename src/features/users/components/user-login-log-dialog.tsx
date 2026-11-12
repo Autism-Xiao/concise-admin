@@ -28,6 +28,7 @@ function LogRows({ logs, loading, error }: { logs: LoginLog[] | null; loading: b
       <table className="w-full text-sm">
         <thead className="bg-muted/50 sticky top-0">
           <tr className="text-start">
+            <th className="w-14 px-3 py-2 text-center font-medium">序号</th>
             <th className="px-3 py-2 text-start font-medium">时间</th>
             <th className="px-3 py-2 text-start font-medium">IP</th>
             <th className="hidden px-3 py-2 text-start font-medium sm:table-cell">浏览器</th>
@@ -36,8 +37,9 @@ function LogRows({ logs, loading, error }: { logs: LoginLog[] | null; loading: b
           </tr>
         </thead>
         <tbody>
-          {logs.map(log => (
+          {logs.map((log, index) => (
             <tr key={log.id} className="border-t">
+              <td className="text-muted-foreground px-3 py-2 text-center tabular-nums">{index + 1}</td>
               <td className="px-3 py-2 whitespace-nowrap">{log.time}</td>
               <td className="px-3 py-2 font-mono text-xs">{log.ip}</td>
               <td className="hidden px-3 py-2 sm:table-cell">{log.browser}</td>
