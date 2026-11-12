@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Info, LogIn, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -6,7 +6,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { isPathAllowed, usePermittedPaths } from '@/lib/permissions'
 import { fetchOverview, type DashboardOverview } from './api'
-import { LoginTrendChart } from './components/login-trend-chart'
+// recharts 体积大（构建后约 300K+）且只有登录趋势图在用：懒加载把它单独拆成异步 chunk，
+// 首屏骨架阶段不用下载解析图表库，dashboard 主 chunk 相应瘦身
+const LoginTrendChart = lazy(() => import('./components/login-trend-chart').then(m => ({ default: m.LoginTrendChart })))
 import { MetricCards } from './components/metric-cards'
 import { MyTasksCard } from './components/my-tasks-card'
 import { NoticesCard } from './components/notices-card'
@@ -166,7 +168,19 @@ export function DashboardPage() {
           表现为移动端整列横向溢出（图 + 图下面的卡片一起超宽） */}
       <div className="grid min-w-0 gap-4 xl:grid-cols-3">
         <div className="min-w-0 space-y-4 xl:col-span-2">
-          {data.loginTrend && <LoginTrendChart block={data.loginTrend} />}
+          {data.loginTrend && (
+            <Suspense
+              fallback={
+                <Card>
+                  <CardContent className="py-5">
+                    <Skeleton className="h-48 w-full sm:h-56" />
+                  </CardContent>
+                </Card>
+              }
+            >
+              <LoginTrendChart block={data.loginTrend} />
+            </Suspense>
+          )}
           {data.recentOpers && (
             <RecentOpersCard block={data.recentOpers} onOpenLogs={() => go('/system/log/operation')} canOpenLogs={canGo.logs} />
           )}
