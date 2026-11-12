@@ -3,9 +3,10 @@
  *
  * 设计原则（这是本文件存在的唯一理由）：
  * - `message` 只放**用户能看懂的人话**：不出现 HTTP 状态码、接口路径、端口号、
- *   `BACKEND_URL` / `vite 代理` 这类只有开发者才懂的词。终端用户看到这些除了困惑没有任何用处。
- * - 技术细节放 `detail`，只写进浏览器控制台（`console.error`）。开发环境会把它附在
- *   message 末尾方便当场排查，生产环境绝不外泄。
+ *   `BACKEND_URL` / `vite 代理` 这类只有开发者才懂的词，也不带英文——无论开发还是生产，
+ *   用户看到的永远是一句纯中文。
+ * - 技术细节放 `detail`，只写进浏览器控制台（`console.error` / 开发环境的 `console.debug`），
+ *   绝不出现在页面上。
  * - `kind` 让调用方能分支处理（比如「服务不可用」才弹全局横幅，业务校验失败不要弹）。
  *
  * 之前的做法是把诊断信息直接拼进 message，结果页面上弹出
@@ -65,10 +66,12 @@ export class ApiError extends Error {
    * @param code 后端业务码：调用方按它分支（如 1009 锁定要禁用提交按钮），别再解析 message 文本
    */
   constructor(kind: ApiErrorKind, detail?: string, status?: number, userMessage?: string, code?: number) {
-    // 开发环境把细节附在文案后面，方便本机联调时一眼看到是哪一步断的；
-    // 生产构建里 detail 只进控制台，用户只看人话。
+    // 用户可见文案永远是人话（不再区分开发/生产把细节拼进 message——
+    // 开发模式弹「/backend-api/v1/dicts → HTTP 502」这种中英混杂的提示同样干扰人）。
+    // 技术细节只进控制台：开发环境在这里 debug 一条，联调时仍能一眼定位是哪个接口断的。
     const base = userMessage || KIND_MESSAGE[kind] || KIND_MESSAGE.unknown
-    super(import.meta.env.DEV && detail && !userMessage ? `${base}（${detail}）` : base)
+    if (import.meta.env.DEV && detail) console.debug('[接口错误]', detail)
+    super(base)
     this.name = 'ApiError'
     this.kind = kind
     this.code = code
@@ -96,6 +99,9 @@ export function userMessageOf(error: unknown, fallback = '操作没成功，请�
       return KIND_MESSAGE.network
     }
     if (/aborted|timeout/i.test(error.message)) return KIND_MESSAGE.timeout
+    // 全局兜底：整条消息里一个汉字都没有（浏览器原生英文报错、程序异常等），
+    // 对用户就是乱码，统一换成人话，保证界面文案永远纯中文
+    if (!/\p{Script=Han}/u.test(error.message)) return fallback
     return error.message
   }
   return fallback
