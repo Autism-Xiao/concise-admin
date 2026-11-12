@@ -5,6 +5,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -59,6 +60,52 @@ export function RolePage() {
   useEffect(load, [])
 
   const roles = useMemo(() => list ?? [], [list])
+
+  /* ---------- 归属筛选 + 分组（平台视角下会看到多个租户各自的同名角色模板） ---------- */
+
+  /** 归属筛选：key 是 tenantId 的字符串形式，'0' = 平台共享，'all' = 不筛选 */
+  const [ownerFilter, setOwnerFilter] = useState<string>('all')
+  const ownerItems = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const role of roles) {
+      const key = String(role.tenantId ?? 0)
+      if (!map.has(key)) map.set(key, key === '0' ? '平台共享' : (role.tenantName ?? `租户 ${key}`))
+    }
+    return { all: '全部归属', ...Object.fromEntries(map) }
+  }, [roles])
+  /**
+   * 筛选 + 分组排序：平台共享（0）排最前，租户按名称排序、组内保持创建时间顺序。
+   * 排好序后 DataTable 的 groupOf 按「首次出现顺序」切段即可。
+   */
+  const visibleRoles = useMemo(() => {
+    const filtered = ownerFilter === 'all' ? roles : roles.filter(role => String(role.tenantId ?? 0) === ownerFilter)
+    return [...filtered].sort((a, b) => {
+      const ta = Number(a.tenantId ?? 0)
+      const tb = Number(b.tenantId ?? 0)
+      if (ta === 0 && tb !== 0) return -1
+      if (ta !== 0 && tb === 0) return 1
+      if (ta === 0) return 0
+      const nameA = a.tenantName ?? `租户 ${ta}`
+      const nameB = b.tenantName ?? `租户 ${tb}`
+      return nameA.localeCompare(nameB, 'zh-Hans-CN') || ta - tb
+    })
+  }, [roles, ownerFilter])
+
+  const groupOf = useCallback((role: Role) => String(role.tenantId ?? 0), [])
+  const groupLabel = useCallback(
+    (groupId: string) => {
+      if (groupId === '0') {
+        return (
+          <span title="平台共享角色：所有租户都可见、可分配给用户">
+            平台共享<span className="text-muted-foreground font-normal">（所有租户可见）</span>
+          </span>
+        )
+      }
+      const tenantName = roles.find(role => String(role.tenantId ?? 0) === groupId)?.tenantName ?? `租户 ${groupId}`
+      return <span title="租户私有角色：只在归属租户内可见、可分配">租户：{tenantName}</span>
+    },
+    [roles]
+  )
 
   /** 正在切换状态的行 id（行级 loading，防止连点） */
   const [togglingId, setTogglingId] = useState<string | null>(null)
@@ -239,7 +286,8 @@ export function RolePage() {
     [permLoading, togglingId, toggleStatus]
   )
 
-  const { table, keyword, setKeyword, rowSelection, setRowSelection } = useDataTable({ data: roles, columns, getRowId: role => role.id })
+  // 角色是全量返回的小表：pageSize 放大到 50，避免分组跨页重复出组头
+  const { table, keyword, setKeyword, rowSelection, setRowSelection } = useDataTable({ data: visibleRoles, columns, pageSize: 50, getRowId: role => role.id })
   const selectedCount = Object.keys(rowSelection).filter(key => rowSelection[key]).length
   const [batchDeleting, setBatchDeleting] = useState(false)
   const [batchBusy, setBatchBusy] = useState(false)
@@ -317,7 +365,9 @@ export function RolePage() {
         <div>
           <h1 className="text-2xl font-bold">角色权限</h1>
           <p className="text-muted-foreground text-sm">
-            共 {roles.length} 个角色{permSaving && '（保存中…）'}
+            {ownerFilter === 'all'
+              ? `共 ${roles.length} 个角色`
+              : `筛选出 ${visibleRoles.length} 个角色（全部共 ${roles.length} 个）`}{permSaving && '（保存中…）'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -370,10 +420,23 @@ export function RolePage() {
                 <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
                 <Input placeholder="搜索名称 / 权限字符" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
               </div>
+              <Select value={ownerFilter} onValueChange={setOwnerFilter} items={ownerItems}>
+                <SelectTrigger className="h-9 w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部归属</SelectItem>
+                  {[...Object.entries(ownerItems).filter(([key]) => key !== 'all')].map(([key, label]) => (
+                    <SelectItem key={key} value={key}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 
-            <DataTable table={table} emptyText="没有匹配的角色" />
+            <DataTable table={table} emptyText="没有匹配的角色" groupOf={groupOf} groupLabel={groupLabel} />
             <DataTablePagination table={table} />
           </CardContent>
         </Card>
