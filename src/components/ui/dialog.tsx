@@ -63,8 +63,9 @@ function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
+        data-scroll="dialog"
         className={cn(
-          'bg-popover text-popover-foreground ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-xl p-6 text-sm ring-1 duration-100 outline-none sm:max-w-md',
+          'bg-popover text-popover-foreground ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 overflow-y-auto overscroll-contain rounded-xl p-6 text-sm ring-1 duration-100 outline-none sm:max-w-md',
           className
         )}
         {...props}
@@ -81,8 +82,13 @@ function DialogContent({
   )
 }
 
+/** 固定头尾布局的滚动内容区：配合 DialogContent 的 flex + overflow-hidden 使用。 */
+function DialogBody({ className, ...props }: React.ComponentProps<'div'>) {
+  return <div data-slot="dialog-body" data-scroll="dialog" className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain', className)} {...props} />
+}
+
 function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div data-slot="dialog-header" className={cn('flex flex-col gap-2', className)} {...props} />
+  return <div data-slot="dialog-header" className={cn('flex shrink-0 flex-col gap-2', className)} {...props} />
 }
 
 function DialogFooter({
@@ -94,7 +100,7 @@ function DialogFooter({
   showCloseButton?: boolean
 }) {
   return (
-    <div data-slot="dialog-footer" className={cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', className)} {...props}>
+    <div data-slot="dialog-footer" className={cn('flex shrink-0 flex-col-reverse gap-2 sm:flex-row sm:justify-end', className)} {...props}>
       {children}
       {showCloseButton && <DialogPrimitive.Close render={<Button variant="outline" />}>Close</DialogPrimitive.Close>}
     </div>
@@ -115,4 +121,4 @@ function DialogDescription({ className, ...props }: React.ComponentProps<typeof 
   )
 }
 
-export { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogOverlay, DialogPortal, DialogTitle, DialogTrigger }
+export { Dialog, DialogBody, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogOverlay, DialogPortal, DialogTitle, DialogTrigger }
