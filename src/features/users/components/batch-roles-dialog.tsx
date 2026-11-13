@@ -36,7 +36,12 @@ export function BatchRolesDialog({ open, onOpenChange, targets, onSubmit }: Batc
     e.preventDefault()
     if (!targets.length) return
     setSubmitting(true)
-    Promise.resolve(onSubmit(targets.map(user => user.id), selected)).finally(() => setSubmitting(false))
+    Promise.resolve(
+      onSubmit(
+        targets.map(user => user.id),
+        selected
+      )
+    ).finally(() => setSubmitting(false))
   }
 
   return (
@@ -46,7 +51,7 @@ export function BatchRolesDialog({ open, onOpenChange, targets, onSubmit }: Batc
           <DialogTitle>批量分配角色（{targets.length} 个用户）</DialogTitle>
           <DialogDescription>保存后每个用户绑定的角色将整体替换为所选列表（与编辑单个用户同语义），权限实时生效</DialogDescription>
         </DialogHeader>
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form id="batch-roles-form" className="space-y-4" onSubmit={handleSubmit}>
           {loadError ? (
             <p className="text-destructive text-sm">{loadError}</p>
           ) : !roles ? (
@@ -54,7 +59,7 @@ export function BatchRolesDialog({ open, onOpenChange, targets, onSubmit }: Batc
           ) : (
             <div className="max-h-52 space-y-1.5 overflow-y-auto rounded-md border p-2">
               {roles.map(role => (
-                <label key={role.id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm hover:bg-accent">
+                <label key={role.id} className="hover:bg-accent flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm">
                   <input type="checkbox" className="accent-primary" checked={selected.includes(role.id)} onChange={() => toggle(role.id)} />
                   {role.roleName || role.roleCode}
                   <span className="text-muted-foreground text-xs">{role.roleCode}</span>
@@ -62,15 +67,15 @@ export function BatchRolesDialog({ open, onOpenChange, targets, onSubmit }: Batc
               ))}
             </div>
           )}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              取消
-            </Button>
-            <Button type="submit" disabled={submitting || !roles}>
-              {submitting ? '保存中…' : '保存'}
-            </Button>
-          </DialogFooter>
         </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button form="batch-roles-form" type="submit" disabled={submitting || !roles}>
+            {submitting ? '保存中…' : '保存'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

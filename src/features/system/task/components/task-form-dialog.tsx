@@ -77,6 +77,7 @@ export function TaskFormDialog({ open, onOpenChange, task, onSubmit }: TaskFormD
           <DialogDescription>指派给某人的任务会出现在他的首页「我的待办」里</DialogDescription>
         </DialogHeader>
         <form
+          id="task-form"
           className="space-y-4"
           onSubmit={e => {
             e.preventDefault()
@@ -127,16 +128,15 @@ export function TaskFormDialog({ open, onOpenChange, task, onSubmit }: TaskFormD
               placeholder="任务背景、验收标准等（选填）"
             />
           </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              取消
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? '保存中…' : '保存'}
-            </Button>
-          </DialogFooter>
         </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button form="task-form" type="submit" disabled={pending}>
+            {pending ? '保存中…' : '保存'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

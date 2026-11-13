@@ -69,7 +69,7 @@ export function RegionImportDialog({ open, onOpenChange, onImported }: RegionImp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[85vh] sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>导入区划</DialogTitle>
           <DialogDescription>
@@ -79,7 +79,9 @@ export function RegionImportDialog({ open, onOpenChange, onImported }: RegionImp
         <div className="space-y-3">
           <textarea
             className="bg-muted/40 ring-input focus-visible:ring-ring h-56 w-full rounded-md p-3 font-mono text-xs ring-1 outline-none focus-visible:ring-2"
-            placeholder={'[\n  { "id": 1, "areaCode": "110000000000", "parentCode": "0", "level": 0, "levelText": "省份", "name": "北京市", "shortName": "北京", "fullName": "北京", "pinyin": "BeiJing", "lng": "116.407526", "lat": "39.904030" },\n  ...\n]'}
+            placeholder={
+              '[\n  { "id": 1, "areaCode": "110000000000", "parentCode": "0", "level": 0, "levelText": "省份", "name": "北京市", "shortName": "北京", "fullName": "北京", "pinyin": "BeiJing", "lng": "116.407526", "lat": "39.904030" },\n  ...\n]'
+            }
             value={text}
             onChange={e => {
               setText(e.target.value)

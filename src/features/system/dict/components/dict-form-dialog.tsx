@@ -36,6 +36,7 @@ export function DictFormDialog({ open, onOpenChange, dict, onSubmit }: DictFormD
           <DialogDescription>{dict ? '修改字典信息后保存' : '字典创建后可继续为它添加字典项'}</DialogDescription>
         </DialogHeader>
         <form
+          id="dict-form"
           className="space-y-4"
           onSubmit={async e => {
             e.preventDefault()
@@ -53,7 +54,14 @@ export function DictFormDialog({ open, onOpenChange, dict, onSubmit }: DictFormD
           </div>
           <div className="space-y-2">
             <Label htmlFor="dict-code">字典编码</Label>
-            <Input id="dict-code" value={form.dictCode} onChange={e => set('dictCode', e.target.value)} placeholder="如 sys_user_gender" required maxLength={100} />
+            <Input
+              id="dict-code"
+              value={form.dictCode}
+              onChange={e => set('dictCode', e.target.value)}
+              placeholder="如 sys_user_gender"
+              required
+              maxLength={100}
+            />
             <p className="text-muted-foreground text-xs">唯一标识，字母开头，前端按此编码取字典项</p>
           </div>
           <div className="space-y-2">
@@ -72,15 +80,15 @@ export function DictFormDialog({ open, onOpenChange, dict, onSubmit }: DictFormD
             <Label htmlFor="dict-description">描述</Label>
             <Input id="dict-description" value={form.description ?? ''} onChange={e => set('description', e.target.value)} maxLength={255} />
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              取消
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? '保存中…' : '保存'}
-            </Button>
-          </DialogFooter>
         </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button form="dict-form" type="submit" disabled={submitting}>
+            {submitting ? '保存中…' : '保存'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

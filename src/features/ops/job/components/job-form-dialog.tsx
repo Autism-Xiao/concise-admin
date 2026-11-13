@@ -75,6 +75,7 @@ export function JobFormDialog({ open, onOpenChange, job, onSubmit }: JobFormDial
           <DialogDescription>任务类名对应后端已注册的执行器</DialogDescription>
         </DialogHeader>
         <form
+          id="job-form"
           className="space-y-4"
           onSubmit={e => {
             e.preventDefault()
@@ -120,13 +121,7 @@ export function JobFormDialog({ open, onOpenChange, job, onSubmit }: JobFormDial
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="job-cron">cron 表达式</Label>
-              <Input
-                id="job-cron"
-                placeholder="0 0 3 * * *"
-                value={form.cronExpression}
-                onChange={e => set('cronExpression', e.target.value)}
-                required
-              />
+              <Input id="job-cron" placeholder="0 0 3 * * *" value={form.cronExpression} onChange={e => set('cronExpression', e.target.value)} required />
               <p className="text-muted-foreground text-xs">6 位：秒 分 时 日 月 周</p>
             </div>
             <div className="space-y-2">
@@ -139,16 +134,15 @@ export function JobFormDialog({ open, onOpenChange, job, onSubmit }: JobFormDial
             <Label htmlFor="job-desc">描述</Label>
             <Input id="job-desc" maxLength={255} value={form.description} onChange={e => set('description', e.target.value)} />
           </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              取消
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? '保存中…' : '保存'}
-            </Button>
-          </DialogFooter>
         </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button form="job-form" type="submit" disabled={pending}>
+            {pending ? '保存中…' : '保存'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

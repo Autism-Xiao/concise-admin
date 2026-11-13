@@ -114,9 +114,7 @@ export function MenuFormDialog({ open, onOpenChange, menu, parentId, menus, onSu
   // 穿梭框右栏：编辑时用该菜单下既有的按钮子级初始化（全量替换语义下，不带回就会误删）
   const [permNodes, setPermNodes] = useState<PermNode[]>(() => {
     if (!menu) return []
-    return menus
-      .filter(m => m.parentId === menu.id && m.menuType === 2 && (m.delFlag ?? 0) === 0 && m.perms)
-      .map(m => ({ name: m.name, perms: m.perms! }))
+    return menus.filter(m => m.parentId === menu.id && m.menuType === 2 && (m.delFlag ?? 0) === 0 && m.perms).map(m => ({ name: m.name, perms: m.perms! }))
   })
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm(prev => ({ ...prev, [key]: value }))
@@ -161,12 +159,12 @@ export function MenuFormDialog({ open, onOpenChange, menu, parentId, menus, onSu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[88vh] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{menu ? '修改菜单' : '新增菜单'}</DialogTitle>
           <DialogDescription>{isButton ? '按钮权限只需名称与权限标识' : '配置菜单路由与按钮权限节点'}</DialogDescription>
         </DialogHeader>
-        <form className="space-y-5" onSubmit={handleSubmit}>
+        <form id="menu-form" className="space-y-5" onSubmit={handleSubmit}>
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
             <div className={field}>
               <Label>上级菜单</Label>
@@ -201,7 +199,13 @@ export function MenuFormDialog({ open, onOpenChange, menu, parentId, menus, onSu
               <Label htmlFor="menu-name">
                 <span className="text-destructive">*</span> 菜单名称
               </Label>
-              <Input id="menu-name" value={form.name} onChange={e => set('name', e.target.value)} placeholder={isButton ? '如：用户新增' : '如：用户管理'} required />
+              <Input
+                id="menu-name"
+                value={form.name}
+                onChange={e => set('name', e.target.value)}
+                placeholder={isButton ? '如：用户新增' : '如：用户管理'}
+                required
+              />
             </div>
             {!isButton && (
               <div className={field}>
@@ -260,7 +264,7 @@ export function MenuFormDialog({ open, onOpenChange, menu, parentId, menus, onSu
                 <Label>
                   是否可见
                   <span
-                    className="text-muted-foreground ms-1 inline-flex size-4 cursor-help items-center justify-center rounded-full bg-muted text-[10px]"
+                    className="text-muted-foreground bg-muted ms-1 inline-flex size-4 cursor-help items-center justify-center rounded-full text-[10px]"
                     title="隐藏后不在侧边栏出现，但仍可直接通过 URL 访问"
                   >
                     ?
@@ -280,11 +284,7 @@ export function MenuFormDialog({ open, onOpenChange, menu, parentId, menus, onSu
 
           <div className={field}>
             <Label>状态</Label>
-            <RadioLine
-              value={form.status}
-              options={Object.entries(statusItems).map(([value, label]) => ({ value, label }))}
-              onChange={v => set('status', v)}
-            />
+            <RadioLine value={form.status} options={Object.entries(statusItems).map(([value, label]) => ({ value, label }))} onChange={v => set('status', v)} />
           </div>
 
           {!isButton && (
@@ -310,14 +310,15 @@ export function MenuFormDialog({ open, onOpenChange, menu, parentId, menus, onSu
               className="ring-foreground/10 focus-visible:ring-primary/50 placeholder:text-muted-foreground w-full rounded-md px-3 py-2 text-sm ring-1 outline-none focus-visible:ring-2"
             />
           </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              取消
-            </Button>
-            <Button type="submit">保存</Button>
-          </DialogFooter>
         </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button form="menu-form" type="submit">
+            保存
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

@@ -51,11 +51,10 @@ export function TenantAdminDialog({ tenant, open, onOpenChange, onSaved }: Tenan
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>开通租户管理员</DialogTitle>
-          <DialogDescription>
-            为「{tenant.name}」创建一个管理员账号，自动加入本租户并绑定该租户的管理员角色
-          </DialogDescription>
+          <DialogDescription>为「{tenant.name}」创建一个管理员账号，自动加入本租户并绑定该租户的管理员角色</DialogDescription>
         </DialogHeader>
         <form
+          id="tenant-admin-form"
           className="space-y-4"
           onSubmit={e => {
             e.preventDefault()
@@ -77,7 +76,14 @@ export function TenantAdminDialog({ tenant, open, onOpenChange, onSaved }: Tenan
           </div>
           <div className="space-y-2">
             <Label htmlFor="tenant-admin-realname">姓名</Label>
-            <Input id="tenant-admin-realname" value={form.realname} onChange={e => set('realname', e.target.value)} placeholder="如 张三" maxLength={100} required />
+            <Input
+              id="tenant-admin-realname"
+              value={form.realname}
+              onChange={e => set('realname', e.target.value)}
+              placeholder="如 张三"
+              maxLength={100}
+              required
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="tenant-admin-password">初始密码</Label>
@@ -93,15 +99,15 @@ export function TenantAdminDialog({ tenant, open, onOpenChange, onSaved }: Tenan
             />
             <p className="text-muted-foreground text-xs">服务端哈希存储，创建后无法找回，只能重置</p>
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              取消
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? '开通中…' : '开通'}
-            </Button>
-          </DialogFooter>
         </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button form="tenant-admin-form" type="submit" disabled={saving}>
+            {saving ? '开通中…' : '开通'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

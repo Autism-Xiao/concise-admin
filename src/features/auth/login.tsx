@@ -18,15 +18,7 @@ import { BIZ_CODE } from '@/lib/biz-code'
 import { login, setAvatar, setMenuTree, setMustChangePassword, setPermissions, setTokens } from '@/lib/auth'
 import { resolveHomePath } from '@/lib/home-path'
 import { notifyPermissionsChanged } from '@/lib/permissions'
-import {
-  clearRemember,
-  readRemember,
-  readRememberPassword,
-  REMEMBER_DAYS_DEFAULT,
-  REMEMBER_OPTIONS,
-  writeRemember,
-  type RememberDays
-} from '@/lib/remember'
+import { clearRemember, readRemember, readRememberPassword, REMEMBER_DAYS_DEFAULT, REMEMBER_OPTIONS, writeRemember, type RememberDays } from '@/lib/remember'
 import { fetchCaptcha, fetchPermissions, fetchSsoConfig, loginRequest, verifyCaptcha } from './api'
 
 const APP_NAME = import.meta.env.VITE_APP_NAME
@@ -409,7 +401,7 @@ export function LoginPage() {
       {/* 验证码弹框：宽度跟随 320px 固定出图（缩放会让 x 轴校验错位），收起时不占布局空间；
           弹框关闭即卸载组件，下次打开重新 request，题目与拼图位置都会变 */}
       <Dialog open={captchaOpen} onOpenChange={setCaptchaOpen}>
-        <DialogContent className="w-auto max-w-[calc(100vw-1.5rem)] gap-4 p-3 sm:max-w-[360px] sm:p-5">
+        <DialogContent layout="free" className="w-auto max-w-[calc(100vw-1.5rem)] gap-4 p-3 sm:max-w-[360px] sm:p-5">
           <DialogHeader className="pr-8">
             <DialogTitle className="text-base font-medium">{t('login.captchaDialogTitle')}</DialogTitle>
             <DialogDescription className="text-xs">{t('login.captchaDialogDesc')}</DialogDescription>

@@ -39,6 +39,7 @@ export function LevelFormDialog({ open, onOpenChange, level, onSubmit }: LevelFo
           <DialogDescription>{level ? '修改职级信息后保存' : '填写信息创建新职级'}</DialogDescription>
         </DialogHeader>
         <form
+          id="level-form"
           className="space-y-4"
           onSubmit={e => {
             e.preventDefault()
@@ -69,13 +70,15 @@ export function LevelFormDialog({ open, onOpenChange, level, onSubmit }: LevelFo
             <Label htmlFor="level-remark">备注</Label>
             <Input id="level-remark" value={form.remark} onChange={e => set('remark', e.target.value)} />
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              取消
-            </Button>
-            <Button type="submit">保存</Button>
-          </DialogFooter>
         </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button form="level-form" type="submit">
+            保存
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

@@ -64,6 +64,7 @@ export function PostFormDialog({ open, onOpenChange, post, onSubmit }: PostFormD
           <DialogDescription>{post ? '修改岗位信息后保存' : '填写信息创建新岗位'}</DialogDescription>
         </DialogHeader>
         <form
+          id="post-form"
           className="space-y-4"
           onSubmit={e => {
             e.preventDefault()
@@ -125,13 +126,15 @@ export function PostFormDialog({ open, onOpenChange, post, onSubmit }: PostFormD
             <Label htmlFor="post-desc">描述</Label>
             <Input id="post-desc" value={form.description} onChange={e => set('description', e.target.value)} />
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              取消
-            </Button>
-            <Button type="submit">保存</Button>
-          </DialogFooter>
         </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button form="post-form" type="submit">
+            保存
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

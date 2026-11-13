@@ -8,7 +8,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { UserMultiSelect } from '@/features/users/components/user-multi-select'
 import { toast } from 'sonner'
 import { useDict } from '@/lib/dict'
-import { NOTICE_CATEGORY_LABEL, NOTICE_PRIORITY_LABEL, NOTICE_TARGET_LABEL, type Notice, type NoticeCategory, type NoticePriority, type NoticeTarget, type NoticeWritePayload } from '../api'
+import {
+  NOTICE_CATEGORY_LABEL,
+  NOTICE_PRIORITY_LABEL,
+  NOTICE_TARGET_LABEL,
+  type Notice,
+  type NoticeCategory,
+  type NoticePriority,
+  type NoticeTarget,
+  type NoticeWritePayload
+} from '../api'
 
 interface NoticeFormDialogProps {
   open: boolean
@@ -49,7 +58,14 @@ export function NoticeFormDialog({ open, onOpenChange, notice, onSubmit }: Notic
   /* ---------------- 接收用户：多选控件按账号挑人，落库仍是用户 ID ---------------- */
 
   /** 已选用户 ID（多选，提交时逗号拼接为 userIds；存量数据里已删用户的 ID 也原样保留） */
-  const [userIds, setUserIds] = useState<string[]>(() => (notice?.userIds ? notice.userIds.split(',').map(s => s.trim()).filter(Boolean) : []))
+  const [userIds, setUserIds] = useState<string[]>(() =>
+    notice?.userIds
+      ? notice.userIds
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean)
+      : []
+  )
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm(prev => ({ ...prev, [key]: value }))
 
@@ -97,6 +113,7 @@ export function NoticeFormDialog({ open, onOpenChange, notice, onSubmit }: Notic
           <DialogDescription>{notice ? '修改后保存，状态切到已发布会自动记录发布时间' : '填写信息创建公告，选「已发布」会立即上线'}</DialogDescription>
         </DialogHeader>
         <form
+          id="notice-form"
           className="space-y-4"
           onSubmit={e => {
             e.preventDefault()
@@ -198,16 +215,15 @@ export function NoticeFormDialog({ open, onOpenChange, notice, onSubmit }: Notic
               maxLength={20000}
             />
           </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              取消
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? '保存中…' : '保存'}
-            </Button>
-          </DialogFooter>
         </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button form="notice-form" type="submit" disabled={pending}>
+            {pending ? '保存中…' : '保存'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

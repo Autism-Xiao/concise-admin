@@ -74,12 +74,13 @@ export function DeptFormDialog({ open, onOpenChange, dept, parentId, depts, onSu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[88vh] sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{dept ? '修改部门' : '新增部门'}</DialogTitle>
           <DialogDescription>{dept ? '更换上级部门会同步更新部门编码；手工改编码会同步刷新挂靠用户' : '部门编码留空由后端按层级自动生成'}</DialogDescription>
         </DialogHeader>
         <form
+          id="dept-form"
           className="space-y-4"
           onSubmit={e => {
             e.preventDefault()
@@ -170,14 +171,15 @@ export function DeptFormDialog({ open, onOpenChange, dept, parentId, depts, onSu
               className="ring-foreground/10 focus-visible:ring-primary/50 placeholder:text-muted-foreground w-full rounded-md px-3 py-2 text-sm ring-1 outline-none focus-visible:ring-2"
             />
           </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              取消
-            </Button>
-            <Button type="submit">保存</Button>
-          </DialogFooter>
         </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button form="dept-form" type="submit">
+            保存
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

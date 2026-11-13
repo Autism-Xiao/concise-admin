@@ -148,7 +148,7 @@ export function RegionFormDialog({ open, onOpenChange, region, onSaved }: Region
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[85vh] sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? '编辑区划' : '新增区划'}</DialogTitle>
           <DialogDescription>
@@ -156,7 +156,7 @@ export function RegionFormDialog({ open, onOpenChange, region, onSaved }: Region
             {isEdit ? '（编辑时可整体换上级，下级区划会一并跟着移动）' : ''}
           </DialogDescription>
         </DialogHeader>
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form id="region-form" className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <Label>上级区划（逐级选择，选到哪级上级就是哪级）</Label>
             {provinces === null ? (
@@ -245,15 +245,15 @@ export function RegionFormDialog({ open, onOpenChange, region, onSaved }: Region
             <Label htmlFor="region-full">全称（可选，默认同名称）</Label>
             <Input id="region-full" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="默认同名称" />
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              取消
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? '保存中…' : '保存'}
-            </Button>
-          </DialogFooter>
         </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button form="region-form" type="submit" disabled={saving}>
+            {saving ? '保存中…' : '保存'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

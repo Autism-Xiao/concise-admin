@@ -41,6 +41,7 @@ export function DictItemFormDialog({ open, onOpenChange, dict, item, onSubmit }:
           </DialogDescription>
         </DialogHeader>
         <form
+          id="dict-item-form"
           className="space-y-4"
           onSubmit={async e => {
             e.preventDefault()
@@ -68,13 +69,7 @@ export function DictItemFormDialog({ open, onOpenChange, dict, item, onSubmit }:
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="item-sort">排序</Label>
-              <Input
-                id="item-sort"
-                type="number"
-                min={0}
-                value={form.sortOrder}
-                onChange={e => set('sortOrder', Number(e.target.value))}
-              />
+              <Input id="item-sort" type="number" min={0} value={form.sortOrder} onChange={e => set('sortOrder', Number(e.target.value))} />
             </div>
             <div className="space-y-2">
               <Label>状态</Label>
@@ -93,15 +88,15 @@ export function DictItemFormDialog({ open, onOpenChange, dict, item, onSubmit }:
             <Label htmlFor="item-description">描述</Label>
             <Input id="item-description" value={form.description ?? ''} onChange={e => set('description', e.target.value)} maxLength={255} />
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              取消
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? '保存中…' : '保存'}
-            </Button>
-          </DialogFooter>
         </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button form="dict-item-form" type="submit" disabled={submitting}>
+            {submitting ? '保存中…' : '保存'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

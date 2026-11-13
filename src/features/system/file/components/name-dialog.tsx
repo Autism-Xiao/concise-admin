@@ -41,6 +41,7 @@ export function NameDialog({
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         <form
+          id="name-form"
           className="space-y-4"
           onSubmit={event => {
             event.preventDefault()
@@ -51,22 +52,17 @@ export function NameDialog({
         >
           <div className="space-y-2">
             <Label htmlFor="file-name-input">{label}</Label>
-            <Input
-              id="file-name-input"
-              value={name}
-              onChange={event => setName(event.target.value)}
-              placeholder={placeholder}
-              autoFocus
-              required
-            />
+            <Input id="file-name-input" value={name} onChange={event => setName(event.target.value)} placeholder={placeholder} autoFocus required />
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              取消
-            </Button>
-            <Button type="submit">{submitText}</Button>
-          </DialogFooter>
         </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button form="name-form" type="submit">
+            {submitText}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

@@ -51,11 +51,10 @@ export function RoleFormDialog({ open, onOpenChange, role, onSubmit }: RoleFormD
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{role ? '编辑角色' : '新增角色'}</DialogTitle>
-          <DialogDescription>
-            {role ? '角色编码创建后不建议修改（@Roles() 按它匹配）' : '填写信息创建新角色，授权可在列表中继续操作'}
-          </DialogDescription>
+          <DialogDescription>{role ? '角色编码创建后不建议修改（@Roles() 按它匹配）' : '填写信息创建新角色，授权可在列表中继续操作'}</DialogDescription>
         </DialogHeader>
         <form
+          id="role-form"
           className="space-y-4"
           onSubmit={e => {
             e.preventDefault()
@@ -79,12 +78,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSubmit }: RoleFormD
           </div>
           <div className="space-y-2">
             <Label htmlFor="role-desc">描述</Label>
-            <Input
-              id="role-desc"
-              value={form.description}
-              onChange={e => set('description', e.target.value)}
-              placeholder="选填"
-            />
+            <Input id="role-desc" value={form.description} onChange={e => set('description', e.target.value)} placeholder="选填" />
           </div>
           <div className="space-y-2">
             <Label>数据范围</Label>
@@ -114,13 +108,15 @@ export function RoleFormDialog({ open, onOpenChange, role, onSubmit }: RoleFormD
               onCheckedChange={checked => set('status', checked ? 1 : 0)}
             />
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              取消
-            </Button>
-            <Button type="submit">保存</Button>
-          </DialogFooter>
         </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button form="role-form" type="submit">
+            保存
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

@@ -77,7 +77,7 @@ export function CommandMenu() {
         if (!v) setQuery('')
       }}
     >
-      <DialogContent className="overflow-hidden p-0 sm:max-w-lg" showCloseButton={false}>
+      <DialogContent layout="free" className="overflow-hidden p-0 sm:max-w-lg" showCloseButton={false}>
         <DialogTitle className="sr-only">{t('search.title')}</DialogTitle>
         <div className="flex items-center border-b px-3">
           <Search className="text-muted-foreground size-4 shrink-0" />

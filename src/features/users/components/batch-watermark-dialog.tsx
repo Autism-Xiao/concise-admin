@@ -101,7 +101,7 @@ export function BatchWatermarkDialog({ open, onOpenChange, targets, onSubmit }: 
           </DialogDescription>
         </DialogHeader>
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form id="batch-watermark-form" className="space-y-4" onSubmit={handleSubmit}>
           <div className="bg-muted/40 rounded-md border p-2 text-xs">
             <span className="text-muted-foreground">目标：</span>
             {preview.join('、')}
@@ -119,13 +119,7 @@ export function BatchWatermarkDialog({ open, onOpenChange, targets, onSubmit }: 
                     checked ? 'border-primary bg-primary/5' : 'hover:bg-accent/50'
                   }`}
                 >
-                  <input
-                    type="radio"
-                    name="batch-watermark-mode"
-                    className="accent-primary mt-1"
-                    checked={checked}
-                    onChange={() => setMode(option.value)}
-                  />
+                  <input type="radio" name="batch-watermark-mode" className="accent-primary mt-1" checked={checked} onChange={() => setMode(option.value)} />
                   <Icon className={`mt-0.5 size-4 shrink-0 ${option.danger ? 'text-destructive' : 'text-primary'}`} />
                   <span className="space-y-0.5">
                     <span className="block text-sm font-medium">{option.label}</span>
@@ -137,23 +131,18 @@ export function BatchWatermarkDialog({ open, onOpenChange, targets, onSubmit }: 
           </div>
 
           {mode === 'off' && (
-            <p className="text-destructive text-xs">
-              关闭水印后这些账号的截图将不再带身份信息，通常只在排查问题或临时演示时使用，请确认后继续。
-            </p>
+            <p className="text-destructive text-xs">关闭水印后这些账号的截图将不再带身份信息，通常只在排查问题或临时演示时使用，请确认后继续。</p>
           )}
-          {mode === 'inherit' && (
-            <p className="text-muted-foreground text-xs">已单独设置过的自定义文案与密度会被一并清除，无法撤销到原值。</p>
-          )}
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-              取消
-            </Button>
-            <Button type="submit" variant={mode === 'off' ? 'destructive' : 'default'} disabled={submitting || !targets.length}>
-              {submitting ? '保存中…' : BATCH_WATERMARK_MODE_LABEL[mode]}
-            </Button>
-          </DialogFooter>
+          {mode === 'inherit' && <p className="text-muted-foreground text-xs">已单独设置过的自定义文案与密度会被一并清除，无法撤销到原值。</p>}
         </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+            取消
+          </Button>
+          <Button form="batch-watermark-form" type="submit" variant={mode === 'off' ? 'destructive' : 'default'} disabled={submitting || !targets.length}>
+            {submitting ? '保存中…' : BATCH_WATERMARK_MODE_LABEL[mode]}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

@@ -120,9 +120,7 @@ function PendingRemindersPanel({
         <CardTitle className="flex items-center gap-2 text-base">
           <Bell className="text-destructive size-4" />
           本月待提醒
-          <span className="bg-destructive ml-1 rounded-full px-1.5 py-0.5 text-[11px] leading-none font-semibold text-white tabular-nums">
-            {items.length}
-          </span>
+          <span className="bg-destructive ml-1 rounded-full px-1.5 py-0.5 text-[11px] leading-none font-semibold text-white tabular-nums">{items.length}</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
@@ -175,7 +173,6 @@ function PendingRemindersPanel({
 function toKey(d: Date): string {
   return `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, '0')}-${`${d.getDate()}`.padStart(2, '0')}`
 }
-
 
 /** 生成 42 格（6 周）月视图，周一开头 */
 function buildMonth(year: number, month: number): DayCell[] {
@@ -241,10 +238,7 @@ export function CalendarPage() {
 
   /** 本月待触发提醒（按提醒点升序），供右侧面板与顶部计数使用 */
   const pendingEvents = useMemo(
-    () =>
-      events
-        .filter(ev => remindStateOf(ev) === 'pending')
-        .sort((a, b) => (a.remindAt ?? '').localeCompare(b.remindAt ?? '')),
+    () => events.filter(ev => remindStateOf(ev) === 'pending').sort((a, b) => (a.remindAt ?? '').localeCompare(b.remindAt ?? '')),
     [events]
   )
 
@@ -279,8 +273,7 @@ export function CalendarPage() {
       const endISO = `${toKey(end)}T${pad(end.getHours())}:${pad(end.getMinutes())}:00+08:00`
       // 提醒点 = 开始时间 - 提前量；'none' 不传 remindAt（后端按空值处理成不提醒）
       const offset = REMIND_OPTIONS.find(o => o.value === remind)
-      const remindAt =
-        offset && offset.value !== 'none' ? new Date(new Date(startISO).getTime() - offset.minutes * 60000).toISOString() : undefined
+      const remindAt = offset && offset.value !== 'none' ? new Date(new Date(startISO).getTime() - offset.minutes * 60000).toISOString() : undefined
       const created = await createCalendarEvent({
         calendarId,
         title: title.trim(),
@@ -497,6 +490,7 @@ export function CalendarPage() {
             <DialogTitle>添加日程 · {adding}</DialogTitle>
           </DialogHeader>
           <form
+            id="calendar-event-form"
             className="space-y-4"
             onSubmit={e => {
               e.preventDefault()
@@ -527,15 +521,15 @@ export function CalendarPage() {
               </Select>
               <p className="text-muted-foreground text-xs">到点后会在站内推送一条提醒消息，日程标题旁会显示铃铛标记</p>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setAdding(null)}>
-                取消
-              </Button>
-              <Button type="submit" disabled={saving}>
-                {saving ? '保存中…' : '保存'}
-              </Button>
-            </DialogFooter>
           </form>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setAdding(null)}>
+              取消
+            </Button>
+            <Button form="calendar-event-form" type="submit" disabled={saving}>
+              {saving ? '保存中…' : '保存'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

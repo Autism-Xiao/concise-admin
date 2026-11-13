@@ -1,20 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { Mail, Plus, Search, Trash2 } from 'lucide-react'
+import { Mail, Plus, Search, Trash2, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Segmented } from '@/components/ui/segmented'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { fetchAllUserBriefs, type UserBrief } from '@/features/users/api'
 import { UserMultiSelect } from '@/features/users/components/user-multi-select'
@@ -96,9 +90,7 @@ export function MessagePage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="truncate text-sm font-medium">{row.title}</p>
-                      {row.msgType === 'system' && (
-                        <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px]">系统</span>
-                      )}
+                      {row.msgType === 'system' && <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px]">系统</span>}
                     </div>
                     <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">{row.content}</p>
                     <p className="text-muted-foreground mt-1 text-xs">
@@ -147,17 +139,13 @@ export function MessagePage() {
   )
 }
 
-function SendDialog({
-  open,
-  onOpenChange,
-  onSent
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSent: () => void
-}) {
+/** 接收范围：pick = 手动指定用户；all = 一键全站 */
+type RecvMode = 'all' | 'pick'
+
+function SendDialog({ open, onOpenChange, onSent }: { open: boolean; onOpenChange: (open: boolean) => void; onSent: () => void }) {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [recvMode, setRecvMode] = useState<RecvMode>('pick')
   /** 已选接收人用户 ID（多选选人控件产出，后端按 ID 精确匹配，不存在打错账号的问题） */
   const [receiverIds, setReceiverIds] = useState<string[]>([])
   /** 批量选中（全站用户）时的 id → 账号缓存，chips 直接显示真实账号，不必逐个 lookup */
@@ -170,6 +158,7 @@ function SendDialog({
     if (open) {
       setTitle('')
       setContent('')
+      setRecvMode('pick')
       setReceiverIds([])
       setUsersCache({})
     }
@@ -182,19 +171,34 @@ function SendDialog({
       .then(({ users, truncated }) => {
         if (users.length === 0) {
           toast.error('没有可选用户（可能缺少用户查看权限）')
+          setRecvMode('pick')
           return
         }
         setReceiverIds(users.map(u => u.id))
         setUsersCache(Object.fromEntries(users.map(u => [u.id, u])))
         toast.success(truncated ? `已选前 1000 名用户（已达单次发送上限）` : `已选择全站 ${users.length} 名用户`)
       })
-      .catch(() => toast.error('用户列表加载失败'))
+      .catch(() => {
+        toast.error('用户列表加载失败')
+        setRecvMode('pick')
+      })
       .finally(() => setSelectingAll(false))
   }
 
-  /** 切到手动挑人：把面板点开 */
-  const focusPicker = () => {
-    pickerRef.current?.querySelector<HTMLInputElement>('[data-multiselect-input]')?.focus()
+  /**
+   * 切换接收范围：两种范围互斥，切换即清空已选（全站 ≠ 指定的并集），
+   * 避免上一批名单残留在下一次发送里；切回指定用户时自动聚焦搜索框。
+   */
+  const switchRecvMode = (next: string) => {
+    if (next === recvMode) return
+    setRecvMode(next as RecvMode)
+    setReceiverIds([])
+    setUsersCache({})
+    if (next === 'all') {
+      selectAllUsers()
+    } else {
+      requestAnimationFrame(() => pickerRef.current?.querySelector<HTMLInputElement>('[data-multiselect-input]')?.focus())
+    }
   }
 
   const submit = () => {
@@ -217,53 +221,56 @@ function SendDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>发送站内信</DialogTitle>
-          <DialogDescription>接收人为站内用户，支持搜索账号/姓名多选；发送后每个接收人各收到一条消息。</DialogDescription>
+          <DialogDescription>全站用户一键送达所有人；指定用户支持搜索账号/姓名多选。发送后每个接收人各收到一条消息。</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="msg-title">标题</Label>
             <Input id="msg-title" value={title} onChange={e => setTitle(e.target.value)} maxLength={128} placeholder="消息标题" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="msg-content">正文</Label>
             <Textarea id="msg-content" value={content} onChange={e => setContent(e.target.value)} rows={5} maxLength={5000} placeholder="消息正文" />
           </div>
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <Label>接收人</Label>
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground hover:text-foreground h-7 px-2 text-xs"
-                  disabled={selectingAll || busy}
-                  onClick={selectAllUsers}
-                >
-                  {selectingAll ? '选择中…' : '全站用户'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground hover:text-foreground h-7 px-2 text-xs"
-                  disabled={selectingAll || busy}
-                  onClick={focusPicker}
-                >
-                  选择个别
-                </Button>
+              <Segmented
+                value={recvMode}
+                onChange={switchRecvMode}
+                disabled={selectingAll || busy}
+                options={[
+                  { value: 'all', label: '全站用户' },
+                  { value: 'pick', label: '指定用户' }
+                ]}
+              />
+            </div>
+            {recvMode === 'all' ? (
+              <div className="border-border bg-muted/30 flex items-center gap-3 rounded-lg border px-3 py-3">
+                <Users className="text-primary size-5 shrink-0" />
+                {selectingAll ? (
+                  <p className="text-muted-foreground text-sm">正在获取全站用户名单…</p>
+                ) : receiverIds.length > 0 ? (
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm">
+                      将发送给全站 <span className="text-primary font-medium">{receiverIds.length}</span> 名用户
+                    </p>
+                    <p className="text-muted-foreground text-xs">每人各收到一条消息；仅覆盖发送时已存在的账号</p>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-sm">未获取到可发送的用户</p>
+                )}
               </div>
-            </div>
-            <div ref={pickerRef}>
-              <UserMultiSelect value={receiverIds} onChange={setReceiverIds} usersCache={usersCache} placeholder="搜索账号或姓名，可多选" />
-            </div>
+            ) : (
+              <div ref={pickerRef}>
+                <UserMultiSelect value={receiverIds} onChange={setReceiverIds} usersCache={usersCache} placeholder="搜索账号或姓名，可多选" />
+              </div>
+            )}
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button onClick={submit} disabled={busy}>
+          <Button onClick={submit} disabled={busy || selectingAll}>
             {busy ? '发送中…' : '发送'}
           </Button>
         </DialogFooter>
