@@ -175,7 +175,16 @@ export async function loadSettings(): Promise<SettingsSnapshot> {
   const local = readLocalSnapshot()
   const remote = await fetchRemote()
 
-  if (local?.dirty) return local
+  if (local?.dirty) {
+    // 本地有未同步改动：以本地为准，同时**补推一次**。
+    // 场景：改完设置 400ms 防抖窗口内刷新/关页，推送被取消但本地已落盘 ——
+    // 界面一直显示新值、云端却停在旧值，等下次登出/被踢重登就会「莫名回到旧主题」。
+    // 补推成功即 markSynced；失败保持 dirty，下次加载继续补推（尽力而为，不阻塞加载）。
+    void pushSettings(local.settings).then(ok => {
+      if (ok) markSynced(local.settings)
+    })
+    return local
+  }
   // 回写时 dirty 必须为 false —— 这是「云端值已落地本地」的事实，不是用户改动
   if (remote) return persistLocal(remote.settings, remote.updatedAt, false)
   if (local) return local

@@ -107,14 +107,22 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // Provider 挂在 __root 上不会卸载，而登录是 navigate() 不是整页刷新，
   // 所以「挂载时拉一次」不足以覆盖登录后的场景（换设备登录会看不到自己的主题色）。
   // 登出时本地偏好已被 clearLocalSettings() 清掉，这里把界面恢复成默认值，且不写回本地。
+  //
+  // 注意：改名（setDisplayName）/传头像（setAvatar）**也会**广播本事件，但登录态没变——
+  // 那种情况下绝不重载：重载会把「改了还没推成功」的本地设置（如刚选的主题色）回滚成云端旧值，
+  // 表现就是「设置的颜色老是重置」。只在登录态真正发生 有↔无 切换时才对齐云端。
+  const hadTokenRef = useRef(Boolean(getAccessToken()))
   useEffect(() => {
     let cancelled = false
     const onAuthChanged = () => {
+      const hasToken = Boolean(getAccessToken())
+      if (hasToken === hadTokenRef.current) return
+      hadTokenRef.current = hasToken
       // 换了账号：上一个账号的「已改动」标记不再有意义
       dirtyRef.current = false
       if (syncTimer.current) clearTimeout(syncTimer.current)
 
-      if (!getAccessToken()) {
+      if (!hasToken) {
         settingsRef.current = { ...DEFAULT_SETTINGS }
         setSettings({ ...DEFAULT_SETTINGS })
         setSyncState('synced')
