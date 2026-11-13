@@ -19,6 +19,11 @@ interface UserMultiSelectProps {
    * 供「任务负责人」这类只能有一个人的字段复用同一套搜索/回显逻辑。
    */
   single?: boolean
+  /**
+   * 外部已知的 id → 账号信息缓存：批量选中（如「全站用户」一键全选）时由调用方
+   * 传入，已选 chips 直接显示真实账号，不必逐个走 lookup（lookup 上限 100 个）。
+   */
+  usersCache?: Record<string, UserBrief>
 }
 
 /**
@@ -30,7 +35,7 @@ interface UserMultiSelectProps {
  * 回显：已选 ID 由 `/users/lookup` 批量翻译成账号（搜索结果只覆盖当前页，不能只靠它），
  * 用户已被删除时退化为红色 `#id`，保存时仍按原 ID 传回，不会静默丢人。
  */
-export function UserMultiSelect({ value, onChange, placeholder = '搜索账号或姓名，可多选', disabled, single = false }: UserMultiSelectProps) {
+export function UserMultiSelect({ value, onChange, placeholder = '搜索账号或姓名，可多选', disabled, single = false, usersCache }: UserMultiSelectProps) {
   const [keyword, setKeyword] = useState('')
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -51,8 +56,8 @@ export function UserMultiSelect({ value, onChange, placeholder = '搜索账号�
   /* ---------- 回显：把已选 ID 翻译成账号 ---------- */
   useEffect(() => {
     const ids = valueKey ? valueKey.split(',') : []
-    // 依赖里带 briefs：拿到账号后会再跑一次，这时 missing 为空自然停下
-    const missing = ids.filter(id => id && !briefs[id] && !failedRef.current.has(id))
+    // 外部缓存里已有的直接算命中；依赖里带 briefs：拿到账号后会再跑一次，这时 missing 为空自然停下
+    const missing = ids.filter(id => id && !briefs[id] && !usersCache?.[id] && !failedRef.current.has(id))
     if (!missing.length) return
     let alive = true
 
@@ -99,7 +104,7 @@ export function UserMultiSelect({ value, onChange, placeholder = '搜索账号�
     return () => {
       alive = false
     }
-  }, [valueKey, briefs])
+  }, [valueKey, briefs, usersCache])
 
   /* ---------- 搜索：服务端 keyword 模糊匹配账号/姓名/电话 ---------- */
   useEffect(() => {
@@ -134,14 +139,27 @@ export function UserMultiSelect({ value, onChange, placeholder = '搜索账号�
     }
   }, [open, keyword])
 
-  /* ---------- 点击面板外收起 ---------- */
+  /* ---------- 关闭时机：组件外按下，但拖滚动条不算 ---------- */
   useEffect(() => {
     if (!open) return
-    const onMouseDown = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
+    const onPointerDown = (e: PointerEvent) => {
+      const root = rootRef.current
+      if (!root || root.contains(e.target as Node)) return
+      const el = e.target as HTMLElement
+      // 宿主弹窗/页面的滚动条也在组件外：点击落在目标自身滚动条槽里（offsetX/Y 超出
+      // clientWidth/Height 且确实存在该方向溢出）时不关闭——否则滚轮坏掉只能拖滚动条
+      // 的用户，每拖一下面板就消失。注意不能用「失焦关闭」兜底：部分环境滚动条点击
+      // 同样会失焦，只有这里能豁免。
+      if (el instanceof HTMLElement) {
+        // 纵向滚动条：点击 x 超出内容宽度 + 内容纵向溢出；横向滚动条同理对调
+        const inVerticalBar = e.offsetX >= el.clientWidth && el.scrollHeight > el.clientHeight
+        const inHorizontalBar = e.offsetY >= el.clientHeight && el.scrollWidth > el.clientWidth
+        if (inVerticalBar || inHorizontalBar) return
+      }
+      setOpen(false)
     }
-    document.addEventListener('mousedown', onMouseDown)
-    return () => document.removeEventListener('mousedown', onMouseDown)
+    document.addEventListener('pointerdown', onPointerDown, true)
+    return () => document.removeEventListener('pointerdown', onPointerDown, true)
   }, [open])
 
   const toggle = (user: UserBrief) => {
@@ -206,7 +224,8 @@ export function UserMultiSelect({ value, onChange, placeholder = '搜索账号�
         onClick={() => inputRef.current?.focus()}
       >
         {value.map(id => {
-          const brief = briefs[id]
+          // 渲染时合并外部缓存（批量全选场景不走 lookup，账号直接来自 usersCache）
+          const brief = briefs[id] ?? usersCache?.[id]
           return (
             <span
               key={id}
@@ -221,6 +240,7 @@ export function UserMultiSelect({ value, onChange, placeholder = '搜索账号�
                 type="button"
                 aria-label={`移除 ${brief?.username ?? id}`}
                 className="hover:text-destructive shrink-0 opacity-70"
+                onMouseDown={e => e.preventDefault()}
                 onClick={e => {
                   e.stopPropagation()
                   onChange(value.filter(v => v !== id))
@@ -292,15 +312,28 @@ export function UserMultiSelect({ value, onChange, placeholder = '搜索账号�
           </div>
           <div className="border-border/60 flex items-center justify-between border-t px-2 py-1.5">
             <span className="text-muted-foreground text-xs">{single ? (value.length ? '已指派（点其他人可替换）' : '未指派') : `已选 ${value.length} 人`}</span>
-            {value.length > 0 && (
-              <button
-                type="button"
-                className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
-                onClick={() => onChange([])}
-              >
-                清空
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {!single && options.length > 0 && (
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => onChange(Array.from(new Set([...value, ...options.map(u => u.id)])))}
+                >
+                  全选候选
+                </button>
+              )}
+              {value.length > 0 && (
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => onChange([])}
+                >
+                  清空
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Mail, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { fetchAllUserBriefs, type UserBrief } from '@/features/users/api'
 import { UserMultiSelect } from '@/features/users/components/user-multi-select'
 import { hasPermission } from '@/lib/auth'
 import { deleteMessage, fetchMessages, formatDateTime, sendMessage, type MessageRecord } from './api'
@@ -159,15 +160,42 @@ function SendDialog({
   const [content, setContent] = useState('')
   /** 已选接收人用户 ID（多选选人控件产出，后端按 ID 精确匹配，不存在打错账号的问题） */
   const [receiverIds, setReceiverIds] = useState<string[]>([])
+  /** 批量选中（全站用户）时的 id → 账号缓存，chips 直接显示真实账号，不必逐个 lookup */
+  const [usersCache, setUsersCache] = useState<Record<string, UserBrief>>({})
+  const [selectingAll, setSelectingAll] = useState(false)
   const [busy, setBusy] = useState(false)
+  const pickerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (open) {
       setTitle('')
       setContent('')
       setReceiverIds([])
+      setUsersCache({})
     }
   }, [open])
+
+  /** 一键全选全站用户：翻页拉满（后端单次上限 1000 人） */
+  const selectAllUsers = () => {
+    setSelectingAll(true)
+    fetchAllUserBriefs()
+      .then(({ users, truncated }) => {
+        if (users.length === 0) {
+          toast.error('没有可选用户（可能缺少用户查看权限）')
+          return
+        }
+        setReceiverIds(users.map(u => u.id))
+        setUsersCache(Object.fromEntries(users.map(u => [u.id, u])))
+        toast.success(truncated ? `已选前 1000 名用户（已达单次发送上限）` : `已选择全站 ${users.length} 名用户`)
+      })
+      .catch(() => toast.error('用户列表加载失败'))
+      .finally(() => setSelectingAll(false))
+  }
+
+  /** 切到手动挑人：把面板点开 */
+  const focusPicker = () => {
+    pickerRef.current?.querySelector<HTMLInputElement>('[data-multiselect-input]')?.focus()
+  }
 
   const submit = () => {
     if (!title.trim() || !content.trim() || receiverIds.length === 0) {
@@ -201,8 +229,34 @@ function SendDialog({
             <Textarea id="msg-content" value={content} onChange={e => setContent(e.target.value)} rows={5} maxLength={5000} placeholder="消息正文" />
           </div>
           <div className="space-y-1.5">
-            <Label>接收人</Label>
-            <UserMultiSelect value={receiverIds} onChange={setReceiverIds} placeholder="搜索账号或姓名，可多选" />
+            <div className="flex items-center justify-between">
+              <Label>接收人</Label>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground h-7 px-2 text-xs"
+                  disabled={selectingAll || busy}
+                  onClick={selectAllUsers}
+                >
+                  {selectingAll ? '选择中…' : '全站用户'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground h-7 px-2 text-xs"
+                  disabled={selectingAll || busy}
+                  onClick={focusPicker}
+                >
+                  选择个别
+                </Button>
+              </div>
+            </div>
+            <div ref={pickerRef}>
+              <UserMultiSelect value={receiverIds} onChange={setReceiverIds} usersCache={usersCache} placeholder="搜索账号或姓名，可多选" />
+            </div>
           </div>
         </div>
         <DialogFooter>

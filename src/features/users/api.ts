@@ -121,6 +121,26 @@ export function fetchUsers(keyword = '', status = ''): Promise<UserListResult> {
   return getApiResult<UserListResult>(`/backend-api/v1/users?${params.toString()}`)
 }
 
+/**
+ * 翻页拉取全站用户简要列表（「全站用户」一键全选用）
+ *
+ * 后端列表接口 pageSize 有上限（100），这里按满页循环直到拉完或达到 max
+ * （后端消息接收人 DTO 上限 1000）；返回简要字段 + 是否被 max 截断。
+ */
+export async function fetchAllUserBriefs(max = 1000): Promise<{ users: UserBrief[]; truncated: boolean }> {
+  const users: UserBrief[] = []
+  for (let page = 1; users.length < max; page++) {
+    const params = new URLSearchParams({ page: String(page), pageSize: '100' })
+    const res = await getApiResult<UserListResult>(`/backend-api/v1/users?${params.toString()}`)
+    const batch = (res.records ?? []).map(u => ({ id: u.id, username: u.username, realname: u.realname }))
+    users.push(...batch)
+    // 满页才可能还有下一页；不满页说明已到末尾
+    if (batch.length < 100) break
+  }
+  const truncated = users.length > max
+  return { users: users.slice(0, max), truncated }
+}
+
 export function createUser(payload: UserWritePayload): Promise<User> {
   return getApiResult<User>('/backend-api/v1/users', {
     method: 'POST',
