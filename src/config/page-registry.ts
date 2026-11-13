@@ -64,6 +64,7 @@ import { NotificationsPage } from '@/features/settings/notifications'
 import { DisplayPage } from '@/features/settings/display'
 import { ShortcutsPage } from '@/features/settings/shortcuts'
 import { MyWatermarkPage } from '@/features/settings/my-watermark'
+import { CustomerPage } from '@/features/customer'
 
 // 页签栏/页面渲染共用的路由登记表：path → 页面组件 + 标题 + 图标
 // 注意：这里的组件绕过了路由 Outlet 直接渲染，新增页面时需要在此登记
@@ -81,6 +82,7 @@ export interface PageEntry {
 export const HOME_PATH = '/dashboard'
 
 export const PAGE_REGISTRY: Record<string, PageEntry> = {
+  '/system/customers': { component: CustomerPage, titleKey: 'nav.system.customer', icon: Briefcase },
   '/dashboard': { component: DashboardPage, titleKey: 'nav.dashboard', icon: LayoutDashboard },
   '/help-center': { component: HelpCenterPage, titleKey: 'nav.helpCenter', icon: HelpCircle },
   '/system/users': { component: UsersPage, titleKey: 'nav.system.users', icon: Users },
