@@ -16,6 +16,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { UserMultiSelect } from '@/features/users/components/user-multi-select'
 import { hasPermission } from '@/lib/auth'
 import { deleteMessage, fetchMessages, formatDateTime, sendMessage, type MessageRecord } from './api'
 
@@ -23,7 +24,7 @@ import { deleteMessage, fetchMessages, formatDateTime, sendMessage, type Message
  * 消息中心（管理端）
  *
  * 发送记录列表 + 手动发送。个人侧消息在顶栏「消息」铃铛里，不在这个页面。
- * 发送接收人支持用户名或用户 ID 混填（后端按 sys_user.username/id 双向解析）。
+ * 接收人用 UserMultiSelect 多选站内用户（按 ID 精确提交，与公告选人控件同源）。
  */
 export function MessagePage() {
   const [list, setList] = useState<MessageRecord[]>([])
@@ -156,28 +157,25 @@ function SendDialog({
 }) {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [receivers, setReceivers] = useState('')
+  /** 已选接收人用户 ID（多选选人控件产出，后端按 ID 精确匹配，不存在打错账号的问题） */
+  const [receiverIds, setReceiverIds] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     if (open) {
       setTitle('')
       setContent('')
-      setReceivers('')
+      setReceiverIds([])
     }
   }, [open])
 
   const submit = () => {
-    const userIds = receivers
-      .split(/[\n,，;；\s]+/)
-      .map(item => item.trim())
-      .filter(Boolean)
-    if (!title.trim() || !content.trim() || userIds.length === 0) {
+    if (!title.trim() || !content.trim() || receiverIds.length === 0) {
       toast.error('标题、正文、接收人都不能为空')
       return
     }
     setBusy(true)
-    sendMessage({ title: title.trim(), content: content.trim(), userIds })
+    sendMessage({ title: title.trim(), content: content.trim(), userIds: receiverIds })
       .then(result => {
         toast.success(`已发送，送达 ${result.delivered} 人`)
         onSent()
@@ -191,7 +189,7 @@ function SendDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>发送站内信</DialogTitle>
-          <DialogDescription>接收人支持用户名或用户 ID，多个用换行/逗号分隔；系统会过滤不存在的账号。</DialogDescription>
+          <DialogDescription>接收人为站内用户，支持搜索账号/姓名多选；发送后每个接收人各收到一条消息。</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
@@ -203,14 +201,8 @@ function SendDialog({
             <Textarea id="msg-content" value={content} onChange={e => setContent(e.target.value)} rows={5} maxLength={5000} placeholder="消息正文" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="msg-receivers">接收人</Label>
-            <Textarea
-              id="msg-receivers"
-              value={receivers}
-              onChange={e => setReceivers(e.target.value)}
-              rows={3}
-              placeholder={'admin\nguest'}
-            />
+            <Label>接收人</Label>
+            <UserMultiSelect value={receiverIds} onChange={setReceiverIds} placeholder="搜索账号或姓名，可多选" />
           </div>
         </div>
         <DialogFooter>
