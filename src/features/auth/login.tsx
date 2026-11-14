@@ -1,6 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { AppWindow, ChevronRight, CircleCheckBig, Eye, EyeOff, Loader2, Lock, Palette, ShieldCheck, Smartphone, TriangleAlert, User } from 'lucide-react'
+import {
+  AppWindow,
+  Check,
+  ChevronRight,
+  ChevronsRight,
+  CircleCheckBig,
+  Eye,
+  EyeOff,
+  Loader2,
+  Lock,
+  Palette,
+  ShieldCheck,
+  Smartphone,
+  TriangleAlert,
+  User,
+  X
+} from 'lucide-react'
 import { toast } from 'sonner'
 import SliderCaptcha, { type ActionType, type VerifyParam } from 'rc-slider-captcha'
 import { cn } from 'cn'
@@ -420,16 +436,23 @@ export function LoginPage() {
               // 成功/失败是语义色，不跟随品牌色：否则切到红/蓝主题时「通过」会跟着变红变蓝
               '--rcsc-success': 'oklch(0.62 0.17 150)',
               '--rcsc-success-light': 'color-mix(in oklab, oklch(0.62 0.17 150) 12%, var(--background))',
-              '--rcsc-border-color': 'var(--border)',
-              '--rcsc-bg-color': 'var(--muted)',
-              '--rcsc-text-color': 'var(--muted-foreground)',
-              '--rcsc-button-color': 'var(--primary)',
-              '--rcsc-button-hover-color': 'var(--primary-foreground)',
-              '--rcsc-button-bg-color': 'var(--card)',
-              // 图片圆角与滑块条保持一致（原来 +2px，图比条更圆，看着不齐）
+              // 胶囊滑轨：轨道 / 滑块 / 进度条共用一个圆角变量
+              '--rcsc-control-border-radius': '999px',
               '--rcsc-panel-border-radius': 'var(--radius)',
-              '--rcsc-control-border-radius': 'var(--radius)',
-              '--rcsc-control-height': '40px'
+              '--rcsc-control-height': '44px',
+              '--rcsc-border-color': 'color-mix(in oklab, var(--border) 55%, transparent)',
+              '--rcsc-bg-color': 'color-mix(in oklab, var(--muted) 55%, var(--background))',
+              '--rcsc-text-color': 'var(--muted-foreground)',
+              // 实心主题色滑块：常态即品牌色，拖动 / 成功 / 失败由组件切换语义色
+              '--rcsc-button-color': 'var(--primary-foreground)',
+              '--rcsc-button-hover-color': 'var(--primary-foreground)',
+              '--rcsc-button-bg-color': 'var(--primary)'
+            }}
+            tipIcon={{
+              default: <ChevronsRight className="size-5" />,
+              loading: <Loader2 className="size-5 animate-spin" />,
+              success: <Check className="size-5" />,
+              error: <X className="size-5" />
             }}
             tipText={{
               default: t('login.sliderTip'),

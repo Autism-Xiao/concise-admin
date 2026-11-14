@@ -293,8 +293,9 @@ tr:hover > .table-sticky-action-popover {
 }
 
 /* ---------- 登录页滑动验证码（rc-slider-captcha）视觉对齐设计系统 ----------
- * 颜色 / 圆角 / 高度由 features/auth/login.tsx 通过 --rcsc-* 变量注入，
- * 这里只处理变量覆盖不到的细节（阴影、图标按钮、悬停态）。
+ * 颜色 / 圆角 / 高度由 features/auth/login.tsx 通过 --rcsc-* 变量注入
+ * （胶囊滑轨 999px + 实心主题色滑块），这里只处理变量覆盖不到的细节：
+ * 渐变进度填充、阴影、图标按钮、悬停/错误动效。
  * 尺寸保持 320x160 与后端出图一致，缩放会让 x 轴校验错位，切勿改动。
  */
 .captcha-slider {
@@ -337,36 +338,73 @@ tr:hover > .table-sticky-action-popover {
   background-color: rgb(0 0 0 / 0.55);
 }
 
-/* 滑块按钮：细边框 + 柔和阴影，替换默认的硬阴影和 22px 大箭头 */
+/* 滑块：实心色块 + 贴手阴影，去掉默认的硬描边 */
 .captcha-slider .rc-slider-captcha-button {
-  border: 1px solid var(--border);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+  border: none;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.18),
+    0 0 0 1px rgb(0 0 0 / 0.04);
   font-size: 18px;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
 }
 
-/* 拖动 / 验证中 / 成功 / 失败：交给主题色填充，去掉边框与灰影 */
+/* 悬停轻微提亮，暗示「可拖动」 */
+.captcha-slider .rc-slider-captcha-button-pc:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.2);
+}
+
+/* 拖动 / 验证中 / 成功 / 失败：语义色块保持浮起 */
 .captcha-slider .rc-slider-captcha-button-active,
 .captcha-slider .rc-slider-captcha-button-verify,
 .captcha-slider .rc-slider-captcha-button-success,
 .captcha-slider .rc-slider-captcha-button-error,
-.captcha-slider .rc-slider-captcha-button-pc:hover,
 .captcha-slider .rc-slider-captcha-button:active {
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.22);
+}
+
+/* 进度填充：主题色由浅到深的横向渐变，替代默认的平铺浅色块 + 描边 */
+.captcha-slider .rc-slider-captcha-control-indicator {
   border-color: transparent;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
+  background: linear-gradient(90deg, color-mix(in oklab, var(--primary) 14%, transparent), color-mix(in oklab, var(--primary) 32%, transparent));
 }
 
-/* 悬停时边框给出主题色暗示，提示「可拖动」 */
-.captcha-slider .rc-slider-captcha-control {
-  transition:
-    border-color 0.2s ease,
-    background-color 0.2s ease;
+/* 成功 / 失败：跟随语义色做同款渐变 */
+.captcha-slider .rc-slider-captcha-control-success .rc-slider-captcha-control-indicator {
+  border-color: transparent;
+  background: linear-gradient(90deg, color-mix(in oklab, var(--rcsc-success) 14%, transparent), color-mix(in oklab, var(--rcsc-success) 32%, transparent));
 }
 
-.captcha-slider .rc-slider-captcha-control:hover {
-  border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+.captcha-slider .rc-slider-captcha-control-error .rc-slider-captcha-control-indicator {
+  border-color: transparent;
+  background: linear-gradient(90deg, color-mix(in oklab, var(--rcsc-error) 12%, transparent), color-mix(in oklab, var(--rcsc-error) 30%, transparent));
 }
 
+/* 失败抖动：整条滑轨小幅左右摇晃，明确「没通过」 */
+@keyframes captcha-shake {
+  20% {
+    transform: translateX(-3px);
+  }
+  40% {
+    transform: translateX(3px);
+  }
+  60% {
+    transform: translateX(-2px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+.captcha-slider .rc-slider-captcha-control-error {
+  animation: captcha-shake 0.4s ease;
+}
+
+/* 提示文案：小一号 + 轻字距，居中悬浮在滑轨上 */
 .captcha-slider .rc-slider-captcha-control-tips {
   font-size: 13px;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
 }
