@@ -1,5 +1,5 @@
 import { createFileRoute, Navigate, Outlet, redirect, useLocation } from '@tanstack/react-router'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { PageTabs } from '@/components/layout/page-tabs'
 import { SiteHeader } from '@/components/layout/site-header'
@@ -16,7 +16,7 @@ import { useSettings } from '@/context/settings-provider'
 import { isRegisteredPage } from '@/config/page-registry'
 import { NoMenuAccess } from '@/features/errors'
 import { isAuthenticated, needsPasswordChange } from '@/lib/auth'
-import { isPathAllowed, usePermittedPaths } from '@/lib/permissions'
+import { isPathAllowed, syncPermissionSummary, usePermittedPaths } from '@/lib/permissions'
 import type { WatermarkDensity } from '@/lib/watermark'
 
 // 水印密度 → 单个平铺区块尺寸，区块越小水印越密
@@ -49,6 +49,12 @@ function AuthenticatedLayout() {
   const collapsible = settings.layout === 'offcanvas' ? ('offcanvas' as const) : ('icon' as const)
   const density = (wm.config?.density ?? 'default') as WatermarkDensity
 
+  // 进入工作区先跟后端对账一次菜单/按钮快照：后端新增菜单（迁移、代码生成器自动注册）
+  // 不必重登就能在侧边栏看到；同一租户视角只对账一次，失败静默保留本地快照
+  useEffect(() => {
+    void syncPermissionSummary()
+  }, [])
+
   return (
     <SidebarProvider key={settings.layout} defaultOpen={settings.layout === 'default'}>
       {/* 密码过期/管理员标记强制改密：盖在所有内容之上，改完才放行（存 sessionStorage，刷新不丢） */}
@@ -61,7 +67,7 @@ function AuthenticatedLayout() {
             {/* 后端整体不可用时只留一条常驻横幅，避免每个接口各弹一条 toast */}
             <ServiceStatusBanner />
             <PageTabs />
-            <main data-scroll="main" className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6">
+            <main data-scroll="main" className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6">
               <PermissionGuard>
                 <MainContent />
               </PermissionGuard>

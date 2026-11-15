@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { setTenantId, getUsername } from '@/lib/auth'
 import { getInflightCount } from '@/lib/api-activity'
 import { userMessageOf } from '@/lib/api-error'
+import { syncPermissionSummary } from '@/lib/permissions'
 import { fetchMyTenants, switchTenant, type MyTenant } from '@/features/system/tenant/api'
 
 /**
@@ -250,6 +251,9 @@ export function TenantScopeProvider({ children }: { children: ReactNode }) {
         const applied = await switchTenant(tenantId)
         // 先落 localStorage 再推进 epoch：页面重挂时发出的请求必须已经带上新的租户头
         setTenantId(applied)
+        // 菜单/按钮权限随视角变化（平台级菜单在租户视角不可见），换视角必须重新对账；
+        // 不阻塞切换动画，失败就沿用旧快照（下次进工作区还会再试）
+        void syncPermissionSummary({ force: true })
         // 抓快照也要在推进 epoch 之前：此刻 DOM 还是旧租户的内容
         const snap = captureMainSnapshot()
         const token = ++releaseTokenRef.current

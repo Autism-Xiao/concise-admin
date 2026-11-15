@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { getMenuTree, getPermissions } from '@/lib/auth'
+import { getMenuTree, getPermissions, getTenantId, isAuthenticated, setMenuTree, setPermissions } from '@/lib/auth'
+import { fetchPermissions } from '@/features/auth/api'
 import type { PermissionMenu } from '@/features/auth/api'
 
 const listeners = new Set<() => void>()
@@ -72,6 +73,51 @@ export function usePermittedPaths(): Set<string> | null {
   }, [])
 
   return paths
+}
+
+/**
+ * 进入工作区 / 切换租户视角时静默对账一次权限快照。
+ *
+ * 菜单树只在「登录那一刻」落盘，后端新增菜单（代码生成器自动注册、新装模块迁移）后
+ * 必须重新登录才看得见；平台级菜单（scope=platform）在切到租户视角后也不该继续显示。
+ * 这里拉一次 /v1/auth/permissions，与本地快照比对，有差异才落盘并通知订阅方重算，
+ * 用户刷新页面即可看到最新菜单，不必重登。
+ *
+ * 设计取舍：
+ * - 用「租户视角」做 key：同一视角只对账一次（同一页面内重复挂载不重复打接口），切租户必然重跑
+ * - 并发去重（syncing）：多个入口同时触发只发一个请求
+ * - 请求失败保持本地快照并允许下次重试，不打断用户（401 由 http 层统一踢登录）
+ * - 只做「有变化才写」，避免无谓触发侧边栏重渲染与页签闪烁
+ */
+let summarySyncedKey: string | null = null
+let summarySyncing: Promise<void> | null = null
+
+export function syncPermissionSummary(options?: { force?: boolean }): Promise<void> {
+  if (!isAuthenticated()) return Promise.resolve()
+  const key = String(getTenantId() ?? 'platform')
+  if (!options?.force && summarySyncedKey === key) return Promise.resolve()
+  if (summarySyncing) return summarySyncing
+
+  summarySyncing = fetchPermissions()
+    .then(summary => {
+      const nextPerms = summary.permissions ?? []
+      const nextMenus = summary.menus ?? []
+      const permsChanged = JSON.stringify(getPermissions()) !== JSON.stringify(nextPerms)
+      const menusChanged = JSON.stringify(getMenuTree<PermissionMenu[]>() ?? []) !== JSON.stringify(nextMenus)
+      summarySyncedKey = key
+      if (!permsChanged && !menusChanged) return
+      if (permsChanged) setPermissions(nextPerms)
+      if (menusChanged) setMenuTree(nextMenus)
+      notifyPermissionsChanged()
+    })
+    .catch(() => {
+      // 网络抖动/后端未就绪：保留本地快照，下次进入工作区或切租户时再试
+    })
+    .finally(() => {
+      summarySyncing = null
+    })
+
+  return summarySyncing
 }
 
 /** 内置超级管理员角色编码：后端对这两个 code 直接放通全部菜单与按钮，不读角色授权表 */
