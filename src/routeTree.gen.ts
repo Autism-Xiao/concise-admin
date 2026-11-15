@@ -35,6 +35,7 @@ import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes
 import { Route as AuthenticatedSettingsShortcutsRouteImport } from './routes/_authenticated/settings/shortcuts'
 import { Route as AuthenticatedSettingsWatermarkRouteImport } from './routes/_authenticated/settings/watermark'
 import { Route as AuthenticatedSystemCalendarRouteImport } from './routes/_authenticated/system/calendar'
+import { Route as AuthenticatedSystemCodegenRouteImport } from './routes/_authenticated/system/codegen'
 import { Route as AuthenticatedSystemCustomersRouteImport } from './routes/_authenticated/system/customers'
 import { Route as AuthenticatedSystemDeptRouteImport } from './routes/_authenticated/system/dept'
 import { Route as AuthenticatedSystemDictRouteImport } from './routes/_authenticated/system/dict'
@@ -193,6 +194,12 @@ const AuthenticatedSystemCalendarRoute =
     path: '/system/calendar',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedSystemCodegenRoute =
+  AuthenticatedSystemCodegenRouteImport.update({
+    id: '/system/codegen',
+    path: '/system/codegen',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedSystemCustomersRoute =
   AuthenticatedSystemCustomersRouteImport.update({
     id: '/system/customers',
@@ -319,6 +326,7 @@ export interface FileRoutesByFullPath {
   '/settings/shortcuts': typeof AuthenticatedSettingsShortcutsRoute
   '/settings/watermark': typeof AuthenticatedSettingsWatermarkRoute
   '/system/calendar': typeof AuthenticatedSystemCalendarRoute
+  '/system/codegen': typeof AuthenticatedSystemCodegenRoute
   '/system/customers': typeof AuthenticatedSystemCustomersRoute
   '/system/dept': typeof AuthenticatedSystemDeptRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
@@ -363,6 +371,7 @@ export interface FileRoutesByTo {
   '/settings/shortcuts': typeof AuthenticatedSettingsShortcutsRoute
   '/settings/watermark': typeof AuthenticatedSettingsWatermarkRoute
   '/system/calendar': typeof AuthenticatedSystemCalendarRoute
+  '/system/codegen': typeof AuthenticatedSystemCodegenRoute
   '/system/customers': typeof AuthenticatedSystemCustomersRoute
   '/system/dept': typeof AuthenticatedSystemDeptRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
@@ -410,6 +419,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/shortcuts': typeof AuthenticatedSettingsShortcutsRoute
   '/_authenticated/settings/watermark': typeof AuthenticatedSettingsWatermarkRoute
   '/_authenticated/system/calendar': typeof AuthenticatedSystemCalendarRoute
+  '/_authenticated/system/codegen': typeof AuthenticatedSystemCodegenRoute
   '/_authenticated/system/customers': typeof AuthenticatedSystemCustomersRoute
   '/_authenticated/system/dept': typeof AuthenticatedSystemDeptRoute
   '/_authenticated/system/dict': typeof AuthenticatedSystemDictRoute
@@ -457,6 +467,7 @@ export interface FileRouteTypes {
     | '/settings/shortcuts'
     | '/settings/watermark'
     | '/system/calendar'
+    | '/system/codegen'
     | '/system/customers'
     | '/system/dept'
     | '/system/dict'
@@ -501,6 +512,7 @@ export interface FileRouteTypes {
     | '/settings/shortcuts'
     | '/settings/watermark'
     | '/system/calendar'
+    | '/system/codegen'
     | '/system/customers'
     | '/system/dept'
     | '/system/dict'
@@ -547,6 +559,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/shortcuts'
     | '/_authenticated/settings/watermark'
     | '/_authenticated/system/calendar'
+    | '/_authenticated/system/codegen'
     | '/_authenticated/system/customers'
     | '/_authenticated/system/dept'
     | '/_authenticated/system/dict'
@@ -759,6 +772,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemCalendarRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/system/codegen': {
+      id: '/_authenticated/system/codegen'
+      path: '/system/codegen'
+      fullPath: '/system/codegen'
+      preLoaderRoute: typeof AuthenticatedSystemCodegenRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/system/customers': {
       id: '/_authenticated/system/customers'
       path: '/system/customers'
@@ -949,6 +969,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedOpsOnlineRoute: typeof AuthenticatedOpsOnlineRoute
   AuthenticatedOpsServerRoute: typeof AuthenticatedOpsServerRoute
   AuthenticatedSystemCalendarRoute: typeof AuthenticatedSystemCalendarRoute
+  AuthenticatedSystemCodegenRoute: typeof AuthenticatedSystemCodegenRoute
   AuthenticatedSystemCustomersRoute: typeof AuthenticatedSystemCustomersRoute
   AuthenticatedSystemDeptRoute: typeof AuthenticatedSystemDeptRoute
   AuthenticatedSystemDictRoute: typeof AuthenticatedSystemDictRoute
@@ -982,6 +1003,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedOpsOnlineRoute: AuthenticatedOpsOnlineRoute,
   AuthenticatedOpsServerRoute: AuthenticatedOpsServerRoute,
   AuthenticatedSystemCalendarRoute: AuthenticatedSystemCalendarRoute,
+  AuthenticatedSystemCodegenRoute: AuthenticatedSystemCodegenRoute,
   AuthenticatedSystemCustomersRoute: AuthenticatedSystemCustomersRoute,
   AuthenticatedSystemDeptRoute: AuthenticatedSystemDeptRoute,
   AuthenticatedSystemDictRoute: AuthenticatedSystemDictRoute,

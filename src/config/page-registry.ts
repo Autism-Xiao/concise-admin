@@ -65,6 +65,8 @@ import { DisplayPage } from '@/features/settings/display'
 import { ShortcutsPage } from '@/features/settings/shortcuts'
 import { MyWatermarkPage } from '@/features/settings/my-watermark'
 import { CustomerPage } from '@/features/customer'
+import { CodegenPage } from '@/features/system/codegen'
+import { DemoTmpPage } from '@/features/demo_tmp'
 
 // 页签栏/页面渲染共用的路由登记表：path → 页面组件 + 标题 + 图标
 // 注意：这里的组件绕过了路由 Outlet 直接渲染，新增页面时需要在此登记
@@ -82,7 +84,9 @@ export interface PageEntry {
 export const HOME_PATH = '/dashboard'
 
 export const PAGE_REGISTRY: Record<string, PageEntry> = {
+  '/system/demo_tmps': { component: DemoTmpPage, titleKey: 'nav.system.demoTmp', icon: Briefcase },
   '/system/customers': { component: CustomerPage, titleKey: 'nav.system.customer', icon: Briefcase },
+  '/system/codegen': { component: CodegenPage, titleKey: 'nav.system.codegen', icon: Wrench },
   '/dashboard': { component: DashboardPage, titleKey: 'nav.dashboard', icon: LayoutDashboard },
   '/help-center': { component: HelpCenterPage, titleKey: 'nav.helpCenter', icon: HelpCircle },
   '/system/users': { component: UsersPage, titleKey: 'nav.system.users', icon: Users },
