@@ -261,13 +261,18 @@ export function CodegenPage() {
       setResult(data)
       setConfirmOpen(false)
       setForceConfirmed(false)
-      toast.success(`已生成 ${data.created.length} 个文件`)
+      if (data.created.length > 0) toast.success(`已生成 ${data.created.length} 个文件`)
+      else toast('没有写入任何文件，原因见下方提示')
     } catch (error) {
-      if (error instanceof ApiError && error.code === 9201) {
+      // 9201 只在「还没确认覆盖」时转成二次确认；已带 force 仍被拒就正常报错，
+      // 否则确认框会被反复弹回，表现为「点继续生成没反应」
+      if (!force && error instanceof ApiError && error.code === 9201) {
         setForceConfirmed(true)
         setConfirmOpen(true)
         return
       }
+      setConfirmOpen(false)
+      setForceConfirmed(false)
       toast.error(error instanceof Error ? error.message : '生成失败')
     } finally {
       setGenerating(false)
@@ -376,11 +381,11 @@ export function CodegenPage() {
       )}
 
       {result && (
-        <Card className="border-emerald-500/40 bg-emerald-500/5">
+        <Card className={result.created.length > 0 ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-amber-500/40 bg-amber-500/5'}>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Sparkles className="size-4" />
-              生成完成：{result.label}（{result.module}）
+              {result.created.length > 0 ? '生成完成' : '没有写入文件'}：{result.label}（{result.module}）
             </CardTitle>
             <CardDescription>
               新写入 {result.created.length} 个文件{result.skipped.length > 0 ? `，跳过已存在 ${result.skipped.length} 个` : ''}；菜单节点{' '}
@@ -388,6 +393,16 @@ export function CodegenPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
+            {result.warnings.length > 0 && (
+              <ul className="space-y-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
+                {result.warnings.map(warning => (
+                  <li key={warning} className="flex items-start gap-1.5">
+                    <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
+                    <span>{warning}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             {/* 前端产物直接写进 src/：dev 下会触发 HMR（新增路由需要路由树重生成），
                 生成后统一提示刷新一次，避免停在半热更状态 */}
             <div className="bg-background/60 flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
@@ -773,7 +788,8 @@ export function CodegenPage() {
           <div className="space-y-2 text-sm">
             {forceConfirmed ? (
               <p>
-                后端目录 <code className="font-mono">src/modules/{form.module}</code> 已存在（或同表已建）。继续只会补齐缺失文件，同名文件与旧表不会被覆盖。
+                后端目录 <code className="font-mono">src/modules/{form.module}</code> 已存在（或同表已建）。继续只会补齐缺失文件：同名文件跳过不覆盖，
+                表已存在时也不再生成迁移（旧表结构不会被改动）。要完全重来请先删掉该模块目录再生成。
               </p>
             ) : (
               <p>将向后端与前端的源码目录写入文件，并修改 app.module.ts、前端路由、page-registry、i18n。生成后需要自行 build + 迁移 + 重启才能生效。</p>

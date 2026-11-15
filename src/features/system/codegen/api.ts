@@ -82,6 +82,8 @@ export interface CodegenGenerateResult {
   menuId: string
   created: string[]
   skipped: string[]
+  /** 本次没做的事（表已存在不生成迁移、全部文件已存在等） */
+  warnings: string[]
   nextSteps: string[]
   log: string
 }
