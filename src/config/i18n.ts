@@ -38,7 +38,6 @@ export const zh = {
   'nav.system.logOperation': '操作日志',
   'nav.system.customer': '客户',
   'nav.system.codegen': '代码生成',
-  'nav.system.demoTmp': '临时演示',
   // 运维管理
   'nav.ops.job': '定时任务',
   'nav.ops.online': '在线用户',
@@ -192,7 +191,6 @@ export const en: Record<TranslationKey, string> = {
   'nav.system.logOperation': 'Operation Logs',
   'nav.system.customer': 'customer',
   'nav.system.codegen': 'Codegen',
-  'nav.system.demoTmp': 'demoTmp',
   'nav.ops.job': 'Scheduled Tasks',
   'nav.ops.online': 'Online Users',
   'nav.ops.server': 'Server Monitor',
