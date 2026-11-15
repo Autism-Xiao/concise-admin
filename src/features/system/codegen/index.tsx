@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowDown, ArrowUp, Copy, Database, FileCode2, FolderTree, Loader2, Plus, Sparkles, Trash2, TriangleAlert, Wand2 } from 'lucide-react'
+import { Archive, ArrowDown, ArrowUp, Copy, Database, FileCode2, FolderTree, Loader2, Plus, Sparkles, Trash2, TriangleAlert, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -261,8 +261,9 @@ export function CodegenPage() {
       setResult(data)
       setConfirmOpen(false)
       setForceConfirmed(false)
-      if (data.created.length > 0) toast.success(`已生成 ${data.created.length} 个文件`)
-      else toast('没有写入任何文件，原因见下方提示')
+      if (data.created.length > 0) {
+        toast.success(data.overwritten.length > 0 ? `已重新生成，覆盖 ${data.overwritten.length} 个文件` : `已生成 ${data.created.length} 个文件`)
+      } else toast('没有写入任何文件，原因见下方提示')
     } catch (error) {
       // 9201 只在「还没确认覆盖」时转成二次确认；已带 force 仍被拒就正常报错，
       // 否则确认框会被反复弹回，表现为「点继续生成没反应」
@@ -385,14 +386,24 @@ export function CodegenPage() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Sparkles className="size-4" />
-              {result.created.length > 0 ? '生成完成' : '没有写入文件'}：{result.label}（{result.module}）
+              {result.created.length === 0 ? '没有写入文件' : result.overwritten.length > 0 ? '已重新生成' : '生成完成'}：{result.label}（{result.module}）
             </CardTitle>
             <CardDescription>
-              新写入 {result.created.length} 个文件{result.skipped.length > 0 ? `，跳过已存在 ${result.skipped.length} 个` : ''}；菜单节点{' '}
+              写入 {result.created.length} 个文件{result.overwritten.length > 0 ? `（其中覆盖 ${result.overwritten.length} 个）` : ''}
+              {result.skipped.length > 0 ? `，跳过 ${result.skipped.length} 个` : ''}
+              {result.addedColumns.length > 0 ? `；迁移补列 ${result.addedColumns.join('、')}` : ''}；菜单节点{' '}
               <code className="font-mono">{result.menuId}</code>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
+            {result.backupDir && (
+              <div className="text-muted-foreground flex items-center gap-2 rounded-lg border px-3 py-2 text-xs">
+                <Archive className="size-3.5 shrink-0" />
+                <span>
+                  被覆盖的旧文件已备份到 <code className="font-mono">{result.backupDir}</code>，需要回退时直接从那里拷回来。
+                </span>
+              </div>
+            )}
             {result.warnings.length > 0 && (
               <ul className="space-y-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
                 {result.warnings.map(warning => (
@@ -780,16 +791,17 @@ export function CodegenPage() {
           setConfirmOpen(open)
           if (!open) setForceConfirmed(false)
         }}
-        title={forceConfirmed ? '模块已存在，仍要继续？' : '确认执行代码生成？'}
-        confirmText={forceConfirmed ? '继续生成' : '确认生成'}
+        title={forceConfirmed ? '模块已存在，重新生成并覆盖？' : '确认执行代码生成？'}
+        confirmText={forceConfirmed ? '重新生成' : '确认生成'}
         confirmVariant="default"
         loading={generating}
         description={
           <div className="space-y-2 text-sm">
             {forceConfirmed ? (
               <p>
-                后端目录 <code className="font-mono">src/modules/{form.module}</code> 已存在（或同表已建）。继续只会补齐缺失文件：同名文件跳过不覆盖，
-                表已存在时也不再生成迁移（旧表结构不会被改动）。要完全重来请先删掉该模块目录再生成。
+                后端目录 <code className="font-mono">src/modules/{form.module}</code> 已存在。继续会把同名文件先备份到{' '}
+                <code className="font-mono">.codegen-backup/</code> 再覆盖；表已存在时迁移只补缺失列，已有列的类型与默认值不会改动。
+                手动改过的代码会被生成内容替换，需要保留请先从备份目录取回。
               </p>
             ) : (
               <p>将向后端与前端的源码目录写入文件，并修改 app.module.ts、前端路由、page-registry、i18n。生成后需要自行 build + 迁移 + 重启才能生效。</p>

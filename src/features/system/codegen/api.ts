@@ -80,9 +80,16 @@ export interface CodegenGenerateResult {
   label: string
   table: string
   menuId: string
+  /** 本次写入的文件（新增 + 被覆盖的） */
   created: string[]
   skipped: string[]
-  /** 本次没做的事（表已存在不生成迁移、全部文件已存在等） */
+  /** 被覆盖的已有文件（均已备份到 backupDir） */
+  overwritten: string[]
+  /** 覆盖模式的备份目录（相对后端仓库根） */
+  backupDir: string | null
+  /** 生成的迁移会补哪些缺失列（表已存在时才有） */
+  addedColumns: string[]
+  /** 本次没做的事（表结构不变、文件已是最新等） */
   warnings: string[]
   nextSteps: string[]
   log: string
