@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { useContext, useEffect, useState, type ReactNode } from 'react'
+import { createHmrSafeContext } from '@/lib/hmr-context'
 
 import { LockScreen } from '@/components/lock-screen'
 import { isLocked, LOCK_CHANGE_EVENT, setLocked } from '@/lib/lock-screen'
@@ -10,7 +11,7 @@ interface LockContextValue {
   unlock: () => void
 }
 
-const LockContext = createContext<LockContextValue | null>(null)
+const LockContext = createHmrSafeContext<LockContextValue | null>('concise.context.lock', null)
 
 /**
  * 锁屏状态 Provider（挂在认证布局外层）

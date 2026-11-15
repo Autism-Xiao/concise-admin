@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createHmrSafeContext } from '@/lib/hmr-context'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import { isRegisteredPage } from '@/config/page-registry'
 import { resolveHomePath } from '@/lib/home-path'
@@ -25,7 +26,7 @@ interface TabsContextValue {
   reorderTabs: (from: number, to: number) => void
 }
 
-const TabsContext = createContext<TabsContextValue | null>(null)
+const TabsContext = createHmrSafeContext<TabsContextValue | null>('concise.context.tabs', null)
 
 function loadPersistedTabs(permitted: Set<string> | null): TabItem[] {
   try {

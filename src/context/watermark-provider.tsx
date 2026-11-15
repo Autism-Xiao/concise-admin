@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createHmrSafeContext } from '@/lib/hmr-context'
 
 import { fetchWatermark, updateMyWatermark, type MyWatermarkPatch, type WatermarkView } from '@/lib/watermark'
 
@@ -19,7 +20,7 @@ interface WatermarkContextValue {
   update: (patch: MyWatermarkPatch) => Promise<void>
 }
 
-const WatermarkContext = createContext<WatermarkContextValue>({
+const WatermarkContext = createHmrSafeContext<WatermarkContextValue>('concise.context.watermark', {
   config: null,
   error: null,
   refresh: async () => undefined,

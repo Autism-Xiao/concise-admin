@@ -388,6 +388,16 @@ export function CodegenPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
+            {/* 前端产物直接写进 src/：dev 下会触发 HMR（新增路由需要路由树重生成），
+                生成后统一提示刷新一次，避免停在半热更状态 */}
+            <div className="bg-background/60 flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+              <span className="text-muted-foreground text-xs">
+                前端产物已写入源码目录，浏览器会收到热更新；若侧边栏/页面出现异常，刷新一次即可恢复（后端不受影响）。
+              </span>
+              <Button size="sm" variant="outline" className="h-7 shrink-0 text-xs" onClick={() => window.location.reload()}>
+                刷新页面
+              </Button>
+            </div>
             <ol className="text-muted-foreground list-decimal space-y-1 ps-5">
               {result.nextSteps.map(step => (
                 <li key={step}>{step}</li>

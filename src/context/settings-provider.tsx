@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { createHmrSafeContext } from '@/lib/hmr-context'
 import { AUTH_CHANGED_EVENT, getAccessToken } from '@/lib/auth'
 import {
   DEFAULT_SETTINGS,
@@ -64,7 +65,7 @@ interface SettingsContextValue {
   retrySync: () => void
 }
 
-const SettingsContext = createContext<SettingsContextValue>({
+const SettingsContext = createHmrSafeContext<SettingsContextValue>('concise.context.settings', {
   settings: DEFAULT_SETTINGS,
   update: () => undefined,
   syncState: 'synced',

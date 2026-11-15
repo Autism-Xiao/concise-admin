@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { useContext, useState, type ReactNode } from 'react'
+import { createHmrSafeContext } from '@/lib/hmr-context'
 
 import { useShortcutAction } from '@/context/shortcut-provider'
 
@@ -7,7 +8,7 @@ interface SearchContextValue {
   setOpen: (open: boolean) => void
 }
 
-const SearchContext = createContext<SearchContextValue | null>(null)
+const SearchContext = createHmrSafeContext<SearchContextValue | null>('concise.context.search', null)
 
 export function SearchProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)

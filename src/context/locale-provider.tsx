@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { useContext, useEffect, useState, type ReactNode } from 'react'
+import { createHmrSafeContext } from '@/lib/hmr-context'
 import { dictionaries, type Locale, type TranslationKey } from '@/config/i18n'
 
 const LOCALE_KEY = 'concise-locale'
@@ -9,7 +10,7 @@ interface LocaleContextValue {
   t: (key: TranslationKey) => string
 }
 
-const LocaleContext = createContext<LocaleContextValue | null>(null)
+const LocaleContext = createHmrSafeContext<LocaleContextValue | null>('concise.context.locale', null)
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(() => {

@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createHmrSafeContext } from '@/lib/hmr-context'
 import { toast } from 'sonner'
 import { setTenantId, getUsername } from '@/lib/auth'
 import { getInflightCount } from '@/lib/api-activity'
@@ -70,7 +71,7 @@ interface TenantScopeValue {
   switchTo: (tenantId: number) => Promise<boolean>
 }
 
-const TenantScopeContext = createContext<TenantScopeValue | null>(null)
+const TenantScopeContext = createHmrSafeContext<TenantScopeValue | null>('concise.context.tenantScope', null)
 
 /** 淡出时长：与 `_authenticated.tsx` 里遮罩的 CSS transition 保持一致 */
 const SNAPSHOT_FADE_MS = 140

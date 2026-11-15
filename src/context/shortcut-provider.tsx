@@ -1,15 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createHmrSafeContext } from '@/lib/hmr-context'
 
 import { isLocked } from '@/lib/lock-screen'
-import {
-  comboMatches,
-  loadShortcuts,
-  resetShortcuts,
-  saveShortcut,
-  SHORTCUTS_CHANGED_EVENT,
-  SHORTCUT_IDS,
-  type ShortcutId
-} from '@/lib/shortcuts'
+import { comboMatches, loadShortcuts, resetShortcuts, saveShortcut, SHORTCUTS_CHANGED_EVENT, SHORTCUT_IDS, type ShortcutId } from '@/lib/shortcuts'
 
 interface ShortcutContextValue {
   /** 当前生效的组合键（id → "Ctrl+J" 形式，空串表示未绑定） */
@@ -20,7 +13,7 @@ interface ShortcutContextValue {
   register: (id: ShortcutId, handler: (e: KeyboardEvent) => void) => () => void
 }
 
-const ShortcutContext = createContext<ShortcutContextValue | null>(null)
+const ShortcutContext = createHmrSafeContext<ShortcutContextValue | null>('concise.context.shortcut', null)
 
 /**
  * 全局快捷键调度中心
