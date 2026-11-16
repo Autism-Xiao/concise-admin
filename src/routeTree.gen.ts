@@ -34,6 +34,7 @@ import { Route as AuthenticatedSettingsMyWatermarkRouteImport } from './routes/_
 import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes/_authenticated/settings/notifications'
 import { Route as AuthenticatedSettingsShortcutsRouteImport } from './routes/_authenticated/settings/shortcuts'
 import { Route as AuthenticatedSettingsWatermarkRouteImport } from './routes/_authenticated/settings/watermark'
+import { Route as AuthenticatedSystemAppRouteImport } from './routes/_authenticated/system/app'
 import { Route as AuthenticatedSystemBiz_ordersRouteImport } from './routes/_authenticated/system/biz_orders'
 import { Route as AuthenticatedSystemCalendarRouteImport } from './routes/_authenticated/system/calendar'
 import { Route as AuthenticatedSystemCodegenRouteImport } from './routes/_authenticated/system/codegen'
@@ -191,6 +192,11 @@ const AuthenticatedSettingsWatermarkRoute =
     path: '/watermark',
     getParentRoute: () => AuthenticatedSettingsRouteRoute,
   } as any)
+const AuthenticatedSystemAppRoute = AuthenticatedSystemAppRouteImport.update({
+  id: '/system/app',
+  path: '/system/app',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedSystemBiz_ordersRoute =
   AuthenticatedSystemBiz_ordersRouteImport.update({
     id: '/system/biz_orders',
@@ -346,6 +352,7 @@ export interface FileRoutesByFullPath {
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/settings/shortcuts': typeof AuthenticatedSettingsShortcutsRoute
   '/settings/watermark': typeof AuthenticatedSettingsWatermarkRoute
+  '/system/app': typeof AuthenticatedSystemAppRoute
   '/system/biz_orders': typeof AuthenticatedSystemBiz_ordersRoute
   '/system/calendar': typeof AuthenticatedSystemCalendarRoute
   '/system/codegen': typeof AuthenticatedSystemCodegenRoute
@@ -394,6 +401,7 @@ export interface FileRoutesByTo {
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/settings/shortcuts': typeof AuthenticatedSettingsShortcutsRoute
   '/settings/watermark': typeof AuthenticatedSettingsWatermarkRoute
+  '/system/app': typeof AuthenticatedSystemAppRoute
   '/system/biz_orders': typeof AuthenticatedSystemBiz_ordersRoute
   '/system/calendar': typeof AuthenticatedSystemCalendarRoute
   '/system/codegen': typeof AuthenticatedSystemCodegenRoute
@@ -445,6 +453,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/_authenticated/settings/shortcuts': typeof AuthenticatedSettingsShortcutsRoute
   '/_authenticated/settings/watermark': typeof AuthenticatedSettingsWatermarkRoute
+  '/_authenticated/system/app': typeof AuthenticatedSystemAppRoute
   '/_authenticated/system/biz_orders': typeof AuthenticatedSystemBiz_ordersRoute
   '/_authenticated/system/calendar': typeof AuthenticatedSystemCalendarRoute
   '/_authenticated/system/codegen': typeof AuthenticatedSystemCodegenRoute
@@ -496,6 +505,7 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/shortcuts'
     | '/settings/watermark'
+    | '/system/app'
     | '/system/biz_orders'
     | '/system/calendar'
     | '/system/codegen'
@@ -544,6 +554,7 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/shortcuts'
     | '/settings/watermark'
+    | '/system/app'
     | '/system/biz_orders'
     | '/system/calendar'
     | '/system/codegen'
@@ -594,6 +605,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/notifications'
     | '/_authenticated/settings/shortcuts'
     | '/_authenticated/settings/watermark'
+    | '/_authenticated/system/app'
     | '/_authenticated/system/biz_orders'
     | '/_authenticated/system/calendar'
     | '/_authenticated/system/codegen'
@@ -803,6 +815,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings/watermark'
       preLoaderRoute: typeof AuthenticatedSettingsWatermarkRouteImport
       parentRoute: typeof AuthenticatedSettingsRouteRoute
+    }
+    '/_authenticated/system/app': {
+      id: '/_authenticated/system/app'
+      path: '/system/app'
+      fullPath: '/system/app'
+      preLoaderRoute: typeof AuthenticatedSystemAppRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/system/biz_orders': {
       id: '/_authenticated/system/biz_orders'
@@ -1030,6 +1049,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedOpsJobRoute: typeof AuthenticatedOpsJobRoute
   AuthenticatedOpsOnlineRoute: typeof AuthenticatedOpsOnlineRoute
   AuthenticatedOpsServerRoute: typeof AuthenticatedOpsServerRoute
+  AuthenticatedSystemAppRoute: typeof AuthenticatedSystemAppRoute
   AuthenticatedSystemBiz_ordersRoute: typeof AuthenticatedSystemBiz_ordersRoute
   AuthenticatedSystemCalendarRoute: typeof AuthenticatedSystemCalendarRoute
   AuthenticatedSystemCodegenRoute: typeof AuthenticatedSystemCodegenRoute
@@ -1066,6 +1086,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedOpsJobRoute: AuthenticatedOpsJobRoute,
   AuthenticatedOpsOnlineRoute: AuthenticatedOpsOnlineRoute,
   AuthenticatedOpsServerRoute: AuthenticatedOpsServerRoute,
+  AuthenticatedSystemAppRoute: AuthenticatedSystemAppRoute,
   AuthenticatedSystemBiz_ordersRoute: AuthenticatedSystemBiz_ordersRoute,
   AuthenticatedSystemCalendarRoute: AuthenticatedSystemCalendarRoute,
   AuthenticatedSystemCodegenRoute: AuthenticatedSystemCodegenRoute,

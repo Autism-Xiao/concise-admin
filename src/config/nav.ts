@@ -56,6 +56,7 @@ export const navGroups: NavGroup[] = [
       { titleKey: 'nav.system.post', url: '/system/post', icon: Briefcase },
       { titleKey: 'nav.system.tenant', url: '/system/tenant', icon: Building2 },
       { titleKey: 'nav.system.config', url: '/system/config', icon: Settings },
+      { titleKey: 'nav.system.openapp', url: '/system/app', icon: Network },
       { titleKey: 'nav.system.calendar', url: '/system/calendar', icon: CalendarDays },
       {
         titleKey: 'nav.system.log',

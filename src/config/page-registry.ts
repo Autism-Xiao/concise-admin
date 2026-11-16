@@ -48,6 +48,7 @@ import { LoginLogPage } from '@/features/system/log/login'
 import { OperationLogPage } from '@/features/system/log/operation'
 import { ChangeLogPage } from '@/features/system/log/change'
 import { ConfigPage } from '@/features/system/config'
+import { OpenPlatformPage } from '@/features/system/app'
 import { LevelPage } from '@/features/system/level'
 import { PostPage } from '@/features/system/post'
 import { TenantPage } from '@/features/system/tenant'
@@ -111,6 +112,7 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
   '/system/log/operation': { component: OperationLogPage, titleKey: 'nav.system.logOperation', icon: ScrollText },
   '/system/log/change': { component: ChangeLogPage, titleKey: 'nav.system.logChange', icon: History },
   '/system/config': { component: ConfigPage, titleKey: 'nav.system.config', icon: Settings },
+  '/system/app': { component: OpenPlatformPage, titleKey: 'nav.system.openapp', icon: Network },
   '/ops/job': { component: JobPage, titleKey: 'nav.ops.job', icon: Timer },
   '/ops/online': { component: OnlineUsersPage, titleKey: 'nav.ops.online', icon: UserCheck },
   '/ops/server': { component: ServerMonitorPage, titleKey: 'nav.ops.server', icon: Server },
