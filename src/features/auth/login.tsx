@@ -36,6 +36,7 @@ import { resolveHomePath } from '@/lib/home-path'
 import { notifyPermissionsChanged } from '@/lib/permissions'
 import { clearRemember, readRemember, readRememberPassword, REMEMBER_DAYS_DEFAULT, REMEMBER_OPTIONS, writeRemember, type RememberDays } from '@/lib/remember'
 import { fetchCaptcha, fetchPermissions, fetchSsoConfig, loginRequest, verifyCaptcha } from './api'
+import { ForgotPasswordDialog } from './forgot-password-dialog'
 
 const APP_NAME = import.meta.env.VITE_APP_NAME
 
@@ -62,6 +63,8 @@ export function LoginPage() {
   const [totpCode, setTotpCode] = useState('')
   // SSO 开关：后端启用才显示「单点登录」按钮；查询失败静默降级为隐藏（不影响密码登录）
   const [ssoEnabled, setSsoEnabled] = useState(false)
+  // 忘记密码弹窗（邮件验证码，两步走）
+  const [forgotOpen, setForgotOpen] = useState(false)
 
   useEffect(() => {
     fetchSsoConfig()
@@ -396,6 +399,16 @@ export function LoginPage() {
               {submitting && <Loader2 className="animate-spin" />}
               {submitting ? t('login.submitting') : t('login.submit')}
             </Button>
+            {/* 忘记密码：邮件验证码重置（自建通道，不依赖短信/第三方） */}
+            <div className="text-center">
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground text-xs underline-offset-4 hover:underline"
+                onClick={() => setForgotOpen(true)}
+              >
+                忘记密码？
+              </button>
+            </div>
             {/* SSO 单点登录：后端开关（GET /v1/auth/sso/config）返回 enabled 才展示，
                 点击直接整页跳后端 authorize → 302 到 IdP；回跳由 /sso-callback 落地 */}
             {ssoEnabled && (
@@ -414,6 +427,8 @@ export function LoginPage() {
           </form>
         </div>
       </div>
+      {/* 忘记密码：邮件验证码两步弹窗，打开时带上已填的账号 */}
+      <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} defaultAccount={account} />
       {/* 验证码弹框：宽度跟随 320px 固定出图（缩放会让 x 轴校验错位），收起时不占布局空间；
           弹框关闭即卸载组件，下次打开重新 request，题目与拼图位置都会变 */}
       <Dialog open={captchaOpen} onOpenChange={setCaptchaOpen}>

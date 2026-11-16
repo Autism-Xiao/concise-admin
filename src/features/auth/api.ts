@@ -171,3 +171,25 @@ export function deactivateTwoFactor(code: string): Promise<{ enabled: false }> {
     body: JSON.stringify({ code })
   })
 }
+
+/**
+ * 申请重置密码验证码。
+ * 后端刻意不区分「账号存在 / 不存在 / 没绑邮箱」，永远返回 sent:true，
+ * 所以前端拿到这个结果只代表"请求已受理"，不代表邮件一定发出去了。
+ */
+export function requestPasswordResetCode(account: string): Promise<{ sent: true; ttlMinutes: number }> {
+  return getApiResult<{ sent: true; ttlMinutes: number }>('/backend-api/v1/auth/password/forgot', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ account })
+  })
+}
+
+/** 用邮件验证码重置密码；验证码只能成功使用一次 */
+export function resetPasswordByCode(payload: { account: string; code: string; newPassword: string }): Promise<{ ok: true }> {
+  return getApiResult<{ ok: true }>('/backend-api/v1/auth/password/reset-by-code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+}
