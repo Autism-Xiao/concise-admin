@@ -132,8 +132,8 @@ export function exchangeSsoCode(code: string): Promise<LoginResult> {
 /* ---------- 两步验证（TOTP）：GET/POST /backend-api/v1/auth/2fa/* ---------- */
 
 /** 当前账号是否已开启两步验证 */
-export function fetchTwoFactorStatus(): Promise<{ enabled: boolean }> {
-  return getApiResult<{ enabled: boolean }>('/backend-api/v1/auth/2fa/status')
+export function fetchTwoFactorStatus(): Promise<{ enabled: boolean; remainingBackupCodes: number }> {
+  return getApiResult<{ enabled: boolean; remainingBackupCodes: number }>('/backend-api/v1/auth/2fa/status')
 }
 
 /** 发起绑定：生成密钥与 otpauth:// URI（前端渲染二维码）；重复调用换新密钥，旧二维码作废 */
@@ -146,8 +146,17 @@ export function setupTwoFactor(): Promise<{ otpauthUrl: string }> {
 }
 
 /** 用认证器 6 位动态码激活；成功后登录必须携带 totpCode */
-export function activateTwoFactor(code: string): Promise<{ enabled: true }> {
-  return getApiResult<{ enabled: true }>('/backend-api/v1/auth/2fa/activate', {
+export function activateTwoFactor(code: string): Promise<{ enabled: true; backupCodes: string[] }> {
+  return getApiResult<{ enabled: true; backupCodes: string[] }>('/backend-api/v1/auth/2fa/activate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code })
+  })
+}
+
+/** 重新生成备份恢复码（需当前动态码；旧码全部作废，明文只返回一次） */
+export function regenerateBackupCodes(code: string): Promise<{ backupCodes: string[] }> {
+  return getApiResult<{ backupCodes: string[] }>('/backend-api/v1/auth/2fa/backup-codes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code })
