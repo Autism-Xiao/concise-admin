@@ -140,3 +140,70 @@ export function importLogs(kind: LogKind, file: File): Promise<ImportResult> {
 export async function withOperationLog<T>(_action: string, fn: () => Promise<T>): Promise<T> {
   return fn()
 }
+
+/* ---------- 字段级变更审计：/api/v1/logs/changes（sys_log_change） ---------- */
+
+/** 后端一行变更：谁、在什么时间、把哪张表的哪条记录的哪个字段从 A 改成 B */
+interface BackendChangeLog {
+  id: string
+  tableName: string
+  recordId: string
+  field: string
+  fieldLabel: string | null
+  oldValue: string
+  newValue: string
+  operateUserName: string | null
+  createTime: string
+}
+
+export interface ChangeLog {
+  id: string
+  /** 物理表名，如 sys_depart */
+  tableName: string
+  recordId: string
+  /** 属性名，如 description */
+  field: string
+  /** 列注释里的中文名；老表没写 comment 时为空，前端回落显示 field */
+  fieldLabel: string | null
+  oldValue: string
+  newValue: string
+  operateUserName: string | null
+  time: string
+}
+
+export interface ChangeLogQuery {
+  tableName?: string
+  recordId?: string
+  field?: string
+  /** YYYY-MM-DD（日期选择框给的值），请求时补到当天 00:00:00 */
+  startTime?: string
+  /** YYYY-MM-DD，请求时补到当天 23:59:59 —— 不补的话「结束日期=今天」会漏掉今天的所有记录 */
+  endTime?: string
+}
+
+/**
+ * 变更日志列表（GET /api/v1/logs/changes）
+ *
+ * 与登录/操作日志不同，这张表是"数据本身变了什么"，量随业务写入增长，
+ * 所以只取最近 100 条（后端 pageSize 上限 100），不做无限回溯。
+ */
+export async function fetchChangeLogs(query: ChangeLogQuery = {}): Promise<ChangeLog[]> {
+  const qs = new URLSearchParams({ page: '1', pageSize: '100' })
+  if (query.tableName) qs.set('tableName', query.tableName)
+  if (query.recordId) qs.set('recordId', query.recordId)
+  if (query.field) qs.set('field', query.field)
+  if (query.startTime) qs.set('startTime', `${query.startTime}T00:00:00`)
+  if (query.endTime) qs.set('endTime', `${query.endTime}T23:59:59`)
+  const page = await getApiResult<{ records: BackendChangeLog[] }>(`/backend-api/v1/logs/changes?${qs.toString()}`)
+  return (page.records ?? []).map(row => ({
+    id: row.id,
+    tableName: row.tableName,
+    recordId: row.recordId,
+    field: row.field,
+    fieldLabel: row.fieldLabel,
+    oldValue: row.oldValue,
+    newValue: row.newValue,
+    operateUserName: row.operateUserName,
+    time: formatDateTime(row.createTime)
+  }))
+}

@@ -55,13 +55,15 @@ export const navGroups: NavGroup[] = [
       { titleKey: 'nav.system.level', url: '/system/level', icon: Medal },
       { titleKey: 'nav.system.post', url: '/system/post', icon: Briefcase },
       { titleKey: 'nav.system.tenant', url: '/system/tenant', icon: Building2 },
+      { titleKey: 'nav.system.config', url: '/system/config', icon: Settings },
       { titleKey: 'nav.system.calendar', url: '/system/calendar', icon: CalendarDays },
       {
         titleKey: 'nav.system.log',
         icon: ScrollText,
         items: [
           { titleKey: 'nav.system.logLogin', url: '/system/log/login' },
-          { titleKey: 'nav.system.logOperation', url: '/system/log/operation' }
+          { titleKey: 'nav.system.logOperation', url: '/system/log/operation' },
+          { titleKey: 'nav.system.logChange', url: '/system/log/change' }
         ]
       }
     ]

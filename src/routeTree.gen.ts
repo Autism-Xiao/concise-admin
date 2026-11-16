@@ -54,6 +54,7 @@ import { Route as AuthenticatedSystemSuppliersRouteImport } from './routes/_auth
 import { Route as AuthenticatedSystemTaskRouteImport } from './routes/_authenticated/system/task'
 import { Route as AuthenticatedSystemTenantRouteImport } from './routes/_authenticated/system/tenant'
 import { Route as AuthenticatedSystemUsersRouteImport } from './routes/_authenticated/system/users'
+import { Route as AuthenticatedSystemLogChangeRouteImport } from './routes/_authenticated/system/log/change'
 import { Route as AuthenticatedSystemLogLoginRouteImport } from './routes/_authenticated/system/log/login'
 import { Route as AuthenticatedSystemLogOperationRouteImport } from './routes/_authenticated/system/log/operation'
 
@@ -302,6 +303,12 @@ const AuthenticatedSystemUsersRoute =
     path: '/system/users',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedSystemLogChangeRoute =
+  AuthenticatedSystemLogChangeRouteImport.update({
+    id: '/change',
+    path: '/change',
+    getParentRoute: () => AuthenticatedSystemLogRoute,
+  } as any)
 const AuthenticatedSystemLogLoginRoute =
   AuthenticatedSystemLogLoginRouteImport.update({
     id: '/login',
@@ -360,6 +367,7 @@ export interface FileRoutesByFullPath {
   '/system/tenant': typeof AuthenticatedSystemTenantRoute
   '/system/users': typeof AuthenticatedSystemUsersRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/system/log/change': typeof AuthenticatedSystemLogChangeRoute
   '/system/log/login': typeof AuthenticatedSystemLogLoginRoute
   '/system/log/operation': typeof AuthenticatedSystemLogOperationRoute
 }
@@ -407,6 +415,7 @@ export interface FileRoutesByTo {
   '/system/tenant': typeof AuthenticatedSystemTenantRoute
   '/system/users': typeof AuthenticatedSystemUsersRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
+  '/system/log/change': typeof AuthenticatedSystemLogChangeRoute
   '/system/log/login': typeof AuthenticatedSystemLogLoginRoute
   '/system/log/operation': typeof AuthenticatedSystemLogOperationRoute
 }
@@ -457,6 +466,7 @@ export interface FileRoutesById {
   '/_authenticated/system/tenant': typeof AuthenticatedSystemTenantRoute
   '/_authenticated/system/users': typeof AuthenticatedSystemUsersRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/_authenticated/system/log/change': typeof AuthenticatedSystemLogChangeRoute
   '/_authenticated/system/log/login': typeof AuthenticatedSystemLogLoginRoute
   '/_authenticated/system/log/operation': typeof AuthenticatedSystemLogOperationRoute
 }
@@ -507,6 +517,7 @@ export interface FileRouteTypes {
     | '/system/tenant'
     | '/system/users'
     | '/settings/'
+    | '/system/log/change'
     | '/system/log/login'
     | '/system/log/operation'
   fileRoutesByTo: FileRoutesByTo
@@ -554,6 +565,7 @@ export interface FileRouteTypes {
     | '/system/tenant'
     | '/system/users'
     | '/settings'
+    | '/system/log/change'
     | '/system/log/login'
     | '/system/log/operation'
   id:
@@ -603,6 +615,7 @@ export interface FileRouteTypes {
     | '/_authenticated/system/tenant'
     | '/_authenticated/system/users'
     | '/_authenticated/settings/'
+    | '/_authenticated/system/log/change'
     | '/_authenticated/system/log/login'
     | '/_authenticated/system/log/operation'
   fileRoutesById: FileRoutesById
@@ -931,6 +944,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemUsersRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/system/log/change': {
+      id: '/_authenticated/system/log/change'
+      path: '/change'
+      fullPath: '/system/log/change'
+      preLoaderRoute: typeof AuthenticatedSystemLogChangeRouteImport
+      parentRoute: typeof AuthenticatedSystemLogRoute
+    }
     '/_authenticated/system/log/login': {
       id: '/_authenticated/system/log/login'
       path: '/login'
@@ -979,12 +999,14 @@ const AuthenticatedSettingsRouteRouteWithChildren =
   )
 
 interface AuthenticatedSystemLogRouteChildren {
+  AuthenticatedSystemLogChangeRoute: typeof AuthenticatedSystemLogChangeRoute
   AuthenticatedSystemLogLoginRoute: typeof AuthenticatedSystemLogLoginRoute
   AuthenticatedSystemLogOperationRoute: typeof AuthenticatedSystemLogOperationRoute
 }
 
 const AuthenticatedSystemLogRouteChildren: AuthenticatedSystemLogRouteChildren =
   {
+    AuthenticatedSystemLogChangeRoute: AuthenticatedSystemLogChangeRoute,
     AuthenticatedSystemLogLoginRoute: AuthenticatedSystemLogLoginRoute,
     AuthenticatedSystemLogOperationRoute: AuthenticatedSystemLogOperationRoute,
   }
