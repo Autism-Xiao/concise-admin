@@ -136,12 +136,12 @@ export function fetchTwoFactorStatus(): Promise<{ enabled: boolean; remainingBac
   return getApiResult<{ enabled: boolean; remainingBackupCodes: number }>('/backend-api/v1/auth/2fa/status')
 }
 
-/** 发起绑定：生成密钥与 otpauth:// URI（前端渲染二维码）；重复调用换新密钥，旧二维码作废 */
-export function setupTwoFactor(): Promise<{ otpauthUrl: string }> {
+/** 发起绑定：验证当前密码后生成密钥与 otpauth:// URI（前端渲染二维码）；重复调用换新密钥，旧二维码作废 */
+export function setupTwoFactor(password: string): Promise<{ otpauthUrl: string }> {
   return getApiResult<{ otpauthUrl: string }>('/backend-api/v1/auth/2fa/setup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: '{}'
+    body: JSON.stringify({ password })
   })
 }
 
@@ -163,12 +163,12 @@ export function regenerateBackupCodes(code: string): Promise<{ backupCodes: stri
   })
 }
 
-/** 验码关闭两步验证并清除密钥 */
-export function deactivateTwoFactor(code: string): Promise<{ enabled: false }> {
+/** 验码关闭两步验证并清除密钥（密码 + 动态码双确认） */
+export function deactivateTwoFactor(code: string, password: string): Promise<{ enabled: false }> {
   return getApiResult<{ enabled: false }>('/backend-api/v1/auth/2fa/deactivate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code })
+    body: JSON.stringify({ code, password })
   })
 }
 

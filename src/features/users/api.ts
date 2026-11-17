@@ -219,6 +219,8 @@ export interface MyProfilePatch {
   sex?: number
   birthday?: string
   bio?: string
+  /** 当前密码：修改邮箱时必填（邮箱是忘记密码链路的收件凭证，后端强校验） */
+  password?: string
 }
 
 /** 当前登录用户的完整资料（含角色/部门/岗位/职级）；登录即可调用，不需要 system:user:list */

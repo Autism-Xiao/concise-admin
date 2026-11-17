@@ -45,7 +45,8 @@ function createApiErrorModule(state) {
   })
 }
 
-function loadHttp(response) {
+function loadHttp(options = {}) {
+  const response = options.response ?? {}
   const state = { logoutCalls: 0, redirects: [], events: [] }
   const apiError = createApiErrorModule(state)
   // 真实的请求计数模块：http.ts 靠它判断「新页面的请求是否都结束了」（切换租户揭幕用）
@@ -75,9 +76,11 @@ function loadHttp(response) {
     ['concise-auth', 'true'],
     ['concise-token', 'expired-token']
   ])
+  if (options.withRefreshToken) store.set('concise-refresh-token', 'stale-refresh')
   // 模拟 fetch 返回的 Response：真实响应有 headers/text，不能只给 json()
   const mockedResponse = {
     status: response.status,
+    ok: response.status >= 200 && response.status < 300,
     headers: {
       get: name => (name.toLowerCase() === 'content-type' ? (response.contentType ?? 'application/json; charset=utf-8') : null)
     },
@@ -85,8 +88,10 @@ function loadHttp(response) {
       if (typeof response.text === 'function') return response.text()
       const body = await response.json()
       return typeof body === 'string' ? body : JSON.stringify(body)
-    }
+    },
+    json: async () => response.json()
   }
+  const fetchImpl = options.fetchFn ?? (async () => mockedResponse)
 
   const module = { exports: {} }
   const filename = path.resolve(__dirname, '../src/lib/http.ts')
@@ -104,6 +109,11 @@ function loadHttp(response) {
           logout: () => {
             state.logoutCalls += 1
             store.clear()
+          },
+          getRefreshToken: () => store.get('concise-refresh-token') ?? '',
+          setTokens: (accessToken, refreshToken) => {
+            store.set('concise-token', accessToken)
+            store.set('concise-refresh-token', refreshToken)
           }
         }
       }
@@ -116,7 +126,7 @@ function loadHttp(response) {
       getItem: key => store.get(key) ?? null
     },
     window: windowLike,
-    fetch: async () => mockedResponse,
+    fetch: fetchImpl,
     // http.ts 会给每个请求挂超时定时器
     setTimeout: (fn, ms) => {
       const timer = setTimeout(fn, ms)
@@ -125,16 +135,31 @@ function loadHttp(response) {
     },
     clearTimeout,
     AbortController,
+    // refreshAccessToken 用 AbortSignal.timeout 兜超时；沙箱里缺了它会在 catch 里静默变 null
+    AbortSignal,
     DOMException
   })
   return { getApiResult: module.exports.getApiResult, state, store, apiError, apiActivity }
 }
 
+/** 构造 JSON Response 假对象（ok / headers / text / json 齐全，refreshAccessToken 与 parseJsonBody 都要读） */
+function makeJsonResponse(status, body) {
+  return {
+    status,
+    ok: status >= 200 && status < 300,
+    headers: { get: name => (name.toLowerCase() === 'content-type' ? 'application/json; charset=utf-8' : null) },
+    text: async () => JSON.stringify(body),
+    json: async () => body
+  }
+}
+
 async function main() {
   const http401 = loadHttp({
-    status: 401,
-    json: async () => {
-      throw new Error('HTTP 401 不应依赖 JSON 响应体')
+    response: {
+      status: 401,
+      json: async () => {
+        throw new Error('HTTP 401 不应依赖 JSON 响应体')
+      }
     }
   })
   await assert.rejects(http401.getApiResult('/backend-api/v1/users'), /登录已过期/)
@@ -149,8 +174,10 @@ async function main() {
   assert.equal(http401.state.events.filter(type => type === 'concise:session-expired').length, 1, '并发 401 只广播一次')
 
   const business401 = loadHttp({
-    status: 200,
-    json: async () => ({ code: 401, message: '令牌失效', result: null, success: false })
+    response: {
+      status: 200,
+      json: async () => ({ code: 401, message: '令牌失效', result: null, success: false })
+    }
   })
   await assert.rejects(business401.getApiResult('/backend-api/v1/users'), /登录已过期/)
   assert.equal(business401.state.logoutCalls, 1, '业务码 401 也应清理登录态')
@@ -158,19 +185,61 @@ async function main() {
   assert.ok(business401.state.events.includes('concise:session-expired'), '业务码 401 同样广播会话过期事件')
 
   const loginFailure = loadHttp({
-    status: 200,
-    json: async () => ({ code: 401, message: '用户名或密码错误', result: null, success: false })
+    response: {
+      status: 200,
+      json: async () => ({ code: 401, message: '用户名或密码错误', result: null, success: false })
+    }
   })
   await assert.rejects(loginFailure.getApiResult('/backend-api/v1/auth/login'), /用户名或密码错误/)
   assert.equal(loginFailure.state.logoutCalls, 0, '登录接口返回认证失败时不能重复退出或跳转')
   assert.deepEqual(loginFailure.state.redirects, [])
 
+  // 静默续签：accessToken 过期不踢登录页，先用 refreshToken 换新并重放原请求（用户无感）
+  let refreshCalls = 0
+  let dataCalls = 0
+  const refreshed = loadHttp({
+    withRefreshToken: true,
+    fetchFn: async (url, init) => {
+      if (String(url).includes('/v1/auth/refresh')) {
+        refreshCalls += 1
+        assert.equal(JSON.parse(init.body).refreshToken, 'stale-refresh', '续签应带上本地存的 refreshToken')
+        return makeJsonResponse(200, { code: 0, message: 'ok', result: { accessToken: 'new-access', refreshToken: 'new-refresh' }, success: true })
+      }
+      dataCalls += 1
+      return dataCalls === 1
+        ? makeJsonResponse(401, { code: 1003, message: '令牌失效' })
+        : makeJsonResponse(200, { code: 0, message: 'ok', result: { ok: true }, success: true })
+    }
+  })
+  const refreshedPayload = await refreshed.getApiResult('/backend-api/v1/users')
+  assert.equal(refreshedPayload.ok, true, '续签后重放应拿到正常业务结果')
+  assert.equal(refreshCalls, 1, '续签只发一次')
+  assert.equal(refreshed.state.logoutCalls, 0, '续签成功不应踢下线')
+  assert.equal(refreshed.store.get('concise-token'), 'new-access', '新 accessToken 应写回本地存储')
+  assert.equal(refreshed.store.get('concise-refresh-token'), 'new-refresh', '轮换出的新 refreshToken 也要写回')
+
+  // refreshToken 也失效（7 天未活动 / 被吊销）：续签失败才走会话过期弹框
+  const refreshDead = loadHttp({
+    withRefreshToken: true,
+    fetchFn: async url => {
+      if (String(url).includes('/v1/auth/refresh')) {
+        return makeJsonResponse(401, { code: 1003, message: 'refreshToken 无效或已过期' })
+      }
+      return makeJsonResponse(401, { code: 1003, message: '令牌失效' })
+    }
+  })
+  await assert.rejects(refreshDead.getApiResult('/backend-api/v1/users'), /登录已过期/)
+  assert.equal(refreshDead.state.logoutCalls, 1, 'refreshToken 失效时应清登录态并弹会话过期框')
+  assert.ok(refreshDead.state.events.includes('concise:session-expired'), '续签失败应广播会话过期事件')
+
   // 网关层连不上后端：vite 代理返回 502 + text/plain。
   // 用户只该看到「服务暂时连不上」，技术细节走控制台和横幅事件。
   const gatewayFailed = loadHttp({
-    status: 502,
-    contentType: 'text/plain; charset=utf-8',
-    text: async () => 'upstream connect failed: 由于目标计算机积极拒绝，无法连接。 (os error 10061)'
+    response: {
+      status: 502,
+      contentType: 'text/plain; charset=utf-8',
+      text: async () => 'upstream connect failed: 由于目标计算机积极拒绝，无法连接。 (os error 10061)'
+    }
   })
   await assert.rejects(gatewayFailed.getApiResult('/backend-api/v1/users'), /服务暂时连不上，请稍后重试/)
   assert.equal(gatewayFailed.state.logoutCalls, 0, '网关错误不应把用户踢下线')
@@ -179,27 +248,31 @@ async function main() {
     '网关错误应广播「服务不可用」事件，让全局横幅出现'
   )
 
-  const emptyBody = loadHttp({ status: 502, contentType: 'text/plain; charset=utf-8', text: async () => '' })
+  const emptyBody = loadHttp({ response: { status: 502, contentType: 'text/plain; charset=utf-8', text: async () => '' } })
   await assert.rejects(emptyBody.getApiResult('/backend-api/v1/users'), /服务暂时连不上，请稍后重试/)
 
   // 代理规则没生效时，请求会被前端 SPA 兜底成 index.html —— 对用户同样是「服务用不了」，
   // 不能报「JSON 解析失败」这种看不懂的错
   const htmlFallback = loadHttp({
-    status: 200,
-    contentType: 'text/html; charset=utf-8',
-    text: async () => '<!doctype html><html><head><title>App</title></head><body><div id="root"></div></body></html>'
+    response: {
+      status: 200,
+      contentType: 'text/html; charset=utf-8',
+      text: async () => '<!doctype html><html><head><title>App</title></head><body><div id="root"></div></body></html>'
+    }
   })
   await assert.rejects(htmlFallback.getApiResult('/backend-api/v1/tenants'), /服务暂时连不上，请稍后重试/)
 
   // 业务失败沿用后端的中文文案，不能被兜底话术覆盖
   const bizFailure = loadHttp({
-    status: 200,
-    json: async () => ({ code: 1001, message: '部门编码已被占用', result: null, success: false })
+    response: {
+      status: 200,
+      json: async () => ({ code: 1001, message: '部门编码已被占用', result: null, success: false })
+    }
   })
   await assert.rejects(bizFailure.getApiResult('/backend-api/v1/depts'), /部门编码已被占用/)
 
   // 成功请求返回解包后的 result
-  const ok = loadHttp({ status: 200, json: async () => ({ code: 0, message: 'ok', result: { id: 1 }, success: true }) })
+  const ok = loadHttp({ response: { status: 200, json: async () => ({ code: 0, message: 'ok', result: { id: 1 }, success: true }) } })
   const payload = await ok.getApiResult('/backend-api/v1/users/1')
   // 跨 vm 上下文的对象原型不同，不能 deepStrictEqual，按属性断言
   assert.equal(payload.id, 1)
@@ -219,7 +292,7 @@ async function main() {
   flip.reportRecovered()
   assert.equal(flipState.events.filter(e => e === 'concise:api-recovered').length, 1, '恢复只广播一次')
 
-  console.log('PASS: 401 登出 + 会话过期事件去重、网关错误人话文案 + 横幅事件、HTML 兜底、业务文案透传、横幅状态翻转')
+  console.log('PASS: 401 静默续签 + 会话过期事件去重、网关错误人话文案 + 横幅事件、HTML 兜底、业务文案透传、横幅状态翻转')
 }
 
 main().catch(error => {

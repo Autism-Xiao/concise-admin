@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { changeMyPassword, fetchMyProfile, setMyAvatar, updateMyProfile, type MyProfilePatch, type User } from '@/features/users/api'
 import { getApiResult } from '@/lib/http'
-import { getAvatar, getUsername, resolveAvatarUrl, setAvatar, setDisplayName } from '@/lib/auth'
+import { getAvatar, getUsername, logout, resolveAvatarUrl, setAvatar, setDisplayName } from '@/lib/auth'
 import { useDict } from '@/lib/dict'
 
 /** 密码规则与后端 ChangePasswordDto 保持一致：8~32 位，字母 + 数字 */
@@ -68,6 +68,8 @@ export function ProfilePage() {
   const [pwd, setPwd] = useState({ oldPassword: '', newPassword: '', confirm: '' })
   const [changing, setChanging] = useState(false)
   const [uploading, setUploading] = useState(false)
+  /** 改邮箱时的密码确认（后端强校验：邮箱是忘记密码链路的收件凭证） */
+  const [emailPwd, setEmailPwd] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const applyProfile = useCallback((user: User) => {
@@ -140,12 +142,22 @@ export function ProfilePage() {
       birthday: form.birthday,
       bio: form.bio.trim()
     }
+    // 改邮箱需密码二次确认（后端强校验，这里提前拦一次少一次 400 往返）
+    const emailChanged = form.email.trim() !== (profile?.email ?? '')
+    if (emailChanged && form.email.trim()) {
+      if (!emailPwd) {
+        toast.error('修改邮箱需要输入当前密码确认')
+        return
+      }
+      patch.password = emailPwd
+    }
     setSaving(true)
     updateMyProfile(patch)
       .then(next => {
         applyProfile(next)
         // 侧边栏 / 顶栏显示的是本地缓存的姓名，改完要同步
         setDisplayName(next.realname || next.username)
+        setEmailPwd('')
         toast.success('个人资料已保存')
       })
       .catch(error => toast.error(error instanceof Error ? error.message : '保存失败'))
@@ -165,8 +177,13 @@ export function ProfilePage() {
     setChanging(true)
     changeMyPassword(pwd.oldPassword, pwd.newPassword)
       .then(() => {
-        toast.success('密码已修改，其他设备的登录已全部下线')
+        // 改密成功后服务端已吊销全部会话（含当前设备的 refreshToken），留在本页只会 401
+        toast.success('密码已修改，请重新登录')
         setPwd({ oldPassword: '', newPassword: '', confirm: '' })
+        setTimeout(() => {
+          logout()
+          window.location.assign('/login')
+        }, 900)
       })
       .catch(error => toast.error(error instanceof Error ? error.message : '修改失败'))
       .finally(() => setChanging(false))
@@ -267,6 +284,16 @@ export function ProfilePage() {
                   placeholder="用于接收通知，留空表示不设置"
                   onChange={e => setForm({ ...form, email: e.target.value })}
                 />
+                {form.email.trim() !== (profile?.email ?? '') && form.email.trim() !== '' && (
+                  <Input
+                    type="password"
+                    value={emailPwd}
+                    maxLength={64}
+                    autoComplete="current-password"
+                    placeholder="邮箱有变更，请输入当前密码确认"
+                    onChange={e => setEmailPwd(e.target.value)}
+                  />
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="profile-phone">手机号</Label>

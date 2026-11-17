@@ -237,11 +237,23 @@ export function OpenPlatformPage() {
   const canCreate = hasPermission('system:app:create')
   const canUpdate = hasPermission('system:app:update')
   const canDelete = hasPermission('system:app:delete')
+  // 后端 reset-secret 端点用的是独立权限码 system:app:reset（比 update 更细），
+  // 之前按钮挂 canUpdate，权限只到 update 的账号点了必然 403
+  const canReset = hasPermission('system:app:reset')
   const canHookCreate = hasPermission('system:webhook:create')
   const canHookUpdate = hasPermission('system:webhook:update')
   const canHookDelete = hasPermission('system:webhook:delete')
 
   const scopeLabel = (key: string) => SCOPE_OPTIONS.find(option => option.key === key)?.label ?? key
+
+  const copyText = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success(`${label}已复制`)
+    } catch {
+      toast.error('复制失败，请手动选择复制')
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -306,7 +318,7 @@ export function OpenPlatformPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {canUpdate && <Switch checked={app.status === '0'} onCheckedChange={v => toggleApp(app, v)} />}
-                    {canUpdate && (
+                    {canReset && (
                       <Button variant="outline" size="sm" onClick={() => doResetSecret(app)}>
                         重置密钥
                       </Button>
@@ -371,6 +383,15 @@ export function OpenPlatformPage() {
                     <p className="text-muted-foreground max-w-lg truncate font-mono text-xs" title={hook.url}>
                       {hook.url}
                     </p>
+                    {/* 签名密钥：后端列表本来就下发（页面之前没渲染，等于"拿不到"）——展示出来供对接方验签 */}
+                    <div className="flex items-center gap-1">
+                      <p className="text-muted-foreground max-w-xs truncate font-mono text-xs" title="签名密钥（接收方验签用，注意保密）">
+                        签名密钥：{hook.secret}
+                      </p>
+                      <Button variant="ghost" size="icon" className="size-6" onClick={() => copyText(hook.secret, '签名密钥')}>
+                        <Copy className="size-3.5" />
+                      </Button>
+                    </div>
                     <p className="text-muted-foreground text-xs">创建于 {formatTime(hook.createTime)}</p>
                   </div>
                   <div className="flex items-center gap-2">

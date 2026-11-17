@@ -20,12 +20,14 @@ export function TwoFactorCard() {
   const [enabled, setEnabled] = useState<boolean | null>(null)
   const [remaining, setRemaining] = useState(0)
   const [busy, setBusy] = useState(false)
-  // 绑定弹窗：setup 拿到 otpauthUrl 后打开，输入动态码激活
+  // 绑定弹窗：先验密码拿 otpauthUrl，再输入动态码激活（密码是 2FA 敏感操作的二次确认）
   const [setupOpen, setSetupOpen] = useState(false)
+  const [setupPwd, setSetupPwd] = useState('')
   const [otpauthUrl, setOtpauthUrl] = useState('')
   const [setupCode, setSetupCode] = useState('')
-  // 关闭弹窗：验码后关闭
+  // 关闭弹窗：密码 + 动态码双确认
   const [disableOpen, setDisableOpen] = useState(false)
+  const [disablePwd, setDisablePwd] = useState('')
   const [disableCode, setDisableCode] = useState('')
   // 备份码展示（激活成功后自动弹出）
   const [codesOpen, setCodesOpen] = useState(false)
@@ -49,12 +51,15 @@ export function TwoFactorCard() {
   }, [])
 
   const openSetup = async () => {
+    if (!setupPwd) {
+      toast.error('请输入当前密码确认操作')
+      return
+    }
     setBusy(true)
     try {
-      const res = await setupTwoFactor()
+      const res = await setupTwoFactor(setupPwd)
       setOtpauthUrl(res.otpauthUrl)
       setSetupCode('')
-      setSetupOpen(true)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '发起绑定失败')
     } finally {
@@ -86,13 +91,17 @@ export function TwoFactorCard() {
   }
 
   const confirmDisable = async () => {
+    if (!disablePwd) {
+      toast.error('请输入当前密码确认操作')
+      return
+    }
     if (!/^\d{6}$/.test(disableCode)) {
       toast.error('请输入 6 位动态验证码')
       return
     }
     setBusy(true)
     try {
-      await deactivateTwoFactor(disableCode)
+      await deactivateTwoFactor(disableCode, disablePwd)
       setEnabled(false)
       setRemaining(0)
       setDisableOpen(false)
@@ -177,6 +186,7 @@ export function TwoFactorCard() {
               <Button
                 variant="outline"
                 onClick={() => {
+                  setDisablePwd('')
                   setDisableCode('')
                   setDisableOpen(true)
                 }}
@@ -185,48 +195,79 @@ export function TwoFactorCard() {
               </Button>
             </div>
           ) : (
-            <Button disabled={busy || enabled === null} onClick={() => void openSetup()}>
+            <Button
+              disabled={busy || enabled === null}
+              onClick={() => {
+                setSetupPwd('')
+                setOtpauthUrl('')
+                setSetupCode('')
+                setSetupOpen(true)
+              }}
+            >
               {busy ? <Loader2 className="animate-spin" /> : null}
               开启两步验证
             </Button>
           )}
         </div>
 
-        {/* 绑定弹窗：扫码 + 输入动态码激活 */}
+        {/* 绑定弹窗：密码确认 → 扫码 → 输入动态码激活 */}
         <Dialog open={setupOpen} onOpenChange={setSetupOpen}>
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
               <DialogTitle>开启两步验证</DialogTitle>
-              <DialogDescription>用 Google Authenticator、1Password 等认证器扫码，然后输入其显示的 6 位动态码</DialogDescription>
+              <DialogDescription>
+                {otpauthUrl
+                  ? '用 Google Authenticator、1Password 等认证器扫码，然后输入其显示的 6 位动态码'
+                  : '绑定是敏感操作：先输入当前密码确认身份，再出示二维码'}
+              </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col items-center gap-3">
-              <div className="rounded-lg bg-white p-3">
-                {/* otpauth:// URI 由认证器 App 扫码解析；手动输入走下方 URI 文本 */}
-                <QRCodeSVG value={otpauthUrl} size={168} />
-              </div>
-              <p className="text-muted-foreground w-full truncate rounded bg-muted px-2 py-1.5 font-mono text-[11px]" title={otpauthUrl}>
-                {otpauthUrl}
-              </p>
-              <Input
-                inputMode="numeric"
-                maxLength={6}
-                placeholder="输入 6 位动态码"
-                className="text-center tracking-[0.4em]"
-                value={setupCode}
-                onChange={e => setSetupCode(e.target.value.replace(/\D/g, ''))}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') void confirmActivate()
-                }}
-              />
+              {!otpauthUrl ? (
+                <Input
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="当前密码"
+                  value={setupPwd}
+                  onChange={e => setSetupPwd(e.target.value)}
+                />
+              ) : (
+                <>
+                  <div className="rounded-lg bg-white p-3">
+                    {/* otpauth:// URI 由认证器 App 扫码解析；手动输入走下方 URI 文本 */}
+                    <QRCodeSVG value={otpauthUrl} size={168} />
+                  </div>
+                  <p className="text-muted-foreground w-full truncate rounded bg-muted px-2 py-1.5 font-mono text-[11px]" title={otpauthUrl}>
+                    {otpauthUrl}
+                  </p>
+                  <Input
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="输入 6 位动态码"
+                    className="text-center tracking-[0.4em]"
+                    value={setupCode}
+                    onChange={e => setSetupCode(e.target.value.replace(/\D/g, ''))}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') void confirmActivate()
+                    }}
+                  />
+                </>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setSetupOpen(false)}>
                 取消
               </Button>
-              <Button disabled={busy} onClick={() => void confirmActivate()}>
-                {busy ? <Loader2 className="animate-spin" /> : null}
-                确认开启
-              </Button>
+              {otpauthUrl ? (
+                <Button disabled={busy} onClick={() => void confirmActivate()}>
+                  {busy ? <Loader2 className="animate-spin" /> : null}
+                  确认开启
+                </Button>
+              ) : (
+                <Button disabled={busy || !setupPwd} onClick={() => void openSetup()}>
+                  {busy ? <Loader2 className="animate-spin" /> : null}
+                  获取二维码
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -294,6 +335,13 @@ export function TwoFactorCard() {
               <DialogTitle>关闭两步验证</DialogTitle>
               <DialogDescription>关闭后登录仅凭密码即可，确认仍要关闭吗？备份码也会一并清除。</DialogDescription>
             </DialogHeader>
+            <Input
+              type="password"
+              autoComplete="current-password"
+              placeholder="当前密码"
+              value={disablePwd}
+              onChange={e => setDisablePwd(e.target.value)}
+            />
             <Input
               inputMode="numeric"
               maxLength={6}

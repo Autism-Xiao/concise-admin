@@ -1,6 +1,6 @@
 import { ApiError, reportRecovered, reportUnavailable } from '@/lib/api-error'
 import { beginApiCall, endApiCall } from '@/lib/api-activity'
-import { logout } from '@/lib/auth'
+import { getRefreshToken, logout, setTokens } from '@/lib/auth'
 import { notifySessionExpired } from '@/lib/session-expired'
 
 /** 普通接口的超时时间：后端挂了时 fetch 可能一直挂着，用户只看到页面转圈没有任何提示 */
@@ -135,12 +135,58 @@ function handleUnauthorized(): never {
 }
 
 /**
+ * 静默续签（单飞）：accessToken 过期（2h）后不直接踢登录页，先用 refreshToken 换新令牌
+ * 并重放原请求；只有 refreshToken 也失效（7 天未活动 / 已被吊销）才走会话过期弹框。
+ *
+ * 并发去重：页面加载时十几个请求可能同时 401，这里保证只发一次 refresh，
+ * 其余请求共享同一个 Promise；refresh 失败时它们各自落到 handleUnauthorized。
+ * 注意轮换语义：refresh 成功后 refreshToken 已换新（旧的被后端立即拉黑），
+ * 所以必须把新令牌对一起写入 localStorage。
+ */
+let refreshInFlight: Promise<string | null> | null = null
+
+function refreshAccessToken(): Promise<string | null> {
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      const refreshToken = getRefreshToken()
+      if (!refreshToken) return null
+      try {
+        const res = await fetch('/backend-api/v1/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+          signal: AbortSignal.timeout(10000)
+        })
+        if (!res.ok) return null
+        const json = (await res.json()) as ApiEnvelope<{ accessToken?: string; refreshToken?: string }>
+        const accessToken = json.result?.accessToken
+        if (!accessToken) return null
+        setTokens(accessToken, json.result?.refreshToken)
+        return accessToken
+      } catch {
+        return null
+      }
+    })()
+    void refreshInFlight.finally(() => {
+      refreshInFlight = null
+    })
+  }
+  return refreshInFlight
+}
+
+/**
  * 请求真实后端并解包 result：
  * - /backend-api 由 vite 代理转发到后端 /api
  * - 成功判定：success 优先，缺省时 code === 0（业务失败 HTTP 也是 200）
  * - 携带 token 时自动附加 Authorization 头
+ * - 401 先尝试静默续签（refreshAccessToken）并重放一次，续签失败才踢会话过期弹框
  */
 export async function getApiResult<T>(url: string, init?: RequestInit): Promise<T> {
+  return requestApi<T>(url, init, true)
+}
+
+/** allowRefresh=false：重放请求不再续签（防死循环）；refresh 接口本身 401 也不再续签 */
+async function requestApi<T>(url: string, init: RequestInit | undefined, allowRefresh: boolean): Promise<T> {
   const token = localStorage.getItem('concise-token') ?? ''
   // 当前租户：后端中间件用它做数据隔离（不可信也没关系，服务端会校验归属，越权直接 403）
   const tenantId = localStorage.getItem('concise-tenant') ?? ''
@@ -157,6 +203,12 @@ export async function getApiResult<T>(url: string, init?: RequestInit): Promise<
   // 401 必须在解析响应体之前判：后端 401 的 body code 是 1003/1007（不是 401），
   // 而且响应体可能不是合法 JSON —— 认证失效的可靠载体只有 HTTP 状态码
   if (res.status === 401 && !isLoginRequest) {
+    const refreshable = allowRefresh && !/\/v1\/auth\/refresh(?:$|\?)/.test(url)
+    if (refreshable) {
+      const renewed = await refreshAccessToken()
+      // 续签成功：用新令牌重放原请求（requestApi 里重读 localStorage 拿新 accessToken）
+      if (renewed) return requestApi<T>(url, init, false)
+    }
     handleUnauthorized()
   }
   const json = await parseJsonBody<ApiEnvelope<T>>(res, url)
