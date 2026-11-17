@@ -1,0 +1,6 @@
+# 行尾统一由编辑器/工具决定，git 不做转换；避免自动生成文件在 dev server
+# 每次重写后因 LF/CRLF 转换被误判成「有改动」，长期占着工作区脏状态
+* text=auto
+# TanStack Router 插件每次启动/改路由都会重写该文件（内容相同、行尾为 LF），
+# 关掉转换后 git 只比内容，不再因行尾产生假改动
+src/routeTree.gen.ts -text
