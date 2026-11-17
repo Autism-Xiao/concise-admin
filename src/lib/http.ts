@@ -1,6 +1,7 @@
 import { ApiError, reportRecovered, reportUnavailable } from '@/lib/api-error'
 import { beginApiCall, endApiCall } from '@/lib/api-activity'
 import { logout } from '@/lib/auth'
+import { notifySessionExpired } from '@/lib/session-expired'
 
 /** 普通接口的超时时间：后端挂了时 fetch 可能一直挂着，用户只看到页面转圈没有任何提示 */
 const REQUEST_TIMEOUT_MS = 20000
@@ -124,8 +125,11 @@ export interface PageResult<T> {
 
 function handleUnauthorized(): never {
   logout()
+  // 不直接整页跳登录：先广播「会话已过期」，由挂在 __root 的全局弹框
+  // （SessionExpiredDialog）提示用户，点「重新登录」才跳转 —— 直接跳的表现
+  // 是页面闪一下突然回到登录页，用户不知道发生了什么。并发 401 由弹框去重。
   if (window.location.pathname !== '/login') {
-    window.location.assign('/login')
+    notifySessionExpired()
   }
   throw new ApiError('auth')
 }

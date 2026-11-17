@@ -50,6 +50,27 @@ function loadHttp(response) {
   const apiError = createApiErrorModule(state)
   // 真实的请求计数模块：http.ts 靠它判断「新页面的请求是否都结束了」（切换租户揭幕用）
   const apiActivity = loadTsModule('src/lib/api-activity.ts')
+  // 与 http.ts 共享同一个 window 假对象：会话过期事件经它广播进 state.events
+  const windowLike = {
+    location: {
+      pathname: '/system/users',
+      assign: url => state.redirects.push(url)
+    },
+    dispatchEvent: event => {
+      state.events.push(event.type)
+      return true
+    }
+  }
+  // 真实的会话过期模块（模块级 notified 标记在每次 loadHttp 里都是新的）
+  const sessionExpired = loadTsModule('src/lib/session-expired.ts', {
+    window: windowLike,
+    CustomEvent: class CustomEvent {
+      constructor(type, init) {
+        this.type = type
+        this.detail = init?.detail
+      }
+    }
+  })
   const store = new Map([
     ['concise-auth', 'true'],
     ['concise-token', 'expired-token']
@@ -88,21 +109,13 @@ function loadHttp(response) {
       }
       if (id === '@/lib/api-error') return apiError
       if (id === '@/lib/api-activity') return apiActivity
+      if (id === '@/lib/session-expired') return sessionExpired
       throw new Error(`Unexpected import: ${id}`)
     },
     localStorage: {
       getItem: key => store.get(key) ?? null
     },
-    window: {
-      location: {
-        pathname: '/system/users',
-        assign: url => state.redirects.push(url)
-      },
-      dispatchEvent: event => {
-        state.events.push(event.type)
-        return true
-      }
-    },
+    window: windowLike,
     fetch: async () => mockedResponse,
     // http.ts 会给每个请求挂超时定时器
     setTimeout: (fn, ms) => {
@@ -126,8 +139,14 @@ async function main() {
   })
   await assert.rejects(http401.getApiResult('/backend-api/v1/users'), /登录已过期/)
   assert.equal(http401.state.logoutCalls, 1, 'HTTP 401 应清理登录态')
-  assert.deepEqual(http401.state.redirects, ['/login'], 'HTTP 401 应跳转登录页')
+  // 不再直接整页跳登录：由全局 SessionExpiredDialog 弹「重新登录」确认框，
+  // 用户点击后才跳转 —— 页面闪跳 + 表单瞬间丢失就是旧行为的问题
+  assert.deepEqual(http401.state.redirects, [], 'HTTP 401 不应直接跳转登录页')
   assert.equal(http401.store.has('concise-auth'), false)
+  assert.ok(http401.state.events.includes('concise:session-expired'), 'HTTP 401 应广播会话过期事件（弹框据此显示）')
+  // 并发去重：同一批在途请求同时收到 401，只弹一个框
+  await assert.rejects(http401.getApiResult('/backend-api/v1/users'), /登录已过期/)
+  assert.equal(http401.state.events.filter(type => type === 'concise:session-expired').length, 1, '并发 401 只广播一次')
 
   const business401 = loadHttp({
     status: 200,
@@ -135,7 +154,8 @@ async function main() {
   })
   await assert.rejects(business401.getApiResult('/backend-api/v1/users'), /登录已过期/)
   assert.equal(business401.state.logoutCalls, 1, '业务码 401 也应清理登录态')
-  assert.deepEqual(business401.state.redirects, ['/login'])
+  assert.deepEqual(business401.state.redirects, [])
+  assert.ok(business401.state.events.includes('concise:session-expired'), '业务码 401 同样广播会话过期事件')
 
   const loginFailure = loadHttp({
     status: 200,
@@ -199,7 +219,7 @@ async function main() {
   flip.reportRecovered()
   assert.equal(flipState.events.filter(e => e === 'concise:api-recovered').length, 1, '恢复只广播一次')
 
-  console.log('PASS: 401 登出、网关错误人话文案 + 横幅事件、HTML 兜底、业务文案透传、横幅状态翻转')
+  console.log('PASS: 401 登出 + 会话过期事件去重、网关错误人话文案 + 横幅事件、HTML 兜底、业务文案透传、横幅状态翻转')
 }
 
 main().catch(error => {

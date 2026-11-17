@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { CommandMenu } from '@/components/command-menu'
 import { NavigationProgress } from '@/components/navigation-progress'
+import { SessionExpiredDialog } from '@/components/session-expired-dialog'
 import { SearchProvider } from '@/context/search-provider'
 import { ShortcutProvider } from '@/context/shortcut-provider'
 import { LocaleProvider } from '@/context/locale-provider'
@@ -30,6 +31,7 @@ function RootLayout() {
               <Outlet />
               <CommandMenu />
               <NavigationProgress />
+              <SessionExpiredDialog />
               <Toaster richColors position="top-center" />
             </TooltipProvider>
             </SearchProvider>

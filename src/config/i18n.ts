@@ -61,6 +61,10 @@ export const zh = {
   'profile.profile': '个人资料',
   'profile.settings': '设置',
   'profile.logout': '退出登录',
+  // 会话过期弹框（lib/http.ts 401 → SessionExpiredDialog）
+  'session.expired.title': '登录已过期',
+  'session.expired.desc': '您的登录状态已失效，请重新登录后继续操作。',
+  'session.expired.action': '重新登录',
   // 语言
   'language.switch': '切换语言',
   // 全屏
@@ -214,6 +218,9 @@ export const en: Record<TranslationKey, string> = {
   'profile.profile': 'Profile',
   'profile.settings': 'Settings',
   'profile.logout': 'Sign out',
+  'session.expired.title': 'Session Expired',
+  'session.expired.desc': 'Your session has expired. Please sign in again to continue.',
+  'session.expired.action': 'Sign in again',
   'language.switch': 'Switch language',
   'fullscreen.enter': 'Enter fullscreen',
   'fullscreen.exit': 'Exit fullscreen',
