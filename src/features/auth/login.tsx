@@ -296,7 +296,7 @@ export function LoginPage() {
                   aria-invalid={!!errors.password}
                 />
                 <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-9 w-9" onClick={() => setShowPassword(v => !v)}>
-                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  {showPassword ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
                   <span className="sr-only">显示/隐藏密码</span>
                 </Button>
               </div>
