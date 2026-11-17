@@ -35,8 +35,10 @@ export function TenantWorkspace({ homePath }: { homePath: string }) {
           <SidebarMenuButton size="lg" asChild>
             <Link to={homePath as never} className="group-data-[collapsible=icon]:justify-center">
               <Logo className="text-sidebar-primary size-8! shrink-0" />
-              <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-                <span className="font-medium">{appName}</span>
+              <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
+                <span className="truncate font-medium" title={appName}>
+                  {appName}
+                </span>
                 <span className="text-muted-foreground text-xs">{APP_VERSION}</span>
               </div>
             </Link>
@@ -55,7 +57,8 @@ export function TenantWorkspace({ homePath }: { homePath: string }) {
               <Logo className="text-sidebar-primary size-8! shrink-0" />
               <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
                 <span className="truncate font-medium">{currentLabel}</span>
-                <span className="text-muted-foreground truncate text-xs">
+                {/* text-[11px]：侧边栏固定 16rem，text-xs 时「应用名 · 版本号」贴边，浏览器 90%/70% 缩放的亚像素取整会溢出触发截断 */}
+                <span className="text-muted-foreground truncate text-[11px]" title={`${appName} · ${APP_VERSION}`}>
                   {appName} · {APP_VERSION}
                 </span>
               </div>
