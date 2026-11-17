@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { RolePermissionDialog, type MenuTreeNode } from '@/features/system/role/components/role-permission-dialog'
-import { isUnavailableError, userMessageOf } from '@/lib/api-error'
-import { fetchTenantPackage, saveTenantPackage, type Tenant } from './api'
+import { userMessageOf } from '@/lib/api-error'
+import { fetchTenantPackage, saveTenantPackage, type Tenant } from '../api'
 
 interface TenantPackageDialogProps {
   tenant: Tenant
@@ -74,7 +74,7 @@ export function TenantPackageDialog({ tenant, open, onOpenChange }: TenantPackag
         tree={[]}
         checkedIds={[]}
         title="功能套餐"
-        description={`${error}${isUnavailableError(new Error()) ? '' : '，可关闭后重试'}`}
+        description={`${error}，可关闭后重试`}
         onSubmit={() => undefined}
       />
     )
