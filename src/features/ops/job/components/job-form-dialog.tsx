@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { fetchJobHandlers, JOB_STATUS_LABEL, type JobHandlerMeta, type JobItem, type JobStatus, type JobWritePayload } from '../api'
+import { cron, FieldError, maxLength, optional, requiredWith, useFieldErrors } from '@/lib/form-validation'
 
 interface JobFormDialogProps {
   open: boolean
@@ -37,15 +38,27 @@ export function JobFormDialog({ open, onOpenChange, job, onSubmit }: JobFormDial
       .catch(() => setHandlers([]))
   }, [])
 
-  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm(prev => ({ ...prev, [key]: value }))
+  const { errors, runValidation, clearError } = useFieldErrors()
+
+  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
+    setForm(prev => ({ ...prev, [key]: value }))
+    clearError(key as string)
+  }
 
   const submit = async () => {
+    if (
+      !runValidation(
+        {
+          cronExpression: [requiredWith('cron 表达式', cron)],
+          parameter: [optional(maxLength(255, '参数'))],
+          description: [optional(maxLength(255, '描述'))]
+        },
+        form as unknown as Record<string, unknown>
+      )
+    )
+      return
     if (!form.jobClassName.trim()) {
       toast.error('请选择任务类名')
-      return
-    }
-    if (!form.cronExpression.trim()) {
-      toast.error('请填写 cron 表达式')
       return
     }
     setPending(true)
@@ -121,12 +134,14 @@ export function JobFormDialog({ open, onOpenChange, job, onSubmit }: JobFormDial
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="job-cron">cron 表达式</Label>
-              <Input id="job-cron" placeholder="0 0 3 * * *" value={form.cronExpression} onChange={e => set('cronExpression', e.target.value)} required />
+              <Input id="job-cron" placeholder="0 0 3 * * *" value={form.cronExpression} onChange={e => set('cronExpression', e.target.value)} aria-invalid={!!errors.cronExpression} />
+              <FieldError message={errors.cronExpression} />
               <p className="text-muted-foreground text-xs">6 位：秒 分 时 日 月 周</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="job-param">参数</Label>
-              <Input id="job-param" placeholder="如保留天数 30" value={form.parameter} onChange={e => set('parameter', e.target.value)} />
+              <Input id="job-param" placeholder="如保留天数 30" value={form.parameter} onChange={e => set('parameter', e.target.value)} maxLength={255} aria-invalid={!!errors.parameter} />
+              <FieldError message={errors.parameter} />
             </div>
           </div>
 

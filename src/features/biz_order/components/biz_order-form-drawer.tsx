@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { AppDrawer } from '@/components/app-drawer'
+import { amount as amountRule, FieldError, maxLength, optional, requiredWith, useFieldErrors } from '@/lib/form-validation'
 import type { BizOrder, BizOrderWritePayload } from '../api'
 
 interface BizOrderFormDrawerProps {
@@ -17,13 +18,29 @@ interface BizOrderFormDrawerProps {
 
 const toDatetimeInput = (value?: string | null) => (value ? String(value).slice(0, 16) : '')
 
-/** 订单新增/编辑抽屉（生成器产物：AppDrawer 表单模式，回车提交、原生校验生效） */
+/** 订单新增/编辑抽屉（生成器产物：AppDrawer 表单模式，回车提交、字段级校验生效） */
 export function BizOrderFormDrawer({ open, onOpenChange, bizOrder: editing, onSubmit }: BizOrderFormDrawerProps) {
   const [form, setForm] = useState<Partial<BizOrder>>(editing ?? {})
   const isEdit = editing !== null
+  const { errors, runValidation, clearError } = useFieldErrors()
+
+  const setField = (key: keyof BizOrder, value: unknown) => {
+    setForm(prev => ({ ...prev, [key]: value }))
+    clearError(key as string)
+  }
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (
+      !runValidation(
+        {
+          title: [requiredWith('标题', maxLength(200, '标题'))],
+          amount: [optional(amountRule)]
+        },
+        form as unknown as Record<string, unknown>
+      )
+    )
+      return
     onSubmit(form as BizOrderWritePayload)
   }
 
@@ -40,9 +57,12 @@ export function BizOrderFormDrawer({ open, onOpenChange, bizOrder: editing, onSu
           <Label htmlFor="title"><span className="text-destructive">*</span> 标题</Label>
           <Input
             id="title"
-            required value={String(form.title ?? '')}
-            onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
+            value={String(form.title ?? '')}
+            maxLength={200}
+            onChange={e => setField('title', e.target.value)}
+            aria-invalid={!!errors.title}
           />
+          <FieldError message={errors.title} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="status">状态</Label>
@@ -64,9 +84,13 @@ export function BizOrderFormDrawer({ open, onOpenChange, bizOrder: editing, onSu
           <Input
             id="amount"
             type="number"
+            step="0.01"
+            min={0}
             value={form.amount ?? ''}
-            onChange={e => setForm(prev => ({ ...prev, amount: e.target.value === '' ? undefined : Number(e.target.value) }))}
+            onChange={e => setField('amount', e.target.value === '' ? undefined : Number(e.target.value))}
+            aria-invalid={!!errors.amount}
           />
+          <FieldError message={errors.amount} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="signedAt">签约时间</Label>

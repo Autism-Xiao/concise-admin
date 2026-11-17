@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from 'cn'
 import { useDict } from '@/lib/dict'
+import { FieldError, intRange, maxLength, optional, requiredWith, sysCode, useFieldErrors } from '@/lib/form-validation'
 import type { Dept, DeptWritePayload } from '../api'
 
 interface DeptFormDialogProps {
@@ -66,7 +67,12 @@ export function DeptFormDialog({ open, onOpenChange, dept, parentId, depts, onSu
       : { ...emptyForm, parentId: parentId ?? null }
   )
 
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm(prev => ({ ...prev, [key]: value }))
+  const { errors, runValidation, clearError } = useFieldErrors()
+
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm(prev => ({ ...prev, [key]: value }))
+    clearError(key as string)
+  }
 
   const deptItems = useMemo(() => ({ none: '无（顶级部门）', ...Object.fromEntries(depts.map(d => [d.id, d.departName])) }), [depts])
 
@@ -84,6 +90,17 @@ export function DeptFormDialog({ open, onOpenChange, dept, parentId, depts, onSu
           className="space-y-4"
           onSubmit={e => {
             e.preventDefault()
+            if (
+              !runValidation(
+                {
+                  departName: [requiredWith('部门名称', maxLength(100, '部门名称'))],
+                  orgCode: [optional(sysCode, maxLength(64, '部门编码'))],
+                  departOrder: [intRange(0, 9999, '排序号')]
+                },
+                form as unknown as Record<string, unknown>
+              )
+            )
+              return
             onSubmit({
               departName: form.departName.trim(),
               parentId: form.parentId,
@@ -100,13 +117,15 @@ export function DeptFormDialog({ open, onOpenChange, dept, parentId, depts, onSu
               <Label htmlFor="dept-name">
                 <span className="text-destructive">*</span> 部门名称
               </Label>
-              <Input id="dept-name" value={form.departName} onChange={e => set('departName', e.target.value)} required />
+              <Input id="dept-name" value={form.departName} onChange={e => set('departName', e.target.value)} maxLength={100} aria-invalid={!!errors.departName} />
+              <FieldError message={errors.departName} />
             </div>
             <div className={field}>
               <Label htmlFor="dept-code">
                 <span className="text-destructive">*</span> 部门编码
               </Label>
-              <Input id="dept-code" value={form.orgCode} onChange={e => set('orgCode', e.target.value)} placeholder={dept ? '' : '留空自动生成，如 A01A02'} />
+              <Input id="dept-code" value={form.orgCode} onChange={e => set('orgCode', e.target.value)} placeholder={dept ? '' : '留空自动生成，如 A01A02'} maxLength={64} aria-invalid={!!errors.orgCode} />
+              <FieldError message={errors.orgCode} />
             </div>
 
             <div className={field}>
@@ -145,7 +164,8 @@ export function DeptFormDialog({ open, onOpenChange, dept, parentId, depts, onSu
               <Label htmlFor="dept-sort">
                 <span className="text-destructive">*</span> 排序号
               </Label>
-              <Input id="dept-sort" type="number" min={0} value={form.departOrder} onChange={e => set('departOrder', Number(e.target.value))} required />
+              <Input id="dept-sort" type="number" min={0} value={form.departOrder} onChange={e => set('departOrder', Number(e.target.value))} aria-invalid={!!errors.departOrder} />
+              <FieldError message={errors.departOrder} />
             </div>
             <div className={field}>
               <Label>状态</Label>

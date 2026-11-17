@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { createRegion, fetchRegionByCode, fetchRegionChildren, updateRegion, type Region } from '../api'
+import { areaCode as areaCodeRule, FieldError, maxLength, numberRange, optional, pattern, requiredWith, useFieldErrors } from '@/lib/form-validation'
 
 interface RegionFormDialogProps {
   open: boolean
@@ -110,9 +111,33 @@ export function RegionFormDialog({ open, onOpenChange, region, onSaved }: Region
   const level = parentDistrict ? 3 : parentCity ? 2 : parentProvince ? 1 : 0
   const parentCode = parentDistrict || parentCity || parentProvince || '0'
   const isEdit = !!region
+  const { errors, runValidation, clearError } = useFieldErrors()
+
+  /** 零散 state 统一走这里改：写入时顺手清掉该字段的错误提示 */
+  const setField = (setter: (v: string) => void, key: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setter(e.target.value)
+    clearError(key)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // 名称必填；区划代码 12 位数字；邮编 6 位；经纬度是有理数；拼音/城市代码只做长度与字符约束
+    if (
+      !runValidation(
+        {
+          name: [requiredWith('名称', maxLength(100, '名称'))],
+          areaCode: [requiredWith('区划代码', areaCodeRule)],
+          shortName: [optional(maxLength(100, '简称'))],
+          pinyin: [optional(pattern(/^[A-Za-z\s]*$/, '拼音只能包含英文字母'), maxLength(100, '拼音'))],
+          cityCode: [optional(pattern(/^\d{0,4}$/, '城市代码须为数字区号'), maxLength(4, '城市代码'))],
+          zipCode: [optional(pattern(/^\d{6}$/, '邮编须为 6 位数字'))],
+          lng: [optional(numberRange(-180, 180, '经度'))],
+          lat: [optional(numberRange(-90, 90, '纬度'))]
+        },
+        { name, areaCode, shortName, pinyin, cityCode, zipCode, lng, lat }
+      )
+    )
+      return
     setSaving(true)
     try {
       const payload = {
@@ -210,35 +235,43 @@ export function RegionFormDialog({ open, onOpenChange, region, onSaved }: Region
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="region-name">名称</Label>
-              <Input id="region-name" value={name} onChange={e => setName(e.target.value)} placeholder="如 深圳市" required />
+              <Input id="region-name" value={name} onChange={setField(setName, 'name')} placeholder="如 深圳市" maxLength={100} aria-invalid={!!errors.name} />
+              <FieldError message={errors.name} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="region-short">简称</Label>
-              <Input id="region-short" value={shortName} onChange={e => setShortName(e.target.value)} placeholder="如 深圳" />
+              <Input id="region-short" value={shortName} onChange={setField(setShortName, 'shortName')} placeholder="如 深圳" maxLength={100} aria-invalid={!!errors.shortName} />
+              <FieldError message={errors.shortName} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="region-code">区划代码</Label>
-              <Input id="region-code" value={areaCode} onChange={e => setAreaCode(e.target.value)} placeholder="如 440300000000" required />
+              <Input id="region-code" value={areaCode} onChange={setField(setAreaCode, 'areaCode')} placeholder="如 440300000000" maxLength={12} aria-invalid={!!errors.areaCode} />
+              <FieldError message={errors.areaCode} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="region-pinyin">拼音</Label>
-              <Input id="region-pinyin" value={pinyin} onChange={e => setPinyin(e.target.value)} placeholder="如 ShenZhen" />
+              <Input id="region-pinyin" value={pinyin} onChange={setField(setPinyin, 'pinyin')} placeholder="如 ShenZhen" maxLength={100} aria-invalid={!!errors.pinyin} />
+              <FieldError message={errors.pinyin} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="region-citycode">城市代码（电话区号）</Label>
-              <Input id="region-citycode" value={cityCode} onChange={e => setCityCode(e.target.value)} placeholder="如 0755" />
+              <Input id="region-citycode" value={cityCode} onChange={setField(setCityCode, 'cityCode')} placeholder="如 0755" maxLength={4} aria-invalid={!!errors.cityCode} />
+              <FieldError message={errors.cityCode} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="region-zip">邮编</Label>
-              <Input id="region-zip" value={zipCode} onChange={e => setZipCode(e.target.value)} placeholder="如 518000" />
+              <Input id="region-zip" value={zipCode} onChange={setField(setZipCode, 'zipCode')} placeholder="如 518000" maxLength={6} aria-invalid={!!errors.zipCode} />
+              <FieldError message={errors.zipCode} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="region-lng">经度</Label>
-              <Input id="region-lng" value={lng} onChange={e => setLng(e.target.value)} placeholder="如 114.057868" />
+              <Input id="region-lng" value={lng} onChange={setField(setLng, 'lng')} placeholder="如 114.057868" aria-invalid={!!errors.lng} />
+              <FieldError message={errors.lng} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="region-lat">纬度</Label>
-              <Input id="region-lat" value={lat} onChange={e => setLat(e.target.value)} placeholder="如 22.543099" />
+              <Input id="region-lat" value={lat} onChange={setField(setLat, 'lat')} placeholder="如 22.543099" aria-invalid={!!errors.lat} />
+              <FieldError message={errors.lat} />
             </div>
           </div>
           <div className="space-y-2">

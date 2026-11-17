@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { UserMultiSelect } from '@/features/users/components/user-multi-select'
 import { useDict } from '@/lib/dict'
+import { FieldError, maxLength, requiredWith, useFieldErrors } from '@/lib/form-validation'
 import { TASK_UNASSIGNED, type Task, type TaskPriority, type TaskWritePayload } from '../api'
 
 interface TaskFormDialogProps {
@@ -45,13 +46,15 @@ export function TaskFormDialog({ open, onOpenChange, task, onSubmit }: TaskFormD
   const [assignee, setAssignee] = useState<string[]>(() => (task?.assigneeId && task.assigneeId !== TASK_UNASSIGNED ? [task.assigneeId] : []))
   const [pending, setPending] = useState(false)
 
-  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm(prev => ({ ...prev, [key]: value }))
+  const { errors, runValidation, clearError } = useFieldErrors()
+
+  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
+    setForm(prev => ({ ...prev, [key]: value }))
+    clearError(key as string)
+  }
 
   const submit = async () => {
-    if (!form.title.trim()) {
-      toast.error('请填写任务标题')
-      return
-    }
+    if (!runValidation({ title: [requiredWith('任务标题', maxLength(64, '任务标题'))] }, form as unknown as Record<string, unknown>)) return
     const dueDate = form.dueDate ? new Date(form.dueDate).toISOString() : null
     setPending(true)
     try {
@@ -86,7 +89,8 @@ export function TaskFormDialog({ open, onOpenChange, task, onSubmit }: TaskFormD
         >
           <div className="space-y-2">
             <Label htmlFor="task-title">标题</Label>
-            <Input id="task-title" maxLength={64} value={form.title} onChange={e => set('title', e.target.value)} required />
+            <Input id="task-title" maxLength={64} value={form.title} onChange={e => set('title', e.target.value)} aria-invalid={!!errors.title} />
+            <FieldError message={errors.title} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

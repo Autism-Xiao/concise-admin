@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useDict } from '@/lib/dict'
+import { contactPhone, FieldError, maxLength, required, requiredWith, sysCode, useFieldErrors } from '@/lib/form-validation'
 import type { Tenant, TenantPlan, TenantStatus } from '../api'
 
 interface TenantFormDialogProps {
@@ -49,7 +50,12 @@ export function TenantFormDialog({ open, onOpenChange, tenant, submitting = fals
       : emptyForm
   )
 
-  const set = <K extends keyof typeof emptyForm>(key: K, value: (typeof emptyForm)[K]) => setForm(prev => ({ ...prev, [key]: value }))
+  const { errors, runValidation, clearError } = useFieldErrors()
+
+  const set = <K extends keyof typeof emptyForm>(key: K, value: (typeof emptyForm)[K]) => {
+    setForm(prev => ({ ...prev, [key]: value }))
+    clearError(key as string)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -64,25 +70,41 @@ export function TenantFormDialog({ open, onOpenChange, tenant, submitting = fals
           className="space-y-4"
           onSubmit={e => {
             e.preventDefault()
+            if (
+              !runValidation(
+                {
+                  name: [requiredWith('租户名称', maxLength(100, '租户名称'))],
+                  code: [requiredWith('租户编码', sysCode, maxLength(64, '租户编码'))],
+                  contact: [required('联系人'), maxLength(100, '联系人')],
+                  phone: [requiredWith('联系电话', contactPhone)]
+                },
+                form as unknown as Record<string, unknown>
+              )
+            )
+              return
             onSubmit(form)
           }}
         >
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="tenant-name">租户名称</Label>
-              <Input id="tenant-name" value={form.name} onChange={e => set('name', e.target.value)} placeholder="如 云启科技" required />
+              <Input id="tenant-name" value={form.name} onChange={e => set('name', e.target.value)} placeholder="如 云启科技" maxLength={100} aria-invalid={!!errors.name} />
+              <FieldError message={errors.name} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="tenant-code">租户编码</Label>
-              <Input id="tenant-code" value={form.code} onChange={e => set('code', e.target.value)} placeholder="如 YUNQI" required />
+              <Input id="tenant-code" value={form.code} onChange={e => set('code', e.target.value)} placeholder="如 YUNQI" maxLength={64} aria-invalid={!!errors.code} />
+              <FieldError message={errors.code} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="tenant-contact">联系人</Label>
-              <Input id="tenant-contact" value={form.contact} onChange={e => set('contact', e.target.value)} required />
+              <Input id="tenant-contact" value={form.contact} onChange={e => set('contact', e.target.value)} maxLength={100} aria-invalid={!!errors.contact} />
+              <FieldError message={errors.contact} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="tenant-phone">联系电话</Label>
-              <Input id="tenant-phone" value={form.phone} onChange={e => set('phone', e.target.value)} required />
+              <Input id="tenant-phone" value={form.phone} onChange={e => set('phone', e.target.value)} aria-invalid={!!errors.phone} />
+              <FieldError message={errors.phone} />
             </div>
             <div className="space-y-2">
               <Label>套餐</Label>

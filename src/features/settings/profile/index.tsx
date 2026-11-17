@@ -14,6 +14,7 @@ import { changeMyPassword, fetchMyProfile, setMyAvatar, updateMyProfile, type My
 import { getApiResult } from '@/lib/http'
 import { getAvatar, getUsername, logout, resolveAvatarUrl, setAvatar, setDisplayName } from '@/lib/auth'
 import { useDict } from '@/lib/dict'
+import { contactPhone, email as emailRule, FieldError, maxLength, optional, pattern, phone as phoneRule, required, useFieldErrors } from '@/lib/form-validation'
 
 /** 密码规则与后端 ChangePasswordDto 保持一致：8~32 位，字母 + 数字 */
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).{8,32}$/
@@ -64,8 +65,22 @@ export function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<ProfileForm>(EMPTY_FORM)
-
+  /** 资料表单的字段级错误（key 与 ProfileForm 字段同名） */
+  const formErrorsState = useFieldErrors()
+  const formErrors = formErrorsState.errors
+  /** 改一张字段就清掉对应红字 */
+  const setField = <K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) => {
+    setForm({ ...form, [key]: value })
+    formErrorsState.clearError(key as string)
+  }
   const [pwd, setPwd] = useState({ oldPassword: '', newPassword: '', confirm: '' })
+  /** 改密表单的字段级错误 */
+  const pwdErrorsState = useFieldErrors()
+  const pwdErrors = pwdErrorsState.errors
+  const setPwdField = (key: 'oldPassword' | 'newPassword' | 'confirm', value: string) => {
+    setPwd({ ...pwd, [key]: value })
+    pwdErrorsState.clearError(key)
+  }
   const [changing, setChanging] = useState(false)
   const [uploading, setUploading] = useState(false)
   /** 改邮箱时的密码确认（后端强校验：邮箱是忘记密码链路的收件凭证） */
@@ -128,10 +143,19 @@ export function ProfilePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.realname.trim()) {
-      toast.error('姓名不能为空')
+    // 字段级校验：姓名必填，邮箱/手机/座机有格式约束（留空放行），错误落在字段底部红字
+    if (
+      !formErrorsState.runValidation(
+        {
+          realname: [required('姓名'), maxLength(100, '姓名')],
+          email: [optional(emailRule, maxLength(45, '邮箱'))],
+          phone: [optional(phoneRule)],
+          telephone: [optional(contactPhone)]
+        },
+        form as unknown as Record<string, unknown>
+      )
+    )
       return
-    }
     // 空串交给后端归一成 NULL（清空字段的语义）；生日留空同样清空
     const patch: MyProfilePatch = {
       realname: form.realname.trim(),
@@ -166,14 +190,20 @@ export function ProfilePage() {
 
   const handleChangePassword = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!PASSWORD_PATTERN.test(pwd.newPassword)) {
-      toast.error('新密码需 8~32 位，且同时包含字母和数字')
+    if (
+      !pwdErrorsState.runValidation(
+        {
+          oldPassword: [required('原密码')],
+          newPassword: [required('新密码'), pattern(PASSWORD_PATTERN, '新密码需 8~32 位，且同时包含字母和数字')],
+          confirm: [
+            required('确认新密码'),
+            (_v, all) => (!all || String(all.confirm ?? '') === String(all.newPassword ?? '') ? null : '两次输入的新密码不一致')
+          ]
+        },
+        pwd as unknown as Record<string, unknown>
+      )
+    )
       return
-    }
-    if (pwd.newPassword !== pwd.confirm) {
-      toast.error('两次输入的新密码不一致')
-      return
-    }
     setChanging(true)
     changeMyPassword(pwd.oldPassword, pwd.newPassword)
       .then(() => {
@@ -270,8 +300,10 @@ export function ProfilePage() {
                   maxLength={100}
                   disabled={loading}
                   placeholder="请输入真实姓名"
-                  onChange={e => setForm({ ...form, realname: e.target.value })}
+                  aria-invalid={!!formErrors.realname}
+                  onChange={e => setField('realname', e.target.value)}
                 />
+                <FieldError message={formErrors.realname} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="profile-email">邮箱</Label>
@@ -282,8 +314,10 @@ export function ProfilePage() {
                   maxLength={45}
                   disabled={loading}
                   placeholder="用于接收通知，留空表示不设置"
-                  onChange={e => setForm({ ...form, email: e.target.value })}
+                  aria-invalid={!!formErrors.email}
+                  onChange={e => setField('email', e.target.value)}
                 />
+                <FieldError message={formErrors.email} />
                 {form.email.trim() !== (profile?.email ?? '') && form.email.trim() !== '' && (
                   <Input
                     type="password"
@@ -303,8 +337,10 @@ export function ProfilePage() {
                   maxLength={45}
                   disabled={loading}
                   placeholder="请输入手机号"
-                  onChange={e => setForm({ ...form, phone: e.target.value })}
+                  aria-invalid={!!formErrors.phone}
+                  onChange={e => setField('phone', e.target.value)}
                 />
+                <FieldError message={formErrors.phone} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="profile-telephone">座机号</Label>
@@ -314,8 +350,10 @@ export function ProfilePage() {
                   maxLength={45}
                   disabled={loading}
                   placeholder="如 010-88886666"
-                  onChange={e => setForm({ ...form, telephone: e.target.value })}
+                  aria-invalid={!!formErrors.telephone}
+                  onChange={e => setField('telephone', e.target.value)}
                 />
+                <FieldError message={formErrors.telephone} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="profile-sex">性别</Label>
@@ -384,10 +422,11 @@ export function ProfilePage() {
                 id="pwd-old"
                 type="password"
                 autoComplete="current-password"
-                required
                 value={pwd.oldPassword}
-                onChange={e => setPwd({ ...pwd, oldPassword: e.target.value })}
+                aria-invalid={!!pwdErrors.oldPassword}
+                onChange={e => setPwdField('oldPassword', e.target.value)}
               />
+              <FieldError message={pwdErrors.oldPassword} />
             </div>
             <Separator />
             <div className="space-y-2">
@@ -396,11 +435,12 @@ export function ProfilePage() {
                 id="pwd-new"
                 type="password"
                 autoComplete="new-password"
-                required
                 placeholder="8~32 位，字母 + 数字"
                 value={pwd.newPassword}
-                onChange={e => setPwd({ ...pwd, newPassword: e.target.value })}
+                aria-invalid={!!pwdErrors.newPassword}
+                onChange={e => setPwdField('newPassword', e.target.value)}
               />
+              <FieldError message={pwdErrors.newPassword} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="pwd-confirm">确认新密码</Label>
@@ -408,10 +448,11 @@ export function ProfilePage() {
                 id="pwd-confirm"
                 type="password"
                 autoComplete="new-password"
-                required
                 value={pwd.confirm}
-                onChange={e => setPwd({ ...pwd, confirm: e.target.value })}
+                aria-invalid={!!pwdErrors.confirm}
+                onChange={e => setPwdField('confirm', e.target.value)}
               />
+              <FieldError message={pwdErrors.confirm} />
             </div>
             <Button type="submit" disabled={changing || !pwd.oldPassword || !pwd.newPassword || !pwd.confirm}>
               {changing ? '提交中…' : '修改密码'}

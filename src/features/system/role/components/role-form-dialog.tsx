@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { isSuperRoleCode } from '@/lib/permissions'
+import { FieldError, maxLength, minLength, requiredWith, sysCode, useFieldErrors } from '@/lib/form-validation'
 import type { Role } from '../api'
 
 export interface RoleFormValues {
@@ -44,7 +45,12 @@ export function RoleFormDialog({ open, onOpenChange, role, onSubmit }: RoleFormD
       : emptyForm
   )
 
-  const set = <K extends keyof typeof emptyForm>(key: K, value: (typeof emptyForm)[K]) => setForm(prev => ({ ...prev, [key]: value }))
+  const { errors, runValidation, clearError } = useFieldErrors()
+
+  const set = <K extends keyof typeof emptyForm>(key: K, value: (typeof emptyForm)[K]) => {
+    setForm(prev => ({ ...prev, [key]: value }))
+    clearError(key as string)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -58,12 +64,23 @@ export function RoleFormDialog({ open, onOpenChange, role, onSubmit }: RoleFormD
           className="space-y-4"
           onSubmit={e => {
             e.preventDefault()
+            if (
+              !runValidation(
+                {
+                  roleName: [requiredWith('角色名称', maxLength(100, '角色名称'))],
+                  roleCode: [requiredWith('权限字符', sysCode, minLength(2, '权限字符'), maxLength(64, '权限字符'))]
+                },
+                form as unknown as Record<string, unknown>
+              )
+            )
+              return
             onSubmit({ ...form, description: form.description || undefined })
           }}
         >
           <div className="space-y-2">
             <Label htmlFor="role-name">角色名称</Label>
-            <Input id="role-name" value={form.roleName} onChange={e => set('roleName', e.target.value)} placeholder="如 运营" required />
+            <Input id="role-name" value={form.roleName} onChange={e => set('roleName', e.target.value)} placeholder="如 运营" maxLength={100} aria-invalid={!!errors.roleName} />
+            <FieldError message={errors.roleName} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="role-code">权限字符</Label>
@@ -72,9 +89,10 @@ export function RoleFormDialog({ open, onOpenChange, role, onSubmit }: RoleFormD
               value={form.roleCode}
               onChange={e => set('roleCode', e.target.value)}
               placeholder="如 operator（英文唯一）"
-              required
-              minLength={2}
+              maxLength={64}
+              aria-invalid={!!errors.roleCode}
             />
+            <FieldError message={errors.roleCode} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="role-desc">描述</Label>

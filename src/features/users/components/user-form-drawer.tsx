@@ -8,6 +8,7 @@ import { fetchBackendDepts, fetchRoleOptions, type Role, type User, type UserWri
 import { fetchPosts, type Post } from '@/features/system/post/api'
 import { fetchLevels, type Level } from '@/features/system/level/api'
 import { useDict } from '@/lib/dict'
+import { email, FieldError, maxLength, minLength, optional, phone, required, requiredWith, useFieldErrors } from '@/lib/form-validation'
 
 interface UserFormDrawerProps {
   open: boolean
@@ -109,6 +110,7 @@ export function UserFormDrawer({ open, onOpenChange, user, onSubmit }: UserFormD
   const [levels, setLevels] = useState<Level[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const { errors, runValidation, clearError } = useFieldErrors()
 
   // 抽屉打开时拉角色/部门/岗位/职级下拉数据（每次挂载拉一次，数据量小）
   useEffect(() => {
@@ -123,14 +125,28 @@ export function UserFormDrawer({ open, onOpenChange, user, onSubmit }: UserFormD
       .catch(e => setLoadError(e instanceof Error ? e.message : '加载角色/部门失败'))
   }, [])
 
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm(prev => ({ ...prev, [key]: value }))
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm(prev => ({ ...prev, [key]: value }))
+    clearError(key as string)
+  }
 
   const toggle = (key: 'roleIds' | 'deptIds' | 'postIds', id: string) =>
     setForm(prev => ({ ...prev, [key]: prev[key].includes(id) ? prev[key].filter(v => v !== id) : [...prev[key], id] }))
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user && form.password.length < 6) return // 新增时密码必填，靠原生 required 双保险
+    // 字段级校验：不过就在对应字段底部出红字，不提交
+    const passed = runValidation(
+      {
+        username: [requiredWith('账号', minLength(3, '账号'), maxLength(100, '账号'))],
+        realname: [required('姓名'), maxLength(100, '姓名')],
+        password: user ? [optional(minLength(6, '密码'), maxLength(64, '密码'))] : [requiredWith('密码', minLength(6, '密码'), maxLength(64, '密码'))],
+        phone: [optional(phone)],
+        email: [optional(email)]
+      },
+      form as unknown as Record<string, unknown>
+    )
+    if (!passed) return
     setSubmitting(true)
     // 编辑时 password 留空表示不改密码；username 后端不可改，编辑时不下发
     const base = {
@@ -171,13 +187,15 @@ export function UserFormDrawer({ open, onOpenChange, user, onSubmit }: UserFormD
             <Label htmlFor="username">
               账号 <span className="text-destructive">*</span>
             </Label>
-            <Input id="username" value={form.username} onChange={e => set('username', e.target.value)} disabled={!!user} required minLength={3} />
+            <Input id="username" value={form.username} onChange={e => set('username', e.target.value)} disabled={!!user} maxLength={100} aria-invalid={!!errors.username} />
+            <FieldError message={errors.username} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="realname">
               姓名 <span className="text-destructive">*</span>
             </Label>
-            <Input id="realname" value={form.realname} onChange={e => set('realname', e.target.value)} required />
+            <Input id="realname" value={form.realname} onChange={e => set('realname', e.target.value)} maxLength={100} aria-invalid={!!errors.realname} />
+            <FieldError message={errors.realname} />
           </div>
         </div>
         <div className="space-y-2">
@@ -188,18 +206,21 @@ export function UserFormDrawer({ open, onOpenChange, user, onSubmit }: UserFormD
             value={form.password}
             onChange={e => set('password', e.target.value)}
             placeholder={user ? '留空表示不修改密码' : '至少 6 位'}
-            required={!user}
-            minLength={user ? 0 : 6}
+            maxLength={64}
+            aria-invalid={!!errors.password}
           />
+          <FieldError message={errors.password} />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="phone">手机号</Label>
-            <Input id="phone" value={form.phone} onChange={e => set('phone', e.target.value)} />
+            <Input id="phone" value={form.phone} onChange={e => set('phone', e.target.value)} aria-invalid={!!errors.phone} />
+            <FieldError message={errors.phone} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">邮箱</Label>
-            <Input id="email" type="email" value={form.email} onChange={e => set('email', e.target.value)} />
+            <Input id="email" type="email" value={form.email} onChange={e => set('email', e.target.value)} aria-invalid={!!errors.email} />
+            <FieldError message={errors.email} />
           </div>
         </div>
         <div className="grid grid-cols-3 gap-4">

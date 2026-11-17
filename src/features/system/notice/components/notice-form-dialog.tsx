@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { UserMultiSelect } from '@/features/users/components/user-multi-select'
 import { toast } from 'sonner'
 import { useDict } from '@/lib/dict'
+import { dateAfter, FieldError, maxLength, requiredWith, useFieldErrors } from '@/lib/form-validation'
 import {
   NOTICE_CATEGORY_LABEL,
   NOTICE_PRIORITY_LABEL,
@@ -67,13 +68,25 @@ export function NoticeFormDialog({ open, onOpenChange, notice, onSubmit }: Notic
       : []
   )
 
-  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm(prev => ({ ...prev, [key]: value }))
+  const { errors, runValidation, clearError } = useFieldErrors()
+
+  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
+    setForm(prev => ({ ...prev, [key]: value }))
+    clearError(key as string)
+  }
 
   const submit = async () => {
-    if (!form.title.trim()) {
-      toast.error('请填写标题')
+    // 字段级校验：标题必填、结束时间不得早于开始时间（字段底部红字，不再 toast）
+    if (
+      !runValidation(
+        {
+          title: [requiredWith('标题', maxLength(100, '标题'))],
+          endTime: [dateAfter('startTime', 'endTime', '生效开始', '生效结束')]
+        },
+        form as unknown as Record<string, unknown>
+      )
+    )
       return
-    }
 
     // 指定用户：选人控件已按账号挑好，这里只把 ID 拼成后端约定的逗号串
     let targetUserIds: string | undefined
@@ -122,7 +135,8 @@ export function NoticeFormDialog({ open, onOpenChange, notice, onSubmit }: Notic
         >
           <div className="space-y-2">
             <Label htmlFor="notice-title">标题</Label>
-            <Input id="notice-title" maxLength={100} value={form.title} onChange={e => set('title', e.target.value)} required />
+            <Input id="notice-title" maxLength={100} value={form.title} onChange={e => set('title', e.target.value)} aria-invalid={!!errors.title} />
+            <FieldError message={errors.title} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -198,11 +212,12 @@ export function NoticeFormDialog({ open, onOpenChange, notice, onSubmit }: Notic
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="notice-start">生效开始</Label>
-              <Input id="notice-start" type="datetime-local" value={form.startTime} onChange={e => set('startTime', e.target.value)} />
+              <Input id="notice-start" type="datetime-local" value={form.startTime} onChange={e => set('startTime', e.target.value)} aria-invalid={!!errors.endTime} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="notice-end">生效结束</Label>
-              <Input id="notice-end" type="datetime-local" value={form.endTime} onChange={e => set('endTime', e.target.value)} />
+              <Input id="notice-end" type="datetime-local" value={form.endTime} onChange={e => set('endTime', e.target.value)} aria-invalid={!!errors.endTime} />
+              <FieldError message={errors.endTime} />
             </div>
           </div>
 

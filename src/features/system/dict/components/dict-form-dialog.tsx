@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { FieldError, maxLength, requiredWith, sysCode, useFieldErrors } from '@/lib/form-validation'
 import type { Dict, DictFormValues } from '../api'
 
 interface DictFormDialogProps {
@@ -25,8 +26,12 @@ export function DictFormDialog({ open, onOpenChange, dict, onSubmit }: DictFormD
     description: dict?.description ?? ''
   }))
   const [submitting, setSubmitting] = useState(false)
+  const { errors, runValidation, clearError } = useFieldErrors()
 
-  const set = <K extends keyof DictFormValues>(key: K, value: DictFormValues[K]) => setForm(prev => ({ ...prev, [key]: value }))
+  const set = <K extends keyof DictFormValues>(key: K, value: DictFormValues[K]) => {
+    setForm(prev => ({ ...prev, [key]: value }))
+    clearError(key as string)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -40,6 +45,16 @@ export function DictFormDialog({ open, onOpenChange, dict, onSubmit }: DictFormD
           className="space-y-4"
           onSubmit={async e => {
             e.preventDefault()
+            if (
+              !runValidation(
+                {
+                  dictName: [requiredWith('字典名称', maxLength(100, '字典名称'))],
+                  dictCode: [requiredWith('字典编码', sysCode, maxLength(100, '字典编码'))]
+                },
+                form as unknown as Record<string, unknown>
+              )
+            )
+              return
             setSubmitting(true)
             try {
               await onSubmit({ ...form, description: form.description?.trim() || undefined })
@@ -50,7 +65,8 @@ export function DictFormDialog({ open, onOpenChange, dict, onSubmit }: DictFormD
         >
           <div className="space-y-2">
             <Label htmlFor="dict-name">字典名称</Label>
-            <Input id="dict-name" value={form.dictName} onChange={e => set('dictName', e.target.value)} placeholder="如 用户性别" required maxLength={100} />
+            <Input id="dict-name" value={form.dictName} onChange={e => set('dictName', e.target.value)} placeholder="如 用户性别" maxLength={100} aria-invalid={!!errors.dictName} />
+            <FieldError message={errors.dictName} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="dict-code">字典编码</Label>
@@ -59,9 +75,10 @@ export function DictFormDialog({ open, onOpenChange, dict, onSubmit }: DictFormD
               value={form.dictCode}
               onChange={e => set('dictCode', e.target.value)}
               placeholder="如 sys_user_gender"
-              required
               maxLength={100}
+              aria-invalid={!!errors.dictCode}
             />
+            <FieldError message={errors.dictCode} />
             <p className="text-muted-foreground text-xs">唯一标识，字母开头，前端按此编码取字典项</p>
           </div>
           <div className="space-y-2">

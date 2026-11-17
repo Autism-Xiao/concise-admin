@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from 'cn'
 import { useDict } from '@/lib/dict'
+import { FieldError, intRange, maxLength, optional, pattern, requiredWith, useFieldErrors } from '@/lib/form-validation'
 import { derivePermsPrefix, PERM_NODE_POOL, type Menu, type MenuWritePayload, type PermNode } from '../api'
 import { IconPicker } from './icon-picker'
 import { PermNodesTransfer } from './perm-nodes-transfer'
@@ -117,7 +118,12 @@ export function MenuFormDialog({ open, onOpenChange, menu, parentId, menus, onSu
     return menus.filter(m => m.parentId === menu.id && m.menuType === 2 && (m.delFlag ?? 0) === 0 && m.perms).map(m => ({ name: m.name, perms: m.perms! }))
   })
 
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm(prev => ({ ...prev, [key]: value }))
+  const { errors, runValidation, clearError } = useFieldErrors()
+
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm(prev => ({ ...prev, [key]: value }))
+    clearError(key as string)
+  }
 
   // 可选上级：目录/菜单才能当父级；编辑时排除自身及后代，避免形成环
   const parentOptions = menus.filter(m => m.menuType !== 2 && (!menu || !descendantIds(menu, menus).has(m.id)))
@@ -136,6 +142,19 @@ export function MenuFormDialog({ open, onOpenChange, menu, parentId, menus, onSu
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    // 外链的 url 必须是完整 http/https 地址；普通路由以 / 开头
+    const urlRule = isExternal ? optional(pattern(/^https?:\/\/\S+$/i, '外链地址须以 http:// 或 https:// 开头')) : optional(pattern(/^\//, '路由地址须以 / 开头'))
+    if (
+      !runValidation(
+        {
+          name: [requiredWith('菜单名称', maxLength(100, '菜单名称'))],
+          url: [urlRule],
+          sortNo: [intRange(0, 9999, '排序号')]
+        },
+        form as unknown as Record<string, unknown>
+      )
+    )
+      return
     const values: MenuWritePayload = {
       name: form.name.trim(),
       menuType: form.menuType,
@@ -204,8 +223,10 @@ export function MenuFormDialog({ open, onOpenChange, menu, parentId, menus, onSu
                 value={form.name}
                 onChange={e => set('name', e.target.value)}
                 placeholder={isButton ? '如：用户新增' : '如：用户管理'}
-                required
+                maxLength={100}
+                aria-invalid={!!errors.name}
               />
+              <FieldError message={errors.name} />
             </div>
             {!isButton && (
               <div className={field}>
@@ -242,15 +263,17 @@ export function MenuFormDialog({ open, onOpenChange, menu, parentId, menus, onSu
                   value={form.url}
                   onChange={e => set('url', e.target.value)}
                   placeholder={isExternal ? 'https://example.com' : '/system/example'}
-                  required={isExternal}
+                  aria-invalid={!!errors.url}
                 />
+                <FieldError message={errors.url} />
               </div>
             )}
             <div className={inputBox}>
               <Label htmlFor="menu-sort">
                 <span className="text-destructive">*</span> 排序号
               </Label>
-              <Input id="menu-sort" type="number" value={form.sortNo} onChange={e => set('sortNo', Number(e.target.value))} required />
+              <Input id="menu-sort" type="number" value={form.sortNo} onChange={e => set('sortNo', Number(e.target.value))} aria-invalid={!!errors.sortNo} />
+              <FieldError message={errors.sortNo} />
             </div>
 
             {!isButton && !isExternal && (

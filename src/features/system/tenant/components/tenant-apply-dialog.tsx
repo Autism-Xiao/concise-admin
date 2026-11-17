@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { applyTenant, fetchTenantApplyQuota, type TenantApplyQuota } from '../api'
+import { contactPhone, FieldError, maxLength, optional, requiredWith, sysCode, useFieldErrors } from '@/lib/form-validation'
 
 interface TenantApplyDialogProps {
   open: boolean
@@ -51,10 +52,27 @@ export function TenantApplyDialog({ open, onOpenChange, onApplied }: TenantApply
     }
   }, [open])
 
-  const set = <K extends keyof typeof emptyForm>(key: K, value: string) => setForm(prev => ({ ...prev, [key]: value }))
+  const { errors, runValidation, clearError } = useFieldErrors()
+
+  const set = <K extends keyof typeof emptyForm>(key: K, value: string) => {
+    setForm(prev => ({ ...prev, [key]: value }))
+    clearError(key as string)
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (
+      !runValidation(
+        {
+          name: [requiredWith('团队名称', maxLength(100, '团队名称'))],
+          code: [requiredWith('团队编码', sysCode, maxLength(64, '团队编码'))],
+          contact: [optional(maxLength(50, '联系人'))],
+          phone: [optional(contactPhone)]
+        },
+        form as unknown as Record<string, unknown>
+      )
+    )
+      return
     setSubmitting(true)
     try {
       const tenant = await applyTenant({
@@ -114,19 +132,23 @@ export function TenantApplyDialog({ open, onOpenChange, onApplied }: TenantApply
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="apply-name">团队名称</Label>
-                <Input id="apply-name" value={form.name} onChange={e => set('name', e.target.value)} placeholder="如 云启科技" required maxLength={100} />
+                <Input id="apply-name" value={form.name} onChange={e => set('name', e.target.value)} placeholder="如 云启科技" maxLength={100} aria-invalid={!!errors.name} />
+                <FieldError message={errors.name} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="apply-code">团队编码</Label>
-                <Input id="apply-code" value={form.code} onChange={e => set('code', e.target.value)} placeholder="如 yunqi" required maxLength={64} />
+                <Input id="apply-code" value={form.code} onChange={e => set('code', e.target.value)} placeholder="如 yunqi" maxLength={64} aria-invalid={!!errors.code} />
+                <FieldError message={errors.code} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="apply-contact">联系人</Label>
-                <Input id="apply-contact" value={form.contact} onChange={e => set('contact', e.target.value)} placeholder="选填" maxLength={50} />
+                <Input id="apply-contact" value={form.contact} onChange={e => set('contact', e.target.value)} placeholder="选填" maxLength={50} aria-invalid={!!errors.contact} />
+                <FieldError message={errors.contact} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="apply-phone">联系电话</Label>
-                <Input id="apply-phone" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="选填" maxLength={30} />
+                <Input id="apply-phone" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="选填" maxLength={30} aria-invalid={!!errors.phone} />
+                <FieldError message={errors.phone} />
               </div>
             </div>
             <p className="text-muted-foreground flex items-center gap-1.5 text-xs">

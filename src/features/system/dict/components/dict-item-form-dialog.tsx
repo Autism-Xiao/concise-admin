@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { FieldError, intRange, maxLength, requiredWith, useFieldErrors } from '@/lib/form-validation'
 import type { Dict, DictItem, DictItemFormValues } from '../api'
 
 interface DictItemFormDialogProps {
@@ -28,8 +29,12 @@ export function DictItemFormDialog({ open, onOpenChange, dict, item, onSubmit }:
     description: item?.description ?? ''
   }))
   const [submitting, setSubmitting] = useState(false)
+  const { errors, runValidation, clearError } = useFieldErrors()
 
-  const set = <K extends keyof DictItemFormValues>(key: K, value: DictItemFormValues[K]) => setForm(prev => ({ ...prev, [key]: value }))
+  const set = <K extends keyof DictItemFormValues>(key: K, value: DictItemFormValues[K]) => {
+    setForm(prev => ({ ...prev, [key]: value }))
+    clearError(key as string)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -45,6 +50,17 @@ export function DictItemFormDialog({ open, onOpenChange, dict, item, onSubmit }:
           className="space-y-4"
           onSubmit={async e => {
             e.preventDefault()
+            if (
+              !runValidation(
+                {
+                  itemText: [requiredWith('字典项文本', maxLength(100, '字典项文本'))],
+                  itemValue: [requiredWith('字典项值', maxLength(100, '字典项值'))],
+                  sortOrder: [intRange(0, 99999, '排序')]
+                },
+                form as unknown as Record<string, unknown>
+              )
+            )
+              return
             setSubmitting(true)
             try {
               await onSubmit({
@@ -59,17 +75,20 @@ export function DictItemFormDialog({ open, onOpenChange, dict, item, onSubmit }:
         >
           <div className="space-y-2">
             <Label htmlFor="item-text">字典项文本</Label>
-            <Input id="item-text" value={form.itemText} onChange={e => set('itemText', e.target.value)} placeholder="如 男" required maxLength={100} />
+            <Input id="item-text" value={form.itemText} onChange={e => set('itemText', e.target.value)} placeholder="如 男" maxLength={100} aria-invalid={!!errors.itemText} />
+            <FieldError message={errors.itemText} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="item-value">字典项值</Label>
-            <Input id="item-value" value={form.itemValue} onChange={e => set('itemValue', e.target.value)} placeholder="如 1" required maxLength={100} />
+            <Input id="item-value" value={form.itemValue} onChange={e => set('itemValue', e.target.value)} placeholder="如 1" maxLength={100} aria-invalid={!!errors.itemValue} />
+            <FieldError message={errors.itemValue} />
             <p className="text-muted-foreground text-xs">存库用的值，同一字典下不可重复</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="item-sort">排序</Label>
-              <Input id="item-sort" type="number" min={0} value={form.sortOrder} onChange={e => set('sortOrder', Number(e.target.value))} />
+              <Input id="item-sort" type="number" min={0} value={form.sortOrder} onChange={e => set('sortOrder', Number(e.target.value))} aria-invalid={!!errors.sortOrder} />
+              <FieldError message={errors.sortOrder} />
             </div>
             <div className="space-y-2">
               <Label>状态</Label>

@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { FieldError, intRange, maxLength, requiredWith, useFieldErrors } from '@/lib/form-validation'
 import type { Level, LevelWritePayload } from '../api'
 
 interface LevelFormDialogProps {
@@ -29,7 +30,12 @@ export function LevelFormDialog({ open, onOpenChange, level, onSubmit }: LevelFo
     level ? { levelName: level.levelName, levelRank: level.levelRank, status: level.status, remark: level.remark ?? '' } : emptyForm
   )
 
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm(prev => ({ ...prev, [key]: value }))
+  const { errors, runValidation, clearError } = useFieldErrors()
+
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm(prev => ({ ...prev, [key]: value }))
+    clearError(key as string)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -43,16 +49,28 @@ export function LevelFormDialog({ open, onOpenChange, level, onSubmit }: LevelFo
           className="space-y-4"
           onSubmit={e => {
             e.preventDefault()
+            if (
+              !runValidation(
+                {
+                  levelName: [requiredWith('职级名称', maxLength(100, '职级名称'))],
+                  levelRank: [intRange(1, 9999, '等级排序')]
+                },
+                form as unknown as Record<string, unknown>
+              )
+            )
+              return
             onSubmit({ levelName: form.levelName.trim(), levelRank: form.levelRank, status: form.status, remark: form.remark.trim() || null })
           }}
         >
           <div className="space-y-2">
             <Label htmlFor="level-name">职级名称</Label>
-            <Input id="level-name" value={form.levelName} onChange={e => set('levelName', e.target.value)} placeholder="如 P6 / M1" required />
+            <Input id="level-name" value={form.levelName} onChange={e => set('levelName', e.target.value)} placeholder="如 P6 / M1" maxLength={100} aria-invalid={!!errors.levelName} />
+            <FieldError message={errors.levelName} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="level-rank">等级排序（数字越大级别越高）</Label>
-            <Input id="level-rank" type="number" min={1} value={form.levelRank} onChange={e => set('levelRank', Number(e.target.value) || 1)} required />
+            <Input id="level-rank" type="number" min={1} value={form.levelRank} onChange={e => set('levelRank', Number(e.target.value) || 1)} aria-invalid={!!errors.levelRank} />
+            <FieldError message={errors.levelRank} />
           </div>
           <div className="space-y-2">
             <Label>状态</Label>

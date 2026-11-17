@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { AppDrawer } from '@/components/app-drawer'
+import { contactPhone, FieldError, intRange, maxLength, optional, requiredWith, useFieldErrors } from '@/lib/form-validation'
 import type { Customer, CustomerWritePayload } from '../api'
 
 interface CustomerFormDrawerProps {
@@ -15,13 +16,31 @@ interface CustomerFormDrawerProps {
   onSubmit: (values: CustomerWritePayload) => void
 }
 
-/** 客户新增/编辑抽屉（生成器产物：AppDrawer 表单模式，回车提交、原生校验生效） */
+/** 客户新增/编辑抽屉（生成器产物：AppDrawer 表单模式，回车提交、字段级校验生效） */
 export function CustomerFormDrawer({ open, onOpenChange, customer: editing, onSubmit }: CustomerFormDrawerProps) {
   const [form, setForm] = useState<Partial<Customer>>(editing ?? {})
   const isEdit = editing !== null
+  const { errors, runValidation, clearError } = useFieldErrors()
+
+  const setField = (key: keyof Customer, value: unknown) => {
+    setForm(prev => ({ ...prev, [key]: value }))
+    clearError(key as string)
+  }
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (
+      !runValidation(
+        {
+          name: [requiredWith('客户名称', maxLength(100, '客户名称'))],
+          contact: [optional(maxLength(50, '联系人'))],
+          phone: [optional(contactPhone)],
+          level: [optional(intRange(0, 999, '级别'))]
+        },
+        form as unknown as Record<string, unknown>
+      )
+    )
+      return
     onSubmit(form as CustomerWritePayload)
   }
 
@@ -38,25 +57,33 @@ export function CustomerFormDrawer({ open, onOpenChange, customer: editing, onSu
           <Label htmlFor="name"><span className="text-destructive">*</span> 客户名称</Label>
           <Input
             id="name"
-            required value={String(form.name ?? '')}
-            onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+            value={String(form.name ?? '')}
+            maxLength={100}
+            onChange={e => setField('name', e.target.value)}
+            aria-invalid={!!errors.name}
           />
+          <FieldError message={errors.name} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="contact">联系人</Label>
           <Input
             id="contact"
             value={String(form.contact ?? '')}
-            onChange={e => setForm(prev => ({ ...prev, contact: e.target.value }))}
+            maxLength={50}
+            onChange={e => setField('contact', e.target.value)}
+            aria-invalid={!!errors.contact}
           />
+          <FieldError message={errors.contact} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="phone">电话</Label>
           <Input
             id="phone"
             value={String(form.phone ?? '')}
-            onChange={e => setForm(prev => ({ ...prev, phone: e.target.value }))}
+            onChange={e => setField('phone', e.target.value)}
+            aria-invalid={!!errors.phone}
           />
+          <FieldError message={errors.phone} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="level">级别</Label>
@@ -64,8 +91,10 @@ export function CustomerFormDrawer({ open, onOpenChange, customer: editing, onSu
             id="level"
             type="number"
             value={form.level ?? ''}
-            onChange={e => setForm(prev => ({ ...prev, level: e.target.value === '' ? undefined : Number(e.target.value) }))}
+            onChange={e => setField('level', e.target.value === '' ? undefined : Number(e.target.value))}
+            aria-invalid={!!errors.level}
           />
+          <FieldError message={errors.level} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="vip">客户等级</Label>

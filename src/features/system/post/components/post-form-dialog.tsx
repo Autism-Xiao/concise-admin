@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { fetchDepts, type Dept } from '@/features/system/dept/api'
+import { FieldError, intRange, maxLength, requiredWith, sysCode, useFieldErrors } from '@/lib/form-validation'
 import type { Post, PostWritePayload } from '../api'
 
 interface PostFormDialogProps {
@@ -52,7 +53,12 @@ export function PostFormDialog({ open, onOpenChange, post, onSubmit }: PostFormD
       })
   }, [])
 
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm(prev => ({ ...prev, [key]: value }))
+  const { errors, runValidation, clearError } = useFieldErrors()
+
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm(prev => ({ ...prev, [key]: value }))
+    clearError(key as string)
+  }
 
   const deptItems = useMemo(() => ({ none: '无（不选部门）', ...Object.fromEntries(depts.map(d => [d.id, d.departName])) }), [depts])
 
@@ -68,6 +74,17 @@ export function PostFormDialog({ open, onOpenChange, post, onSubmit }: PostFormD
           className="space-y-4"
           onSubmit={e => {
             e.preventDefault()
+            if (
+              !runValidation(
+                {
+                  postName: [requiredWith('岗位名称', maxLength(100, '岗位名称'))],
+                  postCode: [requiredWith('岗位编码', sysCode, maxLength(64, '岗位编码'))],
+                  postSort: [intRange(1, 9999, '排序')]
+                },
+                form as unknown as Record<string, unknown>
+              )
+            )
+              return
             onSubmit({
               postName: form.postName.trim(),
               postCode: form.postCode.trim(),
@@ -81,11 +98,13 @@ export function PostFormDialog({ open, onOpenChange, post, onSubmit }: PostFormD
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="post-name">岗位名称</Label>
-              <Input id="post-name" value={form.postName} onChange={e => set('postName', e.target.value)} placeholder="如 前端工程师" required />
+              <Input id="post-name" value={form.postName} onChange={e => set('postName', e.target.value)} placeholder="如 前端工程师" maxLength={100} aria-invalid={!!errors.postName} />
+              <FieldError message={errors.postName} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="post-code">岗位编码</Label>
-              <Input id="post-code" value={form.postCode} onChange={e => set('postCode', e.target.value)} placeholder="如 FE" required />
+              <Input id="post-code" value={form.postCode} onChange={e => set('postCode', e.target.value)} placeholder="如 FE" maxLength={64} aria-invalid={!!errors.postCode} />
+              <FieldError message={errors.postCode} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -107,7 +126,8 @@ export function PostFormDialog({ open, onOpenChange, post, onSubmit }: PostFormD
             </div>
             <div className="space-y-2">
               <Label htmlFor="post-sort">排序（越小越靠前）</Label>
-              <Input id="post-sort" type="number" min={1} value={form.postSort} onChange={e => set('postSort', Number(e.target.value) || 1)} required />
+              <Input id="post-sort" type="number" min={1} value={form.postSort} onChange={e => set('postSort', Number(e.target.value) || 1)} aria-invalid={!!errors.postSort} />
+              <FieldError message={errors.postSort} />
             </div>
           </div>
           <div className="space-y-2">
