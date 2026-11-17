@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Archive,
+  BadgeCheck,
   Droplets,
   Download,
   FileClock,
@@ -31,6 +32,7 @@ import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOpt
 import { getUsername, hasPermission } from '@/lib/auth'
 import { UserFormDrawer } from './components/user-form-drawer'
 import { UserWatermarkDialog } from './components/user-watermark-dialog'
+import { UserVipDialog } from './components/user-vip-dialog'
 import { ResetPasswordResultDialog } from './components/reset-password-result-dialog'
 import { RecycleBinDialog } from './components/recycle-bin-dialog'
 import { saveBlobFile } from '@/lib/download'
@@ -88,6 +90,7 @@ export function UsersPage() {
   const [editing, setEditing] = useState<User | null>(null)
   const [deleting, setDeleting] = useState<User | null>(null)
   const [watermarkTarget, setWatermarkTarget] = useState<User | null>(null)
+  const [vipTarget, setVipTarget] = useState<User | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   /** 重置密码结果：非空时弹一次性明文展示框 */
@@ -175,6 +178,14 @@ export function UsersPage() {
                 title="平台管理员：可跨租户视角、可访问平台级功能"
               >
                 平台
+              </span>
+            )}
+            {Number(row.original.vipLevel) === 1 && (
+              <span
+                className="inline-flex rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] leading-none font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300"
+                title="VIP：可自助开通团队（租户）"
+              >
+                VIP
               </span>
             )}
           </span>
@@ -346,6 +357,13 @@ export function UsersPage() {
                         {Number(user.isPlatformAdmin) === 1 ? '取消平台管理员' : '设为平台管理员'}
                       </DropdownMenuItem>
                     </>
+                  )}
+                  {/* VIP 同样是平台级操作：决定该账号能否自助开通团队，租户管理员无权发放 */}
+                  {hasPermission('system:user:vip') && (
+                    <DropdownMenuItem onClick={() => setVipTarget(user)}>
+                      <BadgeCheck className="size-4" />
+                      {Number(user.vipLevel) === 1 ? '调整 VIP' : '开通 VIP'}
+                    </DropdownMenuItem>
                   )}
                   {hasPermission('system:user:delete') && (
                     <>
@@ -655,6 +673,16 @@ export function UsersPage() {
             toast.success(`已更新「${watermarkTarget.realname || watermarkTarget.username}」的水印设置`)
             load()
           }}
+        />
+      )}
+
+      {vipTarget && (
+        <UserVipDialog
+          key={vipTarget.id}
+          open={!!vipTarget}
+          onOpenChange={v => !v && setVipTarget(null)}
+          user={vipTarget}
+          onSaved={load}
         />
       )}
 

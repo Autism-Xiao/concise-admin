@@ -1,6 +1,8 @@
-import { Building2, Check, Globe, Loader2 } from 'lucide-react'
+import { useState } from 'react'
+import { Building2, Check, Globe, Loader2, Plus } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { MyTenant } from '../api'
+import { TenantApplyDialog } from './tenant-apply-dialog'
 
 interface TenantSwitchDialogProps {
   open: boolean
@@ -12,6 +14,8 @@ interface TenantSwitchDialogProps {
   busy: boolean
   /** 切换动作：解析为 true 表示成功，弹窗随即关闭（失败保持打开，用户可重选） */
   onSwitch: (tenantId: number) => Promise<boolean>
+  /** 自助开通成功：切到新租户（上层负责刷新列表与关闭本弹窗） */
+  onApplied: (tenantId: number) => void
 }
 
 /**
@@ -23,7 +27,8 @@ interface TenantSwitchDialogProps {
  * 列出可切换的租户 + 超管的「平台视角」，当前项打勾、停用/到期项禁用；
  * 切换成功后**自动关闭**（页面由软切换的快照遮罩过渡），失败则留在弹窗里可重选。
  */
-export function TenantSwitchDialog({ open, onOpenChange, tenants, isSuper, current, busy, onSwitch }: TenantSwitchDialogProps) {
+export function TenantSwitchDialog({ open, onOpenChange, tenants, isSuper, current, busy, onSwitch, onApplied }: TenantSwitchDialogProps) {
+  const [applyOpen, setApplyOpen] = useState(false)
   const pick = async (tenantId: number) => {
     const ok = await onSwitch(tenantId)
     if (ok) onOpenChange(false)
@@ -80,8 +85,34 @@ export function TenantSwitchDialog({ open, onOpenChange, tenants, isSuper, curre
               正在切换，页面数据即将刷新…
             </div>
           )}
+          {/* 自助开通：进入系统不需要 VIP，开通新团队需要（资格由后端判定） */}
+          {isSuper ? null : (
+            <>
+              <div className="bg-border my-1 h-px" />
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setApplyOpen(true)}
+                className="hover:bg-accent flex items-center gap-2.5 rounded-md px-2 py-2 text-left disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                <Plus className="text-muted-foreground size-4 shrink-0 opacity-60" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm">开通我的团队</div>
+                  <div className="text-muted-foreground truncate text-xs">创建独立的数据空间，需 VIP 资格</div>
+                </div>
+              </button>
+            </>
+          )}
         </div>
       </DialogContent>
+      <TenantApplyDialog
+        open={applyOpen}
+        onOpenChange={setApplyOpen}
+        onApplied={tenantId => {
+          onOpenChange(false)
+          onApplied(tenantId)
+        }}
+      />
     </Dialog>
   )
 }

@@ -126,6 +126,41 @@ export async function switchTenant(tenantId: number): Promise<number | null> {
   return result?.tenantId ?? null
 }
 
+/* ---------- 自助开通租户（登录用户，需 VIP） ---------- */
+
+/** 开通资格：前端据 canApply/reason 决定显示表单还是升级提示 */
+export interface TenantApplyQuota {
+  isVip: boolean
+  /** VIP 到期时间（ISO；null = 永久） */
+  vipExpireAt: string | null
+  ownedCount: number
+  /** 可开通上限；-1 = 不限制（平台管理员） */
+  maxTenants: number
+  canApply: boolean
+  reason: '' | 'NEED_VIP' | 'QUOTA_EXCEEDED'
+}
+
+export interface TenantApplyInput {
+  name: string
+  code: string
+  contact?: string
+  phone?: string
+  remark?: string
+}
+
+export function fetchTenantApplyQuota(): Promise<TenantApplyQuota> {
+  return getApiResult(`${API}/apply/quota`)
+}
+
+/** 自助开通：成功后当前账号成为该租户管理员，后端已把登录租户切过去 */
+export function applyTenant(values: TenantApplyInput): Promise<{ id: number; name: string; code: string }> {
+  return getApiResult(`${API}/apply`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(values)
+  })
+}
+
 /* ---------- 租户下的用户 ---------- */
 
 export interface TenantUser {

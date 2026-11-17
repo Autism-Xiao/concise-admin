@@ -53,6 +53,10 @@ export interface User {
   watermarkEffective?: boolean
   /** 平台管理员：1 是 / 0 否（可跨租户视角、可访问平台级权限点） */
   isPlatformAdmin?: number
+  /** 会员等级：0 普通 / 1 VIP（VIP 可自助开通租户） */
+  vipLevel?: number
+  /** VIP 到期时间（ISO；空 = 永久） */
+  vipExpireAt?: string | null
 }
 
 export { batchUpdateUsersWatermark, updateUserWatermark }
@@ -287,6 +291,20 @@ export function setUserPlatformAdmin(id: string, isPlatformAdmin: boolean): Prom
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ isPlatformAdmin })
+  })
+}
+
+/**
+ * 授予/取消 VIP（可自助开通租户的资格）
+ *
+ * 平台级操作（权限点 system:user:vip 的 scope=platform）；取消 VIP 不回收已开租户。
+ * vipExpireAt 传 YYYY-MM-DD，留空表示永久。
+ */
+export function setUserVip(id: string, vipLevel: 0 | 1, vipExpireAt?: string): Promise<User> {
+  return getApiResult<User>(`/backend-api/v1/users/${id}/vip`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vipLevel, vipExpireAt: vipExpireAt ?? '' })
   })
 }
 

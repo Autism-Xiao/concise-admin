@@ -131,6 +131,10 @@ export function NavUser() {
       current={current}
       busy={switching}
       onSwitch={switchTo}
+      onApplied={tenantId => {
+        // 后端已把登录租户切到新团队；这里走统一切换流程（写 localStorage + 推进代次刷新数据）
+        void switchTo(tenantId)
+      }}
     />
     </>
   )
