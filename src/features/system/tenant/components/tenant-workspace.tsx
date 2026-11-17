@@ -57,8 +57,9 @@ export function TenantWorkspace({ homePath }: { homePath: string }) {
               <Logo className="text-sidebar-primary size-8! shrink-0" />
               <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
                 <span className="truncate font-medium">{currentLabel}</span>
-                {/* text-[11px]：侧边栏固定 16rem，text-xs 时「应用名 · 版本号」贴边，浏览器 90%/70% 缩放的亚像素取整会溢出触发截断 */}
-                <span className="text-muted-foreground truncate text-[11px]" title={`${appName} · ${APP_VERSION}`}>
+                {/* 用 rem 而非 px：跟随「字号」偏好与侧边栏同步缩放，比例恒定；
+                    Windows Chrome 在 90%/70% 缩放下字形宽度取整最多膨胀 ~24%，必须留足余量 */}
+                <span className="text-muted-foreground truncate text-[0.7rem]" title={`${appName} · ${APP_VERSION}`}>
                   {appName} · {APP_VERSION}
                 </span>
               </div>
