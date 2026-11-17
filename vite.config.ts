@@ -28,6 +28,17 @@ const BACKEND_URL = process.env.BACKEND_URL ?? `http://127.0.0.1:${BACKEND_PORT}
 const FRONTEND_PORT = 5173
 
 /**
+ * dev server 监听地址。
+ *
+ * vite 默认只绑 `localhost`，在 Windows 上会解析成 IPv6 的 `::1` 并**只**监听该地址，
+ * 结果是「localhost:5173 打得开、127.0.0.1:5173 打不开」，浏览器直接报无法访问该网站，
+ * 看起来就像项目没起来（终端里 vite 已经打印 ready，两边信息对不上，极难自查）。
+ * 绑 `::` 让 Node 走双栈套接字（ipv6Only=false），IPv4 / IPv6 都能连。
+ * 需要只对某个网卡开放时用 FRONTEND_HOST=127.0.0.1 覆盖。
+ */
+const FRONTEND_HOST = process.env.FRONTEND_HOST ?? '::'
+
+/**
  * 代理失败时在**终端**直接说清楚原因
  *
  * 默认行为是：浏览器收到 502，终端一声不吭。用户只看到页面报错，
@@ -55,7 +66,9 @@ function startupInfo(): Plugin {
         const address = server.httpServer?.address()
         const port = typeof address === 'object' && address ? address.port : FRONTEND_PORT
         console.log(`\n  后端代理 → ${BACKEND_URL}`)
+        // 两个地址都打出来：监听地址是 `::` 时 IPv4 / IPv6 都在，用户点哪个都能开
         console.log(`  请访问   → http://localhost:${port}`)
+        if (FRONTEND_HOST === '::') console.log(`           → http://127.0.0.1:${port}`)
         // 只有「配置的端口与实际监听端口不一致」才是被占用后自动换的；
         // 用户自己用 --port 指定别的端口时不要误导成「被占用」
         const configuredPort = server.config.server.port ?? FRONTEND_PORT
@@ -119,6 +132,7 @@ export default defineConfig({
     startupInfo()
   ],
   server: {
+    host: FRONTEND_HOST,
     port: FRONTEND_PORT,
     proxy: {
       '/backend-api': {
