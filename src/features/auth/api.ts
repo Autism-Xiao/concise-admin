@@ -2,13 +2,19 @@ import { getApiResult } from '@/lib/http'
 
 /* ---------- 真实后端（Go）：/backend-api 由 vite 代理到 BACKEND_URL ---------- */
 
-/** 滑块验证码挑战：图片为后端程序化生成的 PNG dataURL */
+/**
+ * 滑块验证码挑战：图片为后端程序化生成的 PNG dataURL。
+ *
+ * `enabled` 是后端 CAPTCHA_ENABLED 的镜像：为 false 时后端只回 `{ enabled: false }`（不出图、不碰 Redis），
+ * 登录页据此隐藏滑块且不要求 ticket —— 关闭验证码的部署不该被滑块挡住登录。
+ */
 export interface CaptchaChallenge {
-  captchaId: string
+  enabled: boolean
+  captchaId?: string
   /** 带缺口的背景图 */
-  bgUrl: string
+  bgUrl?: string
   /** 拼图条 */
-  puzzleUrl: string
+  puzzleUrl?: string
 }
 
 export function fetchCaptcha(): Promise<CaptchaChallenge> {

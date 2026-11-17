@@ -80,8 +80,31 @@ export function LoginPage() {
   // 验证码收进弹框：表单里只占一行触发条，点开才加载图片（每次打开都是新题，图自然变化）
   const [captchaOpen, setCaptchaOpen] = useState(false)
   const closeTimer = useRef<number | undefined>(undefined)
+  // 后端是否要求滑块（CAPTCHA_ENABLED）：false 时整块隐藏、提交不传 ticket。
+  // 默认 true 保证「未知状态」下不会静默放开验证；真实值由挂载时的探测覆盖。
+  const [captchaRequired, setCaptchaRequired] = useState(true)
+  // 验证码服务不可用（如后端没启 Redis）：滑块取不到图，必须让用户看到原因，而不是反复点进「加载失败」
+  const [captchaError, setCaptchaError] = useState<string | null>(null)
 
   useEffect(() => () => window.clearTimeout(closeTimer.current), [])
+
+  // 挂载时探测一次：后端关了验证码就不显示滑块，也不生成图片（避免每次进登录页都白算一张图）
+  useEffect(() => {
+    let alive = true
+    fetchCaptcha()
+      .then(data => {
+        if (!alive) return
+        setCaptchaRequired(!!data.enabled)
+        setCaptchaError(null)
+      })
+      .catch((err: unknown) => {
+        if (!alive) return
+        setCaptchaError(err instanceof Error ? err.message : '验证码服务不可用')
+      })
+    return () => {
+      alive = false
+    }
+  }, [])
 
   const validateField = (field: 'account' | 'password', value: string) => {
     const msg = value.trim() ? undefined : t(`login.${field}Required`)
@@ -101,8 +124,13 @@ export function LoginPage() {
   // 拉取滑块挑战（组件挂载/刷新时自动调用）；加载失败由组件展示「加载失败」状态
   const requestCaptcha = useCallback(async () => {
     const data = await fetchCaptcha()
-    captchaIdRef.current = data.captchaId
-    return { bgUrl: data.bgUrl, puzzleUrl: data.puzzleUrl }
+    if (!data.enabled) {
+      // 后端已关闭验证码：收起滑块，且不要拿空图去渲染
+      setCaptchaRequired(false)
+      throw new Error('后端已关闭滑块验证码')
+    }
+    captchaIdRef.current = data.captchaId ?? ''
+    return { bgUrl: data.bgUrl ?? '', puzzleUrl: data.puzzleUrl ?? '' }
   }, [])
 
   // 拖拽结束：把位移 x 交给后端校验，通过则拿到一次性 ticket；reject（抛错）= 验证失败，组件自动刷新换新图
@@ -127,7 +155,8 @@ export function LoginPage() {
     if (lockedOut) return
     setSubmitError(null)
     if (!validateForm()) return
-    if (!captchaTicket) {
+    // 只有后端要求验证码时才卡 ticket；关闭验证码的部署不该被这一步挡住登录
+    if (captchaRequired && !captchaTicket) {
       toast.error(t('login.captchaRequired'))
       return
     }
@@ -140,7 +169,8 @@ export function LoginPage() {
       const data = await loginRequest({
         username: account.trim(),
         password,
-        captchaTicket: ticketRef.current,
+        // 后端关闭验证码时不传：避免把一个空字符串当成「有票据」送过去
+        captchaTicket: captchaRequired ? ticketRef.current : undefined,
         // 未开启 2FA 的账号传了后端也不校验，统一带上有状态更简单
         totpCode: needTotp ? totpCode : undefined
       })
@@ -343,32 +373,46 @@ export function LoginPage() {
                 </div>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>{t('login.captcha')}</Label>
-              {/* 触发条与输入框同高（h-9）同宽，把 320x160 的拼图收进弹框，表单不再被撑高 */}
-              <button
-                type="button"
-                onClick={() => {
-                  // 取消可能还在等待的「成功后自动关闭」，避免关闭刚打开的新弹框
-                  window.clearTimeout(closeTimer.current)
-                  setCaptchaOpen(true)
-                }}
-                className={cn(
-                  'flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border px-3 text-sm transition-colors',
-                  captchaTicket
-                    ? 'border-emerald-500/45 bg-emerald-500/5 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400'
-                    : 'border-input text-muted-foreground hover:border-foreground/25 hover:bg-muted/50',
-                  'focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none'
-                )}
-              >
-                {captchaTicket ? <CircleCheckBig className="size-4 shrink-0" /> : <ShieldCheck className="size-4 shrink-0" />}
-                <span className="truncate">{captchaTicket ? t('login.captchaVerified') : t('login.captchaTrigger')}</span>
-                <span className={cn('ml-auto flex shrink-0 items-center gap-0.5 text-xs', captchaTicket ? 'opacity-80' : 'opacity-60')}>
-                  {captchaTicket ? t('login.captchaRetry') : null}
-                  <ChevronRight className="size-3.5" />
+            {/* 滑块验证码：后端 CAPTCHA_ENABLED=false 时整块不渲染（登录也不要求 ticket） */}
+            {captchaRequired && !captchaError && (
+              <div className="space-y-2">
+                <Label>{t('login.captcha')}</Label>
+                {/* 触发条与输入框同高（h-9）同宽，把 320x160 的拼图收进弹框，表单不再被撑高 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    // 取消可能还在等待的「成功后自动关闭」，避免关闭刚打开的新弹框
+                    window.clearTimeout(closeTimer.current)
+                    setCaptchaOpen(true)
+                  }}
+                  className={cn(
+                    'flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border px-3 text-sm transition-colors',
+                    captchaTicket
+                      ? 'border-emerald-500/45 bg-emerald-500/5 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400'
+                      : 'border-input text-muted-foreground hover:border-foreground/25 hover:bg-muted/50',
+                    'focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none'
+                  )}
+                >
+                  {captchaTicket ? <CircleCheckBig className="size-4 shrink-0" /> : <ShieldCheck className="size-4 shrink-0" />}
+                  <span className="truncate">{captchaTicket ? t('login.captchaVerified') : t('login.captchaTrigger')}</span>
+                  <span className={cn('ml-auto flex shrink-0 items-center gap-0.5 text-xs', captchaTicket ? 'opacity-80' : 'opacity-60')}>
+                    {captchaTicket ? t('login.captchaRetry') : null}
+                    <ChevronRight className="size-3.5" />
+                  </span>
+                </button>
+              </div>
+            )}
+            {/* 验证码取不到图（后端开了 CAPTCHA_ENABLED 但 Redis 没启用等）：直接说明原因，别让用户对着「加载失败」反复点 */}
+            {captchaError && (
+              <div className="border-destructive/40 bg-destructive/5 text-destructive flex items-start gap-2 rounded-md border px-3 py-2 text-xs">
+                <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+                <span className="leading-relaxed">
+                  安全验证不可用：{captchaError}
+                  <br />
+                  管理员请在后端 .env 里开启 REDIS_ENABLED，或把 CAPTCHA_ENABLED 设为 false 关闭滑块验证
                 </span>
-              </button>
-            </div>
+              </div>
+            )}
             {/* 两步验证：账号开启 2FA 后（后端 2105）才展开的 6 位动态码输入框 */}
             {needTotp && (
               <div className="space-y-2">
