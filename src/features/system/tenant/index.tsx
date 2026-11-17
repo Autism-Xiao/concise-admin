@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CircleAlert, KeyRound, MoreHorizontal, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus, Users, WifiOff } from 'lucide-react'
+import { CircleAlert, KeyRound, Layers, MoreHorizontal, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus, Users, WifiOff } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,7 @@ import { hasPermission } from '@/lib/auth'
 import { isUnavailableError, userMessageOf } from '@/lib/api-error'
 import { TenantFormDialog } from './components/tenant-form-dialog'
 import { TenantAdminDialog } from './components/tenant-admin-dialog'
+import { TenantPackageDialog } from './components/tenant-package-dialog'
 import { TenantUserDialog } from './components/tenant-user-dialog'
 import { createTenant, deleteTenant, fetchTenants, provisionAllTenants, provisionTenant, updateTenant, type Tenant, type TenantPlan, type TenantProvisionRole } from './api'
 
@@ -74,6 +75,8 @@ export function TenantPage() {
   const [assigning, setAssigning] = useState<Tenant | null>(null)
   /** 正在开通管理员的目标租户 */
   const [adminFor, setAdminFor] = useState<Tenant | null>(null)
+  /** 正在编辑功能套餐的目标租户 */
+  const [packaging, setPackaging] = useState<Tenant | null>(null)
   const [saving, setSaving] = useState(false)
   /** 正在初始化的目标：租户 id 或 'all'，用于禁用按钮防重复提交 */
   const [provisioning, setProvisioning] = useState<number | 'all' | null>(null)
@@ -239,6 +242,10 @@ export function TenantPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setPackaging(row.original)}>
+                    <Layers />
+                    功能套餐
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setAdminFor(row.original)}>
                     <UserPlus />
                     开通管理员
@@ -373,6 +380,8 @@ export function TenantPage() {
       {adminFor && (
         <TenantAdminDialog key={adminFor.id} tenant={adminFor} open onOpenChange={open => !open && setAdminFor(null)} onSaved={load} />
       )}
+
+      {packaging && <TenantPackageDialog tenant={packaging} open onOpenChange={open => !open && setPackaging(null)} />}
 
       <ConfirmDialog
         confirmText="删除"

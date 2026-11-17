@@ -35,10 +35,13 @@ interface RolePermissionDialogProps {
   checkedIds: string[]
   saving?: boolean
   onSubmit: (menuIds: string[]) => void
+  /** 覆盖默认标题/描述：租户「功能套餐」等场景复用同一棵勾选树 */
+  title?: string
+  description?: string
 }
 
 /** 由父组件按 key 控制重挂载，保证打开时勾选状态初始化为角色已有权限 */
-export function RolePermissionDialog({ open, onOpenChange, role, tree, checkedIds, saving, onSubmit }: RolePermissionDialogProps) {
+export function RolePermissionDialog({ open, onOpenChange, role, tree, checkedIds, saving, onSubmit, title, description }: RolePermissionDialogProps) {
   const [checked, setChecked] = useState<Set<string>>(() => new Set(checkedIds))
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const total = useMemo(() => countAll(tree), [tree])
@@ -110,8 +113,10 @@ export function RolePermissionDialog({ open, onOpenChange, role, tree, checkedId
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>分配权限</DialogTitle>
-          <DialogDescription>为角色「{role.roleName ?? role.roleCode}」勾选菜单与按钮权限，勾选父级会连同勾选全部子级</DialogDescription>
+          <DialogTitle>{title ?? '分配权限'}</DialogTitle>
+          <DialogDescription>
+            {description ?? `为角色「${role.roleName ?? role.roleCode}」勾选菜单与按钮权限，勾选父级会连同勾选全部子级`}
+          </DialogDescription>
         </DialogHeader>
         <div className="max-h-96 overflow-auto rounded-md border p-3">{renderNodes(tree, 0)}</div>
         <p className="text-muted-foreground text-xs">

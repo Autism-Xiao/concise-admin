@@ -6,7 +6,16 @@ import { LogTablePage } from './components/log-table-page'
 const extraColumns: ColumnDef<OperationLog>[] = [
   {
     accessorKey: 'action',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="操作类型" />
+    header: ({ column }) => <DataTableColumnHeader column={column} title="操作类型" />,
+    // 代维徽标：平台管理员切在租户里（或平台视角审计）产生的操作，审计时要能一眼和租户自己的操作区分开
+    cell: ({ row }) => (
+      <span className="inline-flex items-center gap-1.5">
+        <span>{row.getValue('action')}</span>
+        {row.original.proxy && (
+          <span className="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 rounded px-1.5 py-0.5 text-xs font-medium">代维</span>
+        )}
+      </span>
+    )
   },
   {
     accessorKey: 'cost',

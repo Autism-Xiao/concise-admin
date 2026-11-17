@@ -30,6 +30,8 @@ export interface OperationLog {
   cost: number
   time: string
   status: LogStatus
+  /** 平台管理员代维标记：1 = 该操作由平台管理员切在租户里（或平台视角）做出 */
+  proxy?: boolean
 }
 
 /* ---------- 真实后端：/api/v1/logs（单表 sys_log） ---------- */
@@ -43,6 +45,7 @@ interface BackendSysLog {
   ip: string
   status: number
   costTime?: number
+  isProxy?: number
   browser?: string
   os?: string
   location?: string
@@ -83,7 +86,8 @@ export async function fetchOperationLogs(): Promise<OperationLog[]> {
     ip: row.ip,
     cost: Number(row.costTime ?? 0),
     time: formatDateTime(row.createTime),
-    status: row.status === 0 ? '成功' : '失败'
+    status: row.status === 0 ? '成功' : '失败',
+    proxy: row.isProxy === 1
   }))
 }
 

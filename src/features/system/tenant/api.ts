@@ -240,3 +240,26 @@ export function provisionTenant(id: number): Promise<TenantProvisionResult> {
 export function provisionAllTenants(): Promise<TenantProvisionAllResult> {
   return getApiResult(`${API}/provision-all`, { method: 'POST' })
 }
+
+/* ---------- 功能套餐（租户已开通菜单） ---------- */
+
+export interface TenantPackageDetail {
+  /** 已开通的菜单 id 全集（含目录/菜单/按钮） */
+  menuIds: string[]
+  /** 可勾选的租户级菜单树（平台级菜单不在树里） */
+  tree: unknown[]
+}
+
+/** 查租户套餐（弹窗回显用） */
+export function fetchTenantPackage(tenantId: number): Promise<TenantPackageDetail> {
+  return getApiResult(`${API}/${tenantId}/menus`)
+}
+
+/** 全量重设租户套餐：收窄不回收角色既有授权，读取端按交集生效 */
+export function saveTenantPackage(tenantId: number, menuIds: string[]): Promise<{ total: number }> {
+  return getApiResult(`${API}/${tenantId}/menus`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ menuIds })
+  })
+}
