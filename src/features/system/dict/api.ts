@@ -128,17 +128,6 @@ export function deleteDictItem(id: string): Promise<{ deleted: number }> {
   return getApiResult<{ deleted: number }>(`${ITEM_BASE}/${id}`, { method: 'DELETE' })
 }
 
-/** 按字典编码取启用字典项（下拉框数据源，所有登录用户可用） */
-export function fetchDictItemsByCode(code: string): Promise<{
-  dictId: string
-  dictCode: string
-  dictName: string
-  type: number
-  items: Pick<DictItem, 'itemText' | 'itemValue' | 'sortOrder' | 'description'>[]
-}> {
-  return getApiResult(`${ITEM_BASE}/code/${encodeURIComponent(code)}`)
-}
-
 /* ---------- 导入导出（/api/v1/dicts/export | import-template | import） ---------- */
 
 /** 导出字典 Excel（一个工作簿两张表：字典类型 + 字典项） */
@@ -157,11 +146,6 @@ export function importDicts(file: File): Promise<ImportResult> {
   const form = new FormData()
   form.append('file', file)
   return getApiResult<ImportResult>('/backend-api/v1/dicts/import', { method: 'POST', body: form })
-}
-
-/** 批量删除字典（有字典项的那条会失败并返回原因） */
-export function deleteDicts(ids: string[]): Promise<BatchDeleteResult> {
-  return batchDeleteRequest('dicts', ids)
 }
 
 /** 批量删除字典项 */

@@ -71,11 +71,6 @@ export interface RegionStats {
   byLevel: Record<number, number>
 }
 
-/** 区划树（登录即可访问，级联选择器数据源） */
-export function fetchRegionTree(): Promise<Array<Region & { children: Region[] }>> {
-  return getApiResult('/backend-api/v1/regions/tree')
-}
-
 /** 区划统计（总数 + 各层级数量） */
 export function fetchRegionStats(): Promise<RegionStats> {
   return getApiResult<RegionStats>('/backend-api/v1/regions/stats')

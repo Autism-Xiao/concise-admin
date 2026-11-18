@@ -19,11 +19,6 @@ export function fetchConfigs(group?: string): Promise<SystemConfigItem[]> {
   return getApiResult<SystemConfigItem[]>(`/backend-api/v1/configs${qs}`)
 }
 
-/** 分组名列表 */
-export function fetchConfigGroups(): Promise<string[]> {
-  return getApiResult<string[]>('/backend-api/v1/configs/groups')
-}
-
 export interface ConfigUpdateItem {
   configKey: string
   configValue: string

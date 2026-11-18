@@ -35,11 +35,6 @@ export function fetchOnlineUsers(keyword?: string): Promise<OnlinePage> {
   return getApiResult<OnlinePage>(`${BASE}?${search.toString()}`)
 }
 
-/** 在线人数 */
-export function countOnlineUsers(): Promise<number> {
-  return getApiResult<number>(`${BASE}/count`)
-}
-
 /** 强制下线（该令牌立即失效，用户后续请求 401） */
 export function kickUser(sessionId: string): Promise<{ kicked: number }> {
   return getApiResult<{ kicked: number }>(`${BASE}/${sessionId}`, { method: 'DELETE' })

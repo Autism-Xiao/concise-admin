@@ -44,11 +44,6 @@ export async function fetchDepts(keyword = ''): Promise<Dept[]> {
   return page.records
 }
 
-/** 部门树（后端组好层级） */
-export function fetchDeptTree(): Promise<Array<Dept & { children: Dept[] }>> {
-  return getApiResult<Array<Dept & { children: Dept[] }>>('/backend-api/v1/depts/tree')
-}
-
 /** 创建部门（orgCode 由后端自动生成） */
 export function createDept(payload: DeptWritePayload): Promise<Dept> {
   return getApiResult<Dept>('/backend-api/v1/depts', {
