@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FieldError, intRange, maxLength, requiredWith, useFieldErrors } from '@/lib/form-validation'
+import { DICT_COLOR_OPTIONS } from '@/lib/dict-color'
+import { cn } from '@/lib/utils'
 import type { Dict, DictItem, DictItemFormValues } from '../api'
 
 interface DictItemFormDialogProps {
@@ -19,14 +21,15 @@ interface DictItemFormDialogProps {
 
 const STATUS_LABELS: Record<string, string> = { '1': '启用', '0': '不启用' }
 
-/** 字典项表单：文本 / 值 / 排序 / 状态 / 描述 */
+/** 字典项表单：文本 / 值 / 排序 / 状态 / 颜色 / 描述 */
 export function DictItemFormDialog({ open, onOpenChange, dict, item, onSubmit }: DictItemFormDialogProps) {
   const [form, setForm] = useState<DictItemFormValues>(() => ({
     itemText: item?.itemText ?? '',
     itemValue: item?.itemValue ?? '',
     sortOrder: item?.sortOrder ?? 0,
     status: item?.status ?? 1,
-    description: item?.description ?? ''
+    description: item?.description ?? '',
+    color: item?.color ?? ''
   }))
   const [submitting, setSubmitting] = useState(false)
   const { errors, runValidation, clearError } = useFieldErrors()
@@ -66,6 +69,8 @@ export function DictItemFormDialog({ open, onOpenChange, dict, item, onSubmit }:
               await onSubmit({
                 ...form,
                 sortOrder: Number(form.sortOrder) || 0,
+                // 空串表示「清除配色」，后端会置 null
+                color: form.color || '',
                 description: form.description?.trim() || undefined
               })
             } finally {
@@ -102,6 +107,42 @@ export function DictItemFormDialog({ open, onOpenChange, dict, item, onSubmit }:
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>颜色</Label>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => set('color', '')}
+                aria-pressed={!form.color}
+                className={cn(
+                  'rounded-full border px-2.5 py-1 text-xs transition',
+                  form.color ? 'border-border text-muted-foreground hover:bg-accent/60' : 'border-foreground/40 bg-accent text-accent-foreground'
+                )}
+              >
+                不套色
+              </button>
+              {DICT_COLOR_OPTIONS.map(option => {
+                const active = form.color === option.value
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => set('color', option.value)}
+                    aria-pressed={active}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition',
+                      option.className,
+                      active ? 'ring-2 ring-foreground/30' : 'opacity-70 hover:opacity-100'
+                    )}
+                  >
+                    <span aria-hidden className="size-1.5 rounded-full bg-current" />
+                    {option.short}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-muted-foreground text-xs">配了颜色的字典项在表格里显示成色块标签，不配就按纯文本显示</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="item-description">描述</Label>

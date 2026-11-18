@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { DictBadge } from '@/components/dict-badge'
 import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
@@ -17,7 +18,6 @@ import { NoticeImportDialog } from './components/notice-import-dialog'
 import { toastBatchResult } from '@/lib/batch-delete'
 import {
   NOTICE_CATEGORY_LABEL,
-  NOTICE_PRIORITY_LABEL,
   NOTICE_STATUS_LABEL,
   deleteNotice,
   deleteNotices,
@@ -29,7 +29,6 @@ import {
   createNotice,
   type Notice,
   type NoticeCategory,
-  type NoticePriority,
   type NoticeSendStatus,
   type NoticeWritePayload
 } from './api'
@@ -46,16 +45,9 @@ const columnLabels: Record<string, string> = {
 
 const statusOk: Record<NoticeSendStatus, boolean> = { '1': true, '0': false, '2': false }
 
-const priorityClass: Record<NoticePriority, string> = {
-  H: 'bg-destructive/15 text-destructive',
-  M: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-  L: 'bg-muted text-muted-foreground'
-}
-
 export function NoticePage() {
-  // 类型/优先级走字典（文案可运营改），状态仍写死——状态机由后端分支，字典加项就是死选项
+  // 类型/优先级走字典（文案、颜色都可运营改），状态仍写死——状态机由后端分支，字典加项就是死选项
   const categoryItems = useDict('sys_notice_category', NOTICE_CATEGORY_LABEL)
-  const priorityItems = useDict('sys_notice_priority', NOTICE_PRIORITY_LABEL)
   const [list, setList] = useState<Notice[]>([])
   const [total, setTotal] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -143,11 +135,8 @@ export function NoticePage() {
       {
         accessorKey: 'priority',
         header: ({ column }) => <DataTableColumnHeader column={column} title="优先级" />,
-        cell: ({ row }) => {
-          const priority = row.original.priority
-          if (!priority) return '-'
-          return <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${priorityClass[priority]}`}>{priorityItems[priority] ?? priority}</span>
-        },
+        // 文案和颜色都从字典 sys_notice_priority 取，运营改色不用发版
+        cell: ({ row }) => <DictBadge code="sys_notice_priority" value={row.original.priority} />,
         filterFn: (row, id, value) => row.getValue(id) === value
       },
       {
@@ -215,7 +204,7 @@ export function NoticePage() {
       }
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handleStatusChange/busyId 变化时重建列以刷新按钮禁用态；字典加载完成后重建列以刷新标签文案
-    [busyId, categoryItems, priorityItems]
+    [busyId, categoryItems]
   )
 
   const columnFilters = useMemo(() => {

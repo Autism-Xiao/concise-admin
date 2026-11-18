@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { DictBadge } from '@/components/dict-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { useDict } from '@/lib/dict'
@@ -39,12 +40,6 @@ const columnLabels: Record<string, string> = {
   dueDate: '截止时间',
   createdAt: '创建时间',
   description: '描述'
-}
-
-const priorityClass: Record<TaskPriority, string> = {
-  2: 'bg-destructive/15 text-destructive',
-  1: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-  0: 'bg-muted text-muted-foreground'
 }
 
 const statusClass: Record<TaskStatus, string> = {
@@ -170,11 +165,8 @@ export function TaskPage() {
       {
         accessorKey: 'priority',
         header: ({ column }) => <DataTableColumnHeader column={column} title="优先级" />,
-        cell: ({ row }) => (
-          <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${priorityClass[row.original.priority] ?? priorityClass[1]}`}>
-            {priorityItems[row.original.priority] ?? '-'}
-          </span>
-        ),
+        // 文案和颜色都从字典 sys_task_priority 取，运营改色不用发版
+        cell: ({ row }) => <DictBadge code="sys_task_priority" value={row.original.priority} />,
         filterFn: (row, id, value) => String(row.getValue(id)) === value
       },
       {

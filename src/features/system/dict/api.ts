@@ -31,6 +31,8 @@ export interface DictItem {
   sortOrder?: number
   /** 1 启用 / 0 不启用 */
   status: number
+  /** 语义色（primary/success/warning/danger/info/neutral），空表示不套色 */
+  color?: string | null
   createTime?: string | null
   updateTime?: string | null
 }
@@ -48,6 +50,8 @@ export interface DictItemFormValues {
   sortOrder: number
   status: number
   description?: string
+  /** 语义色，空串表示不套色 */
+  color?: string
 }
 
 const DICT_BASE = '/backend-api/v1/dicts'

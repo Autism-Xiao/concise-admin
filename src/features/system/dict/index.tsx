@@ -13,6 +13,7 @@ import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { clearDictCache } from '@/lib/dict'
+import { dictColorClass } from '@/lib/dict-color'
 import { toastBatchResult } from '@/lib/batch-delete'
 import { saveBlobFile } from '@/lib/download'
 import { cn } from '@/lib/utils'
@@ -150,6 +151,23 @@ export function DictPage() {
           return <StatusBadge ok={status === 1} label={status === 1 ? '启用' : '不启用'} />
         },
         filterFn: (row, id, value) => String(row.getValue(id)) === value
+      },
+      {
+        accessorKey: 'color',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="样式" />,
+        enableSorting: false,
+        // 直接在列表里渲染成最终效果：配色后是色块标签，没配就是纯文本
+        cell: ({ row }) => {
+          const item = row.original
+          const colorClass = dictColorClass(item.color)
+          if (!colorClass) return <span className="text-muted-foreground text-xs">纯文本</span>
+          return (
+            <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap', colorClass)}>
+              <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" />
+              {item.itemText}
+            </span>
+          )
+        }
       },
       {
         accessorKey: 'description',
