@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   Archive,
   BadgeCheck,
@@ -28,7 +28,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
+import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useServerTable, type ServerTableQuery } from '@/components/data-table'
 import { getUsername, hasPermission } from '@/lib/auth'
 import { UserFormDrawer } from './components/user-form-drawer'
 import { UserWatermarkDialog } from './components/user-watermark-dialog'
@@ -49,7 +49,7 @@ import {
   deleteUser,
   deleteUsers,
   exportUsers,
-  fetchUsers,
+  fetchUserPage,
   forceOfflineUser,
   resetUserAvatar,
   resetUserPassword,
@@ -78,13 +78,7 @@ const columnLabels: Record<string, string> = {
 }
 
 export function UsersPage() {
-  const [list, setList] = useState<User[] | null>(null)
-  /** 后端返回的总数；-1 = 本次跳过了 COUNT（skipCount 快路径） */
-  const [total, setTotal] = useState(-1)
-  /** 跳过统计时用它判断「还有更多」，UI 只能说「已加载 N 条」而不能说「共 N 个」 */
-  const [hasNext, setHasNext] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  /** 状态筛选：交给接口（serverStatus 为空串表示不筛） */
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<User | null>(null)
@@ -109,22 +103,14 @@ export function UsersPage() {
   /** 批量启停确认框：非空时待执行 */
   const [batchStatusTarget, setBatchStatusTarget] = useState<1 | 2 | null>(null)
 
-  const load = () => {
-    setLoading(true)
-    setError(null)
-    fetchUsers()
-      .then(res => {
-        setList(res.records ?? [])
-        setTotal(res.total ?? -1)
-        setHasNext(res.hasNext ?? false)
-      })
-      .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
-      .finally(() => setLoading(false))
-  }
+  /** 列表查询：翻页/搜索/排序/状态都由接口完成，前端只维护查询参数 */
+  const fetchPage = useCallback(
+    ({ page, pageSize, keyword, filters, sortBy, sortOrder }: ServerTableQuery<{ status: string }>) =>
+      fetchUserPage({ page, pageSize, keyword, status: filters.status, sortBy, sortOrder }),
+    []
+  )
 
-  useEffect(load, [])
-
-  const users = useMemo(() => list ?? [], [list])
+  const tableFilters = useMemo(() => ({ status: statusFilter === 'all' ? '' : statusFilter }), [statusFilter])
 
   const openCreate = () => {
     setEditing(null)
@@ -335,7 +321,7 @@ export function UsersPage() {
                         withOperationLog(`重置用户「${user.realname || user.username}」的头像`, () => resetUserAvatar(user.id))
                           .then(() => toast.success('头像已重置为系统默认'))
                           .catch(e => toast.error(e instanceof Error ? e.message : '重置失败'))
-                          .finally(() => load())
+                          .finally(() => reload())
                       }
                     >
                       <UserCog className="size-4" />
@@ -385,14 +371,15 @@ export function UsersPage() {
     []
   )
 
-  const columnFilters = useMemo(() => (statusFilter === 'all' ? [] : [{ id: 'status', value: statusFilter }]), [statusFilter])
   const statusItems = useMemo(() => ({ all: '全部状态', ...Object.fromEntries(Object.entries(userStatusMap).map(([value, { label }]) => [value, label])) }), [])
-  const { table, keyword, setKeyword, rowSelection, setRowSelection } = useDataTable({
-    data: users,
+  const { table, keyword, setKeyword, loading, booted, error, total, reload, rowSelection, setRowSelection } = useServerTable({
     columns,
-    columnFilters,
+    query: fetchPage,
+    filters: tableFilters,
     getRowId: user => user.id
   })
+  /** 当前页行数（导出按钮的可用性判断用，不能用 total —— 空搜索时 total 可能是 0 但列表有行） */
+  const pageRows = table.getRowModel().rows
   const selectedCount = Object.keys(rowSelection).filter(key => rowSelection[key]).length
   const [batchDeleting, setBatchDeleting] = useState(false)
   const [batchBusy, setBatchBusy] = useState(false)
@@ -406,7 +393,7 @@ export function UsersPage() {
       toastBatchResult(result, '用户')
       setBatchDeleting(false)
       setRowSelection({})
-      load()
+      reload()
     } finally {
       setBatchBusy(false)
     }
@@ -427,7 +414,7 @@ export function UsersPage() {
         result.skipped?.forEach(item => toast.warning(`「${item.username}」已跳过：${item.reason}`))
         setRowSelection({})
         setBatchStatusTarget(null)
-        load()
+        reload()
       })
       .catch(e => toast.error(e instanceof Error ? e.message : '批量操作失败'))
       .finally(() => setBatchBusy(false))
@@ -440,7 +427,7 @@ export function UsersPage() {
       toast.success(`已更新 ${result.updated} 个用户的角色`)
       setBatchRolesOpen(false)
       setRowSelection({})
-      load()
+      reload()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '批量分配失败')
     }
@@ -458,7 +445,7 @@ export function UsersPage() {
       result.skipped?.forEach(item => toast.warning(`已跳过 ${item.id}：${item.reason}`))
       setBatchWatermarkOpen(false)
       setRowSelection({})
-      load()
+      reload()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '批量水印设置失败')
     }
@@ -470,7 +457,7 @@ export function UsersPage() {
       .then(() => {
         toast.success(editing ? '用户已更新' : '用户已创建')
         setFormOpen(false)
-        load()
+        reload()
       })
       .catch(e => toast.error(e instanceof Error ? e.message : '保存失败'))
   }
@@ -492,7 +479,7 @@ export function UsersPage() {
     withOperationLog(`删除用户「${deleting.realname || deleting.username}」`, () => deleteUser(deleting.id))
       .then(() => {
         toast.success(`已删除用户「${deleting.realname || deleting.username}」`)
-        load()
+        reload()
       })
       .catch(e => toast.error(e instanceof Error ? e.message : '删除失败'))
     setDeleting(null)
@@ -518,7 +505,7 @@ export function UsersPage() {
     withOperationLog(`${next ? '授予' : '取消'}用户「${user.realname || user.username}」的平台管理员`, () => setUserPlatformAdmin(user.id, next))
       .then(() => {
         toast.success(next ? `已授予「${user.username}」平台管理员，最多 30 秒生效` : `已取消「${user.username}」的平台管理员权限`)
-        load()
+        reload()
       })
       .catch(e => toast.error(e instanceof Error ? e.message : '操作失败'))
   }
@@ -535,7 +522,7 @@ export function UsersPage() {
         )
       )
       .catch(e => toast.error(e instanceof Error ? e.message : '操作失败'))
-      .finally(() => load())
+      .finally(() => reload())
     setStatusTarget(null)
   }
 
@@ -555,13 +542,13 @@ export function UsersPage() {
         <div>
           <h1 className="text-2xl font-bold">用户管理</h1>
           <p className="text-muted-foreground text-sm">
-            {/* 跳过 COUNT 时不能谎报总数：结果不足一页说明已经取全了；满一页只能说「还有更多」 */}
-            {total >= 0 ? `共 ${total} 个用户` : hasNext ? `已加载 ${users.length} 条，还有更多` : `共 ${users.length} 个用户`}
+            {/* 服务端分页后会拿到真实总数；total=-1 说明本次跳过了 COUNT，只能报「当前页 N 条」 */}
+            {total >= 0 ? `共 ${total} 个用户` : `当前页 ${pageRows.length} 个用户`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {hasPermission('system:user:export') && (
-            <Button variant="outline" onClick={handleExport} disabled={exporting || users.length === 0}>
+            <Button variant="outline" onClick={handleExport} disabled={exporting || pageRows.length === 0}>
               <Download />
               {exporting ? '导出中…' : '导出'}
             </Button>
@@ -613,7 +600,7 @@ export function UsersPage() {
         </div>
       </div>
 
-      {loading ? (
+      {!booted ? (
         <Card>
           <CardContent className="space-y-3 py-6">
             <Skeleton className="h-9 w-full max-w-md" />
@@ -624,7 +611,7 @@ export function UsersPage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <p className="text-muted-foreground text-sm">{error}</p>
-            <Button variant="outline" onClick={load}>
+            <Button variant="outline" onClick={reload}>
               重试
             </Button>
           </CardContent>
@@ -653,7 +640,7 @@ export function UsersPage() {
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 
-            <DataTable table={table} emptyText="没有匹配的用户" />
+            <DataTable table={table} loading={loading} emptyText="没有匹配的用户" />
             <DataTablePagination table={table} />
           </CardContent>
         </Card>
@@ -661,7 +648,7 @@ export function UsersPage() {
 
       {formOpen && <UserFormDrawer key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} user={editing} onSubmit={handleSubmit} />}
 
-      {importOpen && <UserImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={load} />}
+      {importOpen && <UserImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={reload} />}
 
       {watermarkTarget && (
         <UserWatermarkDialog
@@ -671,7 +658,7 @@ export function UsersPage() {
           user={watermarkTarget}
           onSaved={() => {
             toast.success(`已更新「${watermarkTarget.realname || watermarkTarget.username}」的水印设置`)
-            load()
+            reload()
           }}
         />
       )}
@@ -682,7 +669,7 @@ export function UsersPage() {
           open={!!vipTarget}
           onOpenChange={v => !v && setVipTarget(null)}
           user={vipTarget}
-          onSaved={load}
+          onSaved={reload}
         />
       )}
 
@@ -734,7 +721,7 @@ export function UsersPage() {
         onConfirm={handleKick}
       />
 
-      <RecycleBinDialog open={recycleOpen} onOpenChange={setRecycleOpen} onRestored={load} />
+      <RecycleBinDialog open={recycleOpen} onOpenChange={setRecycleOpen} onRestored={reload} />
 
       {logTarget && (
         <UserLoginLogDialog key={logTarget.id} open={!!logTarget} onOpenChange={v => !v && setLogTarget(null)} user={logTarget} />

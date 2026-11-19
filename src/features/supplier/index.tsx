@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Plus, Search, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Loader2, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,26 +18,45 @@ import {
 /** 供应商管理（生成器产物骨架：表格 + 新增/编辑/删除） */
 export function SupplierPage() {
   const [list, setList] = useState<Supplier[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  /** 首次加载完成前才显示骨架屏；之后的翻页/搜索保持表格挂载，只盖遮罩，避免闪一下 */
+  const [booted, setBooted] = useState(false)
   const [keyword, setKeyword] = useState('')
+  const [appliedKeyword, setAppliedKeyword] = useState('')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 20
+  const pageCount = Math.max(Math.ceil(total / PAGE_SIZE), 1)
   const [editing, setEditing] = useState<Partial<Supplier> | null>(null)
   const [deleting, setDeleting] = useState<Supplier | null>(null)
   const canAdd = hasPermission('supplier:add')
   const canEdit = hasPermission('supplier:update')
   const canDelete = hasPermission('supplier:delete')
 
-  const load = () => {
-    setLoading(true)
-    fetchSuppliers({ pageSize: 50, keyword: keyword || undefined })
-      .then(res => setList(res.records ?? []))
-      .catch(() => toast.error('加载失败'))
-      .finally(() => setLoading(false))
-  }
-
+  // 搜索走接口：输入停顿 300ms 再请求
   useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    const timer = setTimeout(() => {
+      setAppliedKeyword(keyword.trim())
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [keyword])
+
+  const load = useCallback(() => {
+    setLoading(true)
+    fetchSuppliers({ page, pageSize: PAGE_SIZE, keyword: appliedKeyword || undefined })
+      .then(res => {
+        setList(res.records ?? [])
+        setTotal(res.total ?? 0)
+      })
+      .catch(() => toast.error('加载失败'))
+      .finally(() => {
+        setLoading(false)
+        setBooted(true)
+      })
+  }, [page, appliedKeyword])
+
+  useEffect(load, [load])
 
   return (
     <div className="space-y-4">
@@ -52,7 +71,6 @@ export function SupplierPage() {
                 placeholder="搜索"
                 value={keyword}
                 onChange={e => setKeyword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && load()}
               />
             </div>
             {canAdd && (
@@ -64,14 +82,19 @@ export function SupplierPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {!booted ? (
             <div className="space-y-2">
               {Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto">
+              {loading && (
+                <div className="bg-background/60 absolute inset-0 z-10 flex items-center justify-center" aria-live="polite">
+                  <Loader2 className="text-muted-foreground size-5 animate-spin" />
+                </div>
+              )}
               <table className="w-full">
                 <thead>
                   <tr className="text-muted-foreground border-b text-left text-xs">
@@ -116,6 +139,21 @@ export function SupplierPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+          )}
+          {!loading && total > 0 && (
+            <div className="flex items-center justify-between border-t pt-3">
+              <p className="text-muted-foreground text-xs">
+                第 {page} / {pageCount} 页，共 {total} 条
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => Math.max(p - 1, 1))}>
+                  上一页
+                </Button>
+                <Button variant="outline" size="sm" disabled={page >= pageCount} onClick={() => setPage(p => p + 1)}>
+                  下一页
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

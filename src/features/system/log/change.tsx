@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Eraser, RefreshCw, Search } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
+import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useServerTable, type ServerTableQuery } from '@/components/data-table'
 import { fetchChangeLogs, type ChangeLog, type ChangeLogQuery } from './api'
 
 /** 空值统一显示成「（空）」，否则前端看到一片空白分不清"没改"和"改成空了" */function ValueCell({ text }: { text: string }) {
@@ -26,26 +26,16 @@ import { fetchChangeLogs, type ChangeLog, type ChangeLogQuery } from './api'
  * 密码/密钥/令牌类字段在后端采集时就被过滤，永远不会出现在这里。
  */
 export function ChangeLogPage() {
-  const [list, setList] = useState<ChangeLog[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-
   // 草稿态与已生效条件分开：输入过程中不触发请求，点「查询」才查
   const [draft, setDraft] = useState<ChangeLogQuery>({})
   const [applied, setApplied] = useState<ChangeLogQuery>({})
 
-  const load = () => {
-    setLoading(true)
-    setError(null)
-    fetchChangeLogs(applied)
-      .then(setList)
-      .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(load, [applied])
-
-  const rows = useMemo(() => list ?? [], [list])
+  /** 服务端分页：条件是「已生效」的那一份，翻页时不会带上未提交的草稿 */
+  const fetchPage = useCallback(
+    ({ page, pageSize, filters, sortBy, sortOrder }: ServerTableQuery<ChangeLogQuery>) =>
+      fetchChangeLogs({ ...filters, page, pageSize, sortBy, sortOrder }),
+    []
+  )
 
   const columns = useMemo<ColumnDef<ChangeLog>[]>(
     () => [
@@ -99,7 +89,12 @@ export function ChangeLogPage() {
     []
   )
 
-  const { table } = useDataTable({ data: rows, columns, pageSize: 20 })
+  const { table, loading, booted, error, reload } = useServerTable({
+    columns,
+    query: fetchPage,
+    filters: applied,
+    pageSize: 20
+  })
 
   /** 列显示开关的中文名；没登记的列回落显示列 id（如 target） */
   const columnLabels: Record<string, string> = {
@@ -125,7 +120,7 @@ export function ChangeLogPage() {
           <h1 className="text-2xl font-bold">字段变更日志</h1>
           <p className="text-muted-foreground text-sm">数据本身被改了什么：哪张表的哪条记录、哪个字段、从什么改成什么</p>
         </div>
-        <Button variant="outline" onClick={load}>
+        <Button variant="outline" onClick={reload}>
           <RefreshCw />
           刷新
         </Button>
@@ -203,13 +198,13 @@ export function ChangeLogPage() {
               <Eraser />
               清除条件
             </Button>
-            <span className="text-muted-foreground ml-auto text-xs">只显示最近 100 条，按时间倒序</span>
+            <span className="text-muted-foreground ml-auto text-xs">服务端分页，按时间倒序</span>
             <DataTableViewOptions table={table} columnLabels={columnLabels} />
           </div>
         </CardContent>
       </Card>
 
-      {loading ? (
+      {!booted ? (
         <Card>
           <CardContent className="py-6">
             <Skeleton className="h-64 w-full" />
@@ -219,7 +214,7 @@ export function ChangeLogPage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <p className="text-muted-foreground text-sm">{error}</p>
-            <Button variant="outline" onClick={load}>
+            <Button variant="outline" onClick={reload}>
               重试
             </Button>
           </CardContent>
@@ -227,7 +222,11 @@ export function ChangeLogPage() {
       ) : (
         <Card>
           <CardContent className="space-y-4 py-5">
-            <DataTable table={table} emptyText={activeFilters > 0 ? '没有符合条件的变更记录' : '还没有任何字段变更记录'} />
+            <DataTable
+              table={table}
+              loading={loading}
+              emptyText={activeFilters > 0 ? '没有符合条件的变更记录' : '还没有任何字段变更记录'}
+            />
             <DataTablePagination table={table} />
           </CardContent>
         </Card>

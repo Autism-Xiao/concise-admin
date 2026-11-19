@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { CirclePause, CirclePlay, Download, Pencil, Play, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StatusBadge } from '@/components/status-badge'
-import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
+import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useServerTable, type ServerTableQuery } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { saveBlobFile } from '@/lib/download'
 import { JobFormDialog } from './components/job-form-dialog'
@@ -38,10 +38,6 @@ const columnLabels: Record<string, string> = {
 }
 
 export function JobPage() {
-  const [list, setList] = useState<JobItem[]>([])
-  const [total, setTotal] = useState(0)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<'all' | `${JobStatus}`>('all')
   const [exporting, setExporting] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
@@ -49,21 +45,20 @@ export function JobPage() {
   const [deleting, setDeleting] = useState<JobItem | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  const load = () => {
-    setLoading(true)
-    setError(null)
-    fetchJobs()
-      .then(res => {
-        setList(res.records ?? [])
-        setTotal(res.total ?? 0)
-      })
-      .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(load, [])
-
-  const running = list.filter(job => job.status === 0).length
+  /** 服务端分页 + 搜索 + 状态筛选 + 排序 */
+  const fetchPage = useCallback(
+    ({ page, pageSize, keyword, filters, sortBy, sortOrder }: ServerTableQuery<{ status: string }>) =>
+      fetchJobs({
+        page,
+        pageSize,
+        keyword,
+        status: filters.status === 'all' ? undefined : (Number(filters.status) as JobStatus),
+        sortBy,
+        sortOrder
+      }),
+    []
+  )
+  const tableFilters = useMemo(() => ({ status: statusFilter }), [statusFilter])
 
   /** 导出：与列表同筛选条件（关键字 + 状态） */
   const handleExport = () => {
@@ -93,7 +88,7 @@ export function JobPage() {
     action
       .then(() => {
         toast.success(`${job.status === 0 ? '已暂停' : '已启动'}「${job.jobClassName}」`)
-        load()
+        reload()
       })
       .catch(e => toast.error(e instanceof Error ? e.message : '操作失败'))
       .finally(() => setBusyId(null))
@@ -108,7 +103,7 @@ export function JobPage() {
         } else {
           toast.error(`「${job.jobClassName}」执行失败：${result.message}`)
         }
-        load()
+        reload()
       })
       .catch(e => toast.error(e instanceof Error ? e.message : '执行失败'))
       .finally(() => setBusyId(null))
@@ -214,9 +209,14 @@ export function JobPage() {
     [busyId]
   )
 
-  const columnFilters = useMemo(() => (statusFilter === 'all' ? [] : [{ id: 'status', value: statusFilter }]), [statusFilter])
-
-  const { table, keyword, setKeyword } = useDataTable({ data: list, columns, columnFilters })
+  const { table, keyword, setKeyword, loading, booted, error, total, reload } = useServerTable({
+    columns,
+    query: fetchPage,
+    filters: tableFilters,
+    pageSize: 20
+  })
+  /** 运行中计数只统计当前页（服务端分页拿不到全量行），文案里写明 */
+  const pageRunning = table.getRowModel().rows.filter(row => row.original.status === 0).length
 
   const handleSubmit = async (values: JobWritePayload) => {
     if (editing) {
@@ -227,7 +227,7 @@ export function JobPage() {
       toast.success(values.status === 0 ? '定时任务已创建并启动' : '定时任务已创建（暂停状态）')
     }
     setFormOpen(false)
-    load()
+    reload()
   }
 
   const handleDelete = async () => {
@@ -236,7 +236,7 @@ export function JobPage() {
       await deleteJob(deleting.id)
       toast.success(`已删除任务「${deleting.jobClassName}」`)
       setDeleting(null)
-      load()
+      reload()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '删除失败')
     }
@@ -248,16 +248,16 @@ export function JobPage() {
         <div>
           <h1 className="text-2xl font-bold">定时任务</h1>
           <p className="text-muted-foreground text-sm">
-            共 {total} 个任务，{running} 个运行中
+            共 {total >= 0 ? total : 0} 个任务，本页 {pageRunning} 个运行中
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={load}>
+          <Button variant="outline" onClick={reload}>
             <RefreshCw />
             刷新
           </Button>
           {hasPermission('system:job:export') && (
-            <Button variant="outline" onClick={handleExport} disabled={exporting || list.length === 0}>
+            <Button variant="outline" onClick={handleExport} disabled={exporting || total <= 0}>
               <Download />
               {exporting ? '导出中…' : '导出'}
             </Button>
@@ -271,7 +271,7 @@ export function JobPage() {
         </div>
       </div>
 
-      {loading ? (
+      {!booted ? (
         <Card>
           <CardContent className="space-y-3 py-6">
             <Skeleton className="h-9 w-full max-w-md" />
@@ -282,7 +282,7 @@ export function JobPage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <p className="text-muted-foreground text-sm">{error}</p>
-            <Button variant="outline" onClick={load}>
+            <Button variant="outline" onClick={reload}>
               重试
             </Button>
           </CardContent>
@@ -312,7 +312,7 @@ export function JobPage() {
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 
-            <DataTable table={table} emptyText="没有匹配的任务" />
+            <DataTable table={table} loading={loading} emptyText="没有匹配的任务" />
             <DataTablePagination table={table} />
           </CardContent>
         </Card>

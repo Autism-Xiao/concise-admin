@@ -1,12 +1,18 @@
 import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import { flexRender, type Row, type Table as TanstackTable } from '@tanstack/react-table'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Loader2 } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 
 interface DataTableProps<TData> {
   table: TanstackTable<TData>
   emptyText?: string
+  /**
+   * 加载中：在表格上盖一层半透明遮罩 + 转圈，**不卸载表格**。
+   * 服务端筛选的场景里搜索会反复触发 loading，如果把整张表换成骨架屏，
+   * 输入框会失焦、布局会跳（「搜索闪一下」的根源），所以这里只做遮罩。
+   */
+  loading?: boolean
   /** 是否显示最左侧的序号列（默认显示） */
   showSerial?: boolean
   /** 是否把最后一列（约定 id 为 actions 的「操作」列）固定在右边缘，默认开启 */
@@ -30,6 +36,7 @@ interface GroupSection<TData> {
 export function DataTable<TData>({
   table,
   emptyText = '没有匹配的数据',
+  loading = false,
   showSerial = true,
   stickyActions = true,
   groupOf,
@@ -83,7 +90,12 @@ export function DataTable<TData>({
     })
 
   return (
-    <div className="rounded-md border">
+    <div className="relative rounded-md border">
+      {loading && (
+        <div className="bg-background/60 absolute inset-0 z-10 flex items-center justify-center" aria-live="polite">
+          <Loader2 className="text-muted-foreground size-5 animate-spin" />
+        </div>
+      )}
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map(headerGroup => {

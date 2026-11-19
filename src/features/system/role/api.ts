@@ -27,9 +27,28 @@ export interface Role {
 
 /** 角色列表（统一分页结构，全量返回；keyword 模糊匹配名称/编码） */
 export async function fetchRoles(keyword = ''): Promise<Role[]> {
-  const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
-  const page = await getApiResult<PageResult<Role>>(`/backend-api/v1/roles${qs}`)
+  const page = await fetchRolePage({ page: 1, pageSize: 100, keyword })
   return page.records
+}
+
+/** 角色管理页的服务端查询：搜索/归属筛选/排序/翻页都由接口完成 */
+export function fetchRolePage(params: {
+  page: number
+  pageSize: number
+  keyword?: string
+  /** 0 = 平台共享，>0 = 指定租户；不传则全部 */
+  tenantId?: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+}): Promise<PageResult<Role>> {
+  const qs = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) })
+  if (params.keyword?.trim()) qs.set('keyword', params.keyword.trim())
+  if (params.tenantId !== undefined) qs.set('tenantId', String(params.tenantId))
+  if (params.sortBy) {
+    qs.set('sortBy', params.sortBy)
+    qs.set('sortOrder', params.sortOrder ?? 'asc')
+  }
+  return getApiResult<PageResult<Role>>(`/backend-api/v1/roles?${qs.toString()}`)
 }
 
 /**

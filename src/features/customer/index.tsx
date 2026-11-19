@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
+import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useServerTable, type ServerTableQuery } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import {
   createCustomer,
@@ -36,25 +36,17 @@ const columnLabels: Record<string, string> = {
 
 /** 客户管理（生成器产物：DataTable + 抽屉表单规约） */
 export function CustomerPage() {
-  const [list, setList] = useState<Customer[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Customer | null>(null)
   const [deleting, setDeleting] = useState<Customer | null>(null)
 
-  const load = () => {
-    setLoading(true)
-    setError(null)
-    fetchCustomers({ pageSize: 500 })
-      .then(res => setList(res.records ?? []))
-      .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
-      .finally(() => setLoading(false))
-  }
+  /** 列表查询：搜索/排序/翻页都由接口完成 */
+  const fetchPage = useCallback(
+    ({ page, pageSize, keyword, sortBy, sortOrder }: ServerTableQuery<Record<string, never>>) =>
+      fetchCustomers({ page, pageSize, keyword, sortBy, sortOrder }),
+    []
+  )
 
-  useEffect(load, [])
-
-  const customers = useMemo(() => list ?? [], [list])
 
   const columns = useMemo<ColumnDef<Customer>[]>(
     () => [
@@ -133,9 +125,9 @@ export function CustomerPage() {
     []
   )
 
-  const { table, keyword, setKeyword } = useDataTable({
-    data: customers,
+  const { table, keyword, setKeyword, loading, booted, error, total, reload } = useServerTable({
     columns,
+    query: fetchPage,
     getRowId: item => String(item.id)
   })
 
@@ -145,7 +137,7 @@ export function CustomerPage() {
       .then(() => {
         toast.success(editing ? '客户已更新' : '客户已创建')
         setFormOpen(false)
-        load()
+        reload()
       })
       .catch(e => toast.error(e instanceof Error ? e.message : '保存失败'))
   }
@@ -155,7 +147,7 @@ export function CustomerPage() {
     deleteCustomer(deleting.id)
       .then(() => {
         toast.success('已删除')
-        load()
+        reload()
       })
       .catch(e => toast.error(e instanceof Error ? e.message : '删除失败'))
     setDeleting(null)
@@ -168,7 +160,7 @@ export function CustomerPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">客户管理</h1>
-          <p className="text-muted-foreground text-sm">共 {customers.length} 个客户</p>
+          <p className="text-muted-foreground text-sm">共 {total >= 0 ? total : 0} 个客户</p>
         </div>
         {hasPermission('customer:add') && (
           <Button
@@ -183,7 +175,7 @@ export function CustomerPage() {
         )}
       </div>
 
-      {loading ? (
+      {!booted ? (
         <Card>
           <CardContent className="space-y-3 py-6">
             <Skeleton className="h-9 w-full max-w-md" />
@@ -194,7 +186,7 @@ export function CustomerPage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <p className="text-muted-foreground text-sm">{error}</p>
-            <Button variant="outline" onClick={load}>
+            <Button variant="outline" onClick={reload}>
               重试
             </Button>
           </CardContent>
@@ -210,7 +202,7 @@ export function CustomerPage() {
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 
-            <DataTable table={table} emptyText="没有匹配的客户" />
+            <DataTable table={table} loading={loading} emptyText="没有匹配的客户" />
             <DataTablePagination table={table} />
           </CardContent>
         </Card>

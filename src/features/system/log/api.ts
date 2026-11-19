@@ -1,6 +1,6 @@
 import type { ImportResult } from '@/components/excel-import-dialog'
 import { downloadFromApi } from '@/lib/download'
-import { getApiResult } from '@/lib/http'
+import { getApiResult, type PageResult } from '@/lib/http'
 
 export type LogStatus = '成功' | '失败'
 
@@ -59,36 +59,66 @@ function formatDateTime(iso: string): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
 }
 
-/** 登录日志（GET /api/v1/logs/login，取最近 100 条倒序；后端 pageSize 上限 100）；userId 用于用户管理页按人过滤 */
-export async function fetchLoginLogs(userId?: string): Promise<LoginLog[]> {
-  const qs = userId ? `&userId=${encodeURIComponent(userId)}` : ''
-  const page = await getApiResult<{ records: BackendSysLog[] }>(`/backend-api/v1/logs/login?page=1&pageSize=100${qs}`)
-  return (page.records ?? []).map(row => ({
-    id: row.id,
-    user: row.operateUserName,
-    ip: row.ip,
-    location: row.location || '未知',
-    browser: row.browser || '未知',
-    os: row.os || '未知',
-    time: formatDateTime(row.createTime),
-    status: row.status === 0 ? '成功' : '失败',
-    message: row.logContent
-  }))
+/** 日志列表查询参数（服务端分页 + 搜索 + 状态 + 排序） */
+export interface LogQuery {
+  page?: number
+  pageSize?: number
+  /** 用户名模糊匹配（后端参数名 username） */
+  keyword?: string
+  status?: LogStatus
+  /** 精确按用户过滤（用户管理页的登录日志弹窗用） */
+  userId?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
 }
 
-/** 操作日志（GET /api/v1/logs/oper，取最近 100 条倒序；后端 pageSize 上限 100） */
-export async function fetchOperationLogs(): Promise<OperationLog[]> {
-  const page = await getApiResult<{ records: BackendSysLog[] }>('/backend-api/v1/logs/oper?page=1&pageSize=100')
-  return (page.records ?? []).map(row => ({
-    id: row.id,
-    user: row.operateUserName,
-    action: row.logContent,
-    ip: row.ip,
-    cost: Number(row.costTime ?? 0),
-    time: formatDateTime(row.createTime),
-    status: row.status === 0 ? '成功' : '失败',
-    proxy: row.isProxy === 1
-  }))
+function buildLogQuery(query: LogQuery): string {
+  const qs = new URLSearchParams({ page: String(query.page ?? 1), pageSize: String(query.pageSize ?? 10) })
+  if (query.userId) qs.set('userId', query.userId)
+  if (query.keyword?.trim()) qs.set('username', query.keyword.trim())
+  if (query.status) qs.set('status', query.status === '成功' ? '0' : '1')
+  if (query.sortBy) {
+    qs.set('sortBy', query.sortBy)
+    qs.set('sortOrder', query.sortOrder ?? 'asc')
+  }
+  return qs.toString()
+}
+
+/** 登录日志（GET /api/v1/logs/login，服务端分页/搜索/排序）；userId 用于用户管理页按人过滤 */
+export async function fetchLoginLogs(query: LogQuery = {}): Promise<PageResult<LoginLog>> {
+  const page = await getApiResult<PageResult<BackendSysLog>>(`/backend-api/v1/logs/login?${buildLogQuery(query)}`)
+  return {
+    ...page,
+    records: (page.records ?? []).map(row => ({
+      id: row.id,
+      user: row.operateUserName,
+      ip: row.ip,
+      location: row.location || '未知',
+      browser: row.browser || '未知',
+      os: row.os || '未知',
+      time: formatDateTime(row.createTime),
+      status: row.status === 0 ? '成功' : '失败',
+      message: row.logContent
+    }))
+  }
+}
+
+/** 操作日志（GET /api/v1/logs/oper，服务端分页/搜索/排序） */
+export async function fetchOperationLogs(query: LogQuery = {}): Promise<PageResult<OperationLog>> {
+  const page = await getApiResult<PageResult<BackendSysLog>>(`/backend-api/v1/logs/oper?${buildLogQuery(query)}`)
+  return {
+    ...page,
+    records: (page.records ?? []).map(row => ({
+      id: row.id,
+      user: row.operateUserName,
+      action: row.logContent,
+      ip: row.ip,
+      cost: Number(row.costTime ?? 0),
+      time: formatDateTime(row.createTime),
+      status: row.status === 0 ? '成功' : '失败',
+      proxy: row.isProxy === 1
+    }))
+  }
 }
 
 /** 批量删除日志（DELETE /api/v1/logs/login|oper） */
@@ -183,31 +213,42 @@ export interface ChangeLogQuery {
   startTime?: string
   /** YYYY-MM-DD，请求时补到当天 23:59:59 —— 不补的话「结束日期=今天」会漏掉今天的所有记录 */
   endTime?: string
+  page?: number
+  pageSize?: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
 }
 
 /**
  * 变更日志列表（GET /api/v1/logs/changes）
  *
- * 与登录/操作日志不同，这张表是"数据本身变了什么"，量随业务写入增长，
- * 所以只取最近 100 条（后端 pageSize 上限 100），不做无限回溯。
+ * 这张表是「数据本身变了什么」，量随业务写入增长，所以走服务端分页，
+ * 不再一次拉 100 条到浏览器里本地翻页。
  */
-export async function fetchChangeLogs(query: ChangeLogQuery = {}): Promise<ChangeLog[]> {
-  const qs = new URLSearchParams({ page: '1', pageSize: '100' })
+export async function fetchChangeLogs(query: ChangeLogQuery = {}): Promise<PageResult<ChangeLog>> {
+  const qs = new URLSearchParams({ page: String(query.page ?? 1), pageSize: String(query.pageSize ?? 20) })
   if (query.tableName) qs.set('tableName', query.tableName)
   if (query.recordId) qs.set('recordId', query.recordId)
   if (query.field) qs.set('field', query.field)
   if (query.startTime) qs.set('startTime', `${query.startTime}T00:00:00`)
   if (query.endTime) qs.set('endTime', `${query.endTime}T23:59:59`)
-  const page = await getApiResult<{ records: BackendChangeLog[] }>(`/backend-api/v1/logs/changes?${qs.toString()}`)
-  return (page.records ?? []).map(row => ({
-    id: row.id,
-    tableName: row.tableName,
-    recordId: row.recordId,
-    field: row.field,
-    fieldLabel: row.fieldLabel,
-    oldValue: row.oldValue,
-    newValue: row.newValue,
-    operateUserName: row.operateUserName,
-    time: formatDateTime(row.createTime)
-  }))
+  if (query.sortBy) {
+    qs.set('sortBy', query.sortBy)
+    qs.set('sortOrder', query.sortOrder ?? 'asc')
+  }
+  const page = await getApiResult<PageResult<BackendChangeLog>>(`/backend-api/v1/logs/changes?${qs.toString()}`)
+  return {
+    ...page,
+    records: (page.records ?? []).map(row => ({
+      id: row.id,
+      tableName: row.tableName,
+      recordId: row.recordId,
+      field: row.field,
+      fieldLabel: row.fieldLabel,
+      oldValue: row.oldValue,
+      newValue: row.newValue,
+      operateUserName: row.operateUserName,
+      time: formatDateTime(row.createTime)
+    }))
+  }
 }

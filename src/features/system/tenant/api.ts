@@ -94,8 +94,11 @@ function toPayload(values: Omit<Tenant, 'id' | 'userCount'>) {
  * 租户是平台级数据（几十条），一次拉全量交给表格做本地筛选/分页，
  * 避免为「几十行数据」引入服务端分页的翻页状态。
  */
-export async function fetchTenants(): Promise<Tenant[]> {
-  const page = await getApiResult<PageResult<TenantDto>>(`${API}?current=1&size=200`)
+/** 租户列表：搜索由接口完成（keyword 模糊匹配名称/编码/联系人）；一次取 100 条足够铺满列表 */
+export async function fetchTenants(keyword = ''): Promise<Tenant[]> {
+  const qs = new URLSearchParams({ page: '1', pageSize: '100' })
+  if (keyword.trim()) qs.set('keyword', keyword.trim())
+  const page = await getApiResult<PageResult<TenantDto>>(`${API}?${qs.toString()}`)
   return page.records.map(toTenant)
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Ban, CheckCircle2, Pencil, Play, Plus, RotateCcw, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DictBadge } from '@/components/dict-badge'
-import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
+import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useServerTable, type ServerTableQuery } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { useDict } from '@/lib/dict'
 import { TaskFormDialog } from './components/task-form-dialog'
@@ -62,10 +62,6 @@ export function TaskPage() {
   const priorityItems = useDict('sys_task_priority', TASK_PRIORITY_LABEL)
   const canListAll = hasPermission('system:task:list')
   const [scope, setScope] = useState<'all' | 'mine'>(canListAll ? 'all' : 'mine')
-  const [list, setList] = useState<Task[]>([])
-  const [total, setTotal] = useState(0)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<'all' | `${TaskStatus}`>('all')
   const [priorityFilter, setPriorityFilter] = useState<'all' | `${TaskPriority}`>('all')
   const [formOpen, setFormOpen] = useState(false)
@@ -73,21 +69,27 @@ export function TaskPage() {
   const [deleting, setDeleting] = useState<Task | null>(null)
   const [busyId, setBusyId] = useState<number | null>(null)
 
-  const load = () => {
-    setLoading(true)
-    setError(null)
-    // 一次拉满 100 条，表格内本地筛选（任务量级远小于用户表，不必服务端翻页）
-    const request = scope === 'mine' ? fetchMyTasks({ pageSize: 100 }) : fetchTasks({ pageSize: 100 })
-    request
-      .then(res => {
-        setList(res.records ?? [])
-        setTotal(res.total ?? 0)
-      })
-      .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
-      .finally(() => setLoading(false))
-  }
+  /** 列表查询：搜索/优先级/状态/排序/翻页都由接口完成（「只看我的」走 /tasks/mine，同样支持） */
+  const fetchPage = useCallback(
+    ({ page, pageSize, keyword, filters, sortBy, sortOrder }: ServerTableQuery<{ status: string; priority: string; scope: 'all' | 'mine' }>) => {
+      const params = {
+        page,
+        pageSize,
+        keyword,
+        status: filters.status === 'all' ? undefined : (Number(filters.status) as TaskStatus),
+        priority: filters.priority === 'all' ? undefined : (Number(filters.priority) as TaskPriority),
+        sortBy,
+        sortOrder
+      }
+      return filters.scope === 'mine' ? fetchMyTasks(params) : fetchTasks(params)
+    },
+    []
+  )
 
-  useEffect(load, [scope])
+  const tableFilters = useMemo(
+    () => ({ status: statusFilter, priority: priorityFilter, scope }),
+    [statusFilter, priorityFilter, scope]
+  )
 
   const openCreate = () => {
     setEditing(null)
@@ -108,7 +110,7 @@ export function TaskPage() {
       toast.success(values.assigneeId && values.assigneeId !== TASK_UNASSIGNED ? '任务已创建并指派' : '任务已创建（未指派）')
     }
     setFormOpen(false)
-    load()
+    reload()
   }
 
   const handleStatus = (task: Task, next: TaskStatus) => {
@@ -116,7 +118,7 @@ export function TaskPage() {
     changeTaskStatus(task.id, next)
       .then(() => {
         toast.success(`「${task.title}」已变为${TASK_STATUS_LABEL[next]}`)
-        load()
+        reload()
       })
       .catch(e => toast.error(e instanceof Error ? e.message : '操作失败'))
       .finally(() => setBusyId(null))
@@ -128,7 +130,7 @@ export function TaskPage() {
       await deleteTask(deleting.id)
       toast.success(`已删除任务「${deleting.title}」`)
       setDeleting(null)
-      load()
+      reload()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '删除失败')
     }
@@ -250,17 +252,17 @@ export function TaskPage() {
     [busyId, priorityItems]
   )
 
-  const columnFilters = useMemo(() => {
-    const filters: Array<{ id: string; value: string }> = []
-    if (statusFilter !== 'all') filters.push({ id: 'status', value: statusFilter })
-    if (priorityFilter !== 'all') filters.push({ id: 'priority', value: priorityFilter })
-    return filters
-  }, [statusFilter, priorityFilter])
+  const { table, keyword, setKeyword, loading, booted, error, total, reload } = useServerTable({
+    columns,
+    query: fetchPage,
+    filters: tableFilters,
+    getRowId: t => String(t.id)
+  })
 
-  const { table, keyword, setKeyword } = useDataTable({ data: list, columns, columnFilters, getRowId: t => String(t.id) })
-
-  const pendingCount = list.filter(t => t.status === 0).length
-  const doingCount = list.filter(t => t.status === 1).length
+  // 分项计数只能统计当前页（服务端分页拿不到全量行），文案里明确写「本页」
+  const pageRows = table.getRowModel().rows.map(row => row.original)
+  const pendingCount = pageRows.filter(t => t.status === 0).length
+  const doingCount = pageRows.filter(t => t.status === 1).length
 
   return (
     <div className="space-y-6">
@@ -271,8 +273,8 @@ export function TaskPage() {
             {loading
               ? '加载中…'
               : scope === 'mine'
-                ? `我负责 ${total} 个任务，其中待处理 ${pendingCount} 个、进行中 ${doingCount} 个`
-                : `共 ${total} 个任务${total > list.length ? `（当前展示最近 ${list.length} 条）` : ''}，待处理 ${pendingCount} 个、进行中 ${doingCount} 个`}
+                ? `我负责 ${total >= 0 ? total : 0} 个任务（本页待处理 ${pendingCount} 个、进行中 ${doingCount} 个）`
+                : `共 ${total >= 0 ? total : 0} 个任务（本页待处理 ${pendingCount} 个、进行中 ${doingCount} 个）`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -290,7 +292,7 @@ export function TaskPage() {
         </div>
       </div>
 
-      {loading ? (
+      {!booted ? (
         <Card>
           <CardContent className="space-y-3 py-6">
             <Skeleton className="h-9 w-full max-w-md" />
@@ -301,7 +303,7 @@ export function TaskPage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <p className="text-muted-foreground text-sm">{error}</p>
-            <Button variant="outline" onClick={load}>
+            <Button variant="outline" onClick={reload}>
               重试
             </Button>
           </CardContent>
@@ -363,7 +365,11 @@ export function TaskPage() {
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 
-            <DataTable table={table} emptyText={scope === 'mine' ? '还没有指派给你的任务' : '没有匹配的任务'} />
+            <DataTable
+              table={table}
+              loading={loading}
+              emptyText={scope === 'mine' ? '还没有指派给你的任务' : '没有匹配的任务'}
+            />
             <DataTablePagination table={table} />
           </CardContent>
         </Card>

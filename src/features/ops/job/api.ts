@@ -62,11 +62,15 @@ export interface JobRunResult {
 
 const BASE = '/backend-api/v1/jobs'
 
-/** 任务列表（后端分页，这里取前 100 条，表格内再分页） */
-export function fetchJobs(params: { keyword?: string; status?: JobStatus } = {}): Promise<JobPage> {
-  const search = new URLSearchParams({ page: '1', pageSize: '100' })
-  if (params.keyword) search.set('keyword', params.keyword)
+/** 任务列表（服务端分页 + 关键字 + 状态） */
+export function fetchJobs(params: { page?: number; pageSize?: number; keyword?: string; status?: JobStatus; sortBy?: string; sortOrder?: 'asc' | 'desc' } = {}): Promise<JobPage> {
+  const search = new URLSearchParams({ page: String(params.page ?? 1), pageSize: String(params.pageSize ?? 20) })
+  if (params.keyword?.trim()) search.set('keyword', params.keyword.trim())
   if (params.status !== undefined) search.set('status', String(params.status))
+  if (params.sortBy) {
+    search.set('sortBy', params.sortBy)
+    search.set('sortOrder', params.sortOrder ?? 'asc')
+  }
   return getApiResult<JobPage>(`${BASE}?${search.toString()}`)
 }
 

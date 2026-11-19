@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Download, Pencil, Plus, Search, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -29,6 +29,8 @@ export function LevelPage() {
   const [list, setList] = useState<Level[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  /** 首次加载完成前才显示骨架屏；之后的搜索保持表格挂载，避免输入框失焦与布局跳动 */
+  const [booted, setBooted] = useState(false)
   const [statusFilter, setStatusFilter] = useState('all')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Level | null>(null)
@@ -38,16 +40,27 @@ export function LevelPage() {
   const [batchDeleting, setBatchDeleting] = useState(false)
   const [batchBusy, setBatchBusy] = useState(false)
 
-  const load = () => {
+  /** 搜索走接口：输入停顿 300ms 再请求 */
+  const [searchKeyword, setSearchKeyword] = useState('')
+  const [appliedKeyword, setAppliedKeyword] = useState('')
+  useEffect(() => {
+    const timer = setTimeout(() => setAppliedKeyword(searchKeyword.trim()), 300)
+    return () => clearTimeout(timer)
+  }, [searchKeyword])
+
+  const load = useCallback(() => {
     setLoading(true)
     setError(null)
-    fetchLevels()
+    fetchLevels(appliedKeyword)
       .then(setList)
       .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
-      .finally(() => setLoading(false))
-  }
+      .finally(() => {
+        setLoading(false)
+        setBooted(true)
+      })
+  }, [appliedKeyword])
 
-  useEffect(load, [])
+  useEffect(load, [load])
 
   const levels = useMemo(() => list ?? [], [list])
 
@@ -115,10 +128,13 @@ export function LevelPage() {
   )
 
   const columnFilters = useMemo(() => (statusFilter === 'all' ? [] : [{ id: 'status', value: statusFilter }]), [statusFilter])
+  // 关键字由接口过滤（manualFiltering），状态下拉仍是本地筛选
   const { table, keyword, setKeyword, rowSelection, setRowSelection } = useDataTable({
     data: levels,
     columns,
     columnFilters,
+    manualFiltering: true,
+    onKeywordChange: setSearchKeyword,
     getRowId: level => level.id
   })
   const selectedCount = Object.keys(rowSelection).filter(key => rowSelection[key]).length
@@ -207,7 +223,7 @@ export function LevelPage() {
         </div>
       </div>
 
-      {loading ? (
+      {!booted ? (
         <Card>
           <CardContent className="space-y-3 py-6">
             <Skeleton className="h-9 w-full max-w-md" />
@@ -244,7 +260,7 @@ export function LevelPage() {
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 
-            <DataTable table={table} emptyText="没有匹配的职级" />
+            <DataTable table={table} loading={loading} emptyText="没有匹配的职级" />
             <DataTablePagination table={table} />
           </CardContent>
         </Card>

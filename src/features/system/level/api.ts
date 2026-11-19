@@ -25,8 +25,9 @@ export interface LevelWritePayload {
 
 /** 职级列表（统一分页结构，全量返回；keyword 模糊匹配名称/备注） */
 export async function fetchLevels(keyword = ''): Promise<Level[]> {
-  const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
-  const page = await getApiResult<PageResult<Level>>(`/backend-api/v1/levels${qs}`)
+  const params = new URLSearchParams({ page: '1', pageSize: '100' })
+  if (keyword.trim()) params.set('keyword', keyword.trim())
+  const page = await getApiResult<PageResult<Level>>(`/backend-api/v1/levels?${params.toString()}`)
   return page.records
 }
 

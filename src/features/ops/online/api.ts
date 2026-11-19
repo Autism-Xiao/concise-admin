@@ -28,10 +28,10 @@ export interface OnlinePage {
 
 const BASE = '/backend-api/v1/online'
 
-/** 在线用户列表（后端分页，这里取前 100 条，表格内再分页） */
-export function fetchOnlineUsers(keyword?: string): Promise<OnlinePage> {
-  const search = new URLSearchParams({ page: '1', pageSize: '100' })
-  if (keyword) search.set('keyword', keyword)
+/** 在线用户列表（服务端分页 + 关键字；会话存在 Redis 里，后端一次 scan 后内存分页） */
+export function fetchOnlineUsers(params: { page?: number; pageSize?: number; keyword?: string } = {}): Promise<OnlinePage> {
+  const search = new URLSearchParams({ page: String(params.page ?? 1), pageSize: String(params.pageSize ?? 20) })
+  if (params.keyword?.trim()) search.set('keyword', params.keyword.trim())
   return getApiResult<OnlinePage>(`${BASE}?${search.toString()}`)
 }
 

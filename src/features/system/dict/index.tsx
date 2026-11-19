@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Download, Pencil, Plus, Search, Trash2, Upload } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Download, Loader2, Pencil, Plus, Search, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -58,6 +58,8 @@ export function DictPage() {
   const [dictKeyword, setDictKeyword] = useState('')
   const [activeId, setActiveId] = useState<string | null>(null)
   const [loadingDicts, setLoadingDicts] = useState(true)
+  /** 首次加载完成前才显示骨架屏；之后的搜索保持列表挂载，避免闪烁 */
+  const [dictsBooted, setDictsBooted] = useState(false)
   const [dictError, setDictError] = useState<string | null>(null)
 
   // ---- 右侧：字典项 ----
@@ -80,10 +82,10 @@ export function DictPage() {
   const [batchDeleting, setBatchDeleting] = useState(false)
   const [batchBusy, setBatchBusy] = useState(false)
 
-  const loadDicts = (preferId?: string) => {
+  const loadDicts = useCallback((preferId?: string, keyword = '') => {
     setLoadingDicts(true)
     setDictError(null)
-    fetchDicts()
+    fetchDicts(keyword)
       .then(list => {
         setDicts(list)
         setActiveId(prev => {
@@ -93,12 +95,22 @@ export function DictPage() {
         })
       })
       .catch(error => setDictError(error instanceof Error ? error.message : '加载失败'))
-      .finally(() => setLoadingDicts(false))
-  }
+      .finally(() => {
+        setLoadingDicts(false)
+        setDictsBooted(true)
+      })
+  }, [])
+
+  // 左侧搜索走接口：输入停顿 300ms 再请求，避免每个按键都打一次
+  const [debouncedDictKeyword, setDebouncedDictKeyword] = useState('')
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedDictKeyword(dictKeyword.trim()), 300)
+    return () => clearTimeout(timer)
+  }, [dictKeyword])
 
   useEffect(() => {
-    loadDicts()
-  }, [])
+    loadDicts(undefined, debouncedDictKeyword)
+  }, [loadDicts, debouncedDictKeyword])
 
   const loadItems = (dictId: string) => {
     // 字典改完要让业务页下次进来自动拿新数据，否则缓存里还是旧文案
@@ -120,11 +132,8 @@ export function DictPage() {
 
   const activeDict = useMemo(() => dicts.find(dict => dict.id === activeId) ?? null, [dicts, activeId])
 
-  const filteredDicts = useMemo(() => {
-    const keyword = dictKeyword.trim().toLowerCase()
-    if (!keyword) return dicts
-    return dicts.filter(dict => dict.dictName.toLowerCase().includes(keyword) || dict.dictCode.toLowerCase().includes(keyword))
-  }, [dicts, dictKeyword])
+  // 搜索已由接口完成，左侧直接渲染后端返回的当前结果
+  const filteredDicts = dicts
 
   const columns = useMemo<ColumnDef<DictItem>[]>(
     () => [
@@ -218,11 +227,11 @@ export function DictPage() {
       if (editingDict) {
         await updateDict(editingDict.id, values)
         toast.success('字典已更新')
-        loadDicts(editingDict.id)
+        loadDicts(editingDict.id, debouncedDictKeyword)
       } else {
         const created = await createDict(values)
         toast.success(`字典「${created.dictName}」已创建`)
-        loadDicts(created.id)
+        loadDicts(created.id, debouncedDictKeyword)
       }
       setDictFormOpen(false)
     } catch (error) {
@@ -236,7 +245,7 @@ export function DictPage() {
       await deleteDict(deletingDict.id)
       toast.success(`已删除字典「${deletingDict.dictName}」`)
       setDeletingDict(null)
-      loadDicts()
+      loadDicts(undefined, debouncedDictKeyword)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '删除失败')
     }
@@ -255,7 +264,7 @@ export function DictPage() {
       }
       setItemFormOpen(false)
       loadItems(activeDict.id)
-      loadDicts(activeDict.id)
+      loadDicts(activeDict.id, debouncedDictKeyword)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '保存失败')
     }
@@ -285,7 +294,7 @@ export function DictPage() {
       setRowSelection({})
       if (activeDict) {
         loadItems(activeDict.id)
-        loadDicts(activeDict.id)
+        loadDicts(activeDict.id, debouncedDictKeyword)
       }
     } finally {
       setBatchBusy(false)
@@ -299,7 +308,7 @@ export function DictPage() {
       toast.success(`已删除字典项「${deletingItem.itemText}」`)
       setDeletingItem(null)
       loadItems(activeDict.id)
-      loadDicts(activeDict.id)
+      loadDicts(activeDict.id, debouncedDictKeyword)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '删除失败')
     }
@@ -351,7 +360,7 @@ export function DictPage() {
               <Input placeholder="搜索名称 / 编码" className="ps-8" value={dictKeyword} onChange={e => setDictKeyword(e.target.value)} />
             </div>
 
-            {loadingDicts ? (
+            {!dictsBooted ? (
               <div className="space-y-2">
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
@@ -360,14 +369,19 @@ export function DictPage() {
             ) : dictError ? (
               <div className="flex flex-col items-center gap-2 py-6">
                 <p className="text-muted-foreground text-sm">{dictError}</p>
-                <Button variant="outline" size="sm" onClick={() => loadDicts()}>
+                <Button variant="outline" size="sm" onClick={() => loadDicts(undefined, debouncedDictKeyword)}>
                   重试
                 </Button>
               </div>
             ) : filteredDicts.length === 0 ? (
               <p className="text-muted-foreground py-6 text-center text-sm">没有匹配的字典</p>
             ) : (
-              <div className="max-h-[520px] space-y-1 overflow-y-auto">
+              <div className="relative max-h-[520px] space-y-1 overflow-y-auto">
+                {loadingDicts && (
+                  <div className="bg-background/60 absolute inset-0 z-10 flex items-center justify-center" aria-live="polite">
+                    <Loader2 className="text-muted-foreground size-5 animate-spin" />
+                  </div>
+                )}
                 {filteredDicts.map(dict => (
                   <button
                     key={dict.id}
@@ -513,7 +527,7 @@ export function DictPage() {
           title="导入字典"
           description="一个工作簿两张工作表：「字典类型」与「字典项」，靠字典编码关联，可以只填其中一张。字典编码已存在时更新（已删除的会恢复），字典项按「字典编码 + 项值」判定。单表最多 2000 行。"
           templateHint="模板含两张工作表与填写说明，必须列带 *"
-          onImported={() => loadDicts(activeId ?? undefined)}
+          onImported={() => loadDicts(activeId ?? undefined, debouncedDictKeyword)}
           downloadTemplate={downloadDictTemplate}
           importFile={importDicts}
         />

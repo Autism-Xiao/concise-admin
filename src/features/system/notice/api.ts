@@ -73,15 +73,21 @@ export interface NoticeQuery {
   priority?: NoticePriority | ''
   page?: number
   pageSize?: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
 }
 
-/** 管理端分页列表（GET /api/v1/notices，含未发布与已撤销） */
+/** 管理端分页列表（GET /api/v1/notices，含未发布与已撤销）；搜索/筛选/排序/翻页全部由接口完成 */
 export function fetchNotices(query: NoticeQuery = {}): Promise<NoticeListResult> {
-  const params = new URLSearchParams({ page: String(query.page ?? 1), pageSize: String(query.pageSize ?? 100) })
+  const params = new URLSearchParams({ page: String(query.page ?? 1), pageSize: String(query.pageSize ?? 10) })
   if (query.keyword) params.set('keyword', query.keyword)
   if (query.msgCategory) params.set('msgCategory', query.msgCategory)
   if (query.sendStatus) params.set('sendStatus', query.sendStatus)
   if (query.priority) params.set('priority', query.priority)
+  if (query.sortBy) {
+    params.set('sortBy', query.sortBy)
+    params.set('sortOrder', query.sortOrder ?? 'asc')
+  }
   return getApiResult<NoticeListResult>(`/backend-api/v1/notices?${params.toString()}`)
 }
 

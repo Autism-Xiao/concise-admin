@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { BellRing, Megaphone, Pencil, Plus, Search, Send, Trash2, Undo2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DictBadge } from '@/components/dict-badge'
 import { StatusBadge } from '@/components/status-badge'
-import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
+import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useServerTable, type ServerTableQuery } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { useDict } from '@/lib/dict'
 import { NoticeFormDialog } from './components/notice-form-dialog'
@@ -48,10 +48,6 @@ const statusOk: Record<NoticeSendStatus, boolean> = { '1': true, '0': false, '2'
 export function NoticePage() {
   // 类型/优先级走字典（文案、颜色都可运营改），状态仍写死——状态机由后端分支，字典加项就是死选项
   const categoryItems = useDict('sys_notice_category', NOTICE_CATEGORY_LABEL)
-  const [list, setList] = useState<Notice[]>([])
-  const [total, setTotal] = useState(0)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<'all' | NoticeSendStatus>('all')
   const [categoryFilter, setCategoryFilter] = useState<'all' | NoticeCategory>('all')
   const [formOpen, setFormOpen] = useState(false)
@@ -60,19 +56,28 @@ export function NoticePage() {
   const [deleting, setDeleting] = useState<Notice | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  const load = () => {
-    setLoading(true)
-    setError(null)
-    fetchNotices({ pageSize: 100 })
-      .then(res => {
-        setList(res.records ?? [])
-        setTotal(res.total ?? 0)
-      })
-      .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
-      .finally(() => setLoading(false))
-  }
+  /** 列表查询：搜索/类型/状态/排序/翻页都由接口完成 */
+  const fetchPage = useCallback(
+    ({ page, pageSize, keyword, filters, sortBy, sortOrder }: ServerTableQuery<{ sendStatus: string; msgCategory: string }>) =>
+      fetchNotices({
+        page,
+        pageSize,
+        keyword,
+        sendStatus: filters.sendStatus as NoticeSendStatus | '',
+        msgCategory: filters.msgCategory as NoticeCategory | '',
+        sortBy,
+        sortOrder
+      }),
+    []
+  )
 
-  useEffect(load, [])
+  const tableFilters = useMemo(
+    () => ({
+      sendStatus: statusFilter === 'all' ? '' : statusFilter,
+      msgCategory: categoryFilter === 'all' ? '' : categoryFilter
+    }),
+    [statusFilter, categoryFilter]
+  )
 
   const openCreate = () => {
     setEditing(null)
@@ -207,14 +212,12 @@ export function NoticePage() {
     [busyId, categoryItems]
   )
 
-  const columnFilters = useMemo(() => {
-    const filters: Array<{ id: string; value: string }> = []
-    if (statusFilter !== 'all') filters.push({ id: 'sendStatus', value: statusFilter })
-    if (categoryFilter !== 'all') filters.push({ id: 'msgCategory', value: categoryFilter })
-    return filters
-  }, [statusFilter, categoryFilter])
-
-  const { table, keyword, setKeyword, rowSelection, setRowSelection } = useDataTable({ data: list, columns, columnFilters, getRowId: n => n.id })
+  const { table, keyword, setKeyword, loading, booted, error, total, reload, rowSelection, setRowSelection } = useServerTable({
+    columns,
+    query: fetchPage,
+    filters: tableFilters,
+    getRowId: n => n.id
+  })
 
   /** 当前勾选（跨页保留），批量删除入口按数量展示 */
   const selectedCount = Object.keys(rowSelection).filter(k => rowSelection[k]).length
@@ -233,7 +236,7 @@ export function NoticePage() {
         setBatchDeleting(false)
         setBatchBusy(false)
         setRowSelection({})
-        load()
+        reload()
       })
   }
 
@@ -246,7 +249,7 @@ export function NoticePage() {
       toast.success(values.sendStatus === '1' ? '公告已创建并发布' : '公告已保存为未发布')
     }
     setFormOpen(false)
-    load()
+    reload()
   }
 
   const handleStatusChange = (notice: Notice, action: 'publish' | 'revoke') => {
@@ -255,7 +258,7 @@ export function NoticePage() {
     task
       .then(() => {
         toast.success(action === 'publish' ? `已发布「${notice.title}」` : `已撤销「${notice.title}」`)
-        load()
+        reload()
       })
       .catch(e => toast.error(e instanceof Error ? e.message : '操作失败'))
       .finally(() => setBusyId(null))
@@ -267,7 +270,7 @@ export function NoticePage() {
       await deleteNotice(deleting.id)
       toast.success(`已删除公告「${deleting.title}」`)
       setDeleting(null)
-      load()
+      reload()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '删除失败')
     }
@@ -279,7 +282,7 @@ export function NoticePage() {
         <div>
           <h1 className="text-2xl font-bold">通知公告</h1>
           <p className="text-muted-foreground text-sm">
-            共 {total} 条{total > list.length ? `（当前展示最近 ${list.length} 条）` : ''}
+            共 {total >= 0 ? total : 0} 条（服务端分页，每页 {table.getState().pagination.pageSize} 条）
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -304,7 +307,7 @@ export function NoticePage() {
         </div>
       </div>
 
-      {loading ? (
+      {!booted ? (
         <Card>
           <CardContent className="space-y-3 py-6">
             <Skeleton className="h-9 w-full max-w-md" />
@@ -315,7 +318,7 @@ export function NoticePage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <p className="text-muted-foreground text-sm">{error}</p>
-            <Button variant="outline" onClick={load}>
+            <Button variant="outline" onClick={reload}>
               重试
             </Button>
           </CardContent>
@@ -363,7 +366,7 @@ export function NoticePage() {
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 
-            <DataTable table={table} emptyText="没有匹配的公告" />
+            <DataTable table={table} loading={loading} emptyText="没有匹配的公告" />
             <DataTablePagination table={table} />
           </CardContent>
         </Card>
@@ -371,7 +374,7 @@ export function NoticePage() {
 
       {formOpen && <NoticeFormDialog key={editing?.id ?? 'new'} open={formOpen} onOpenChange={setFormOpen} notice={editing} onSubmit={handleSubmit} />}
 
-      <NoticeImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={load} />
+      <NoticeImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={reload} />
 
       <ConfirmDialog
         confirmText="删除"

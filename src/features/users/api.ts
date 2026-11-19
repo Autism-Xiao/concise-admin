@@ -115,6 +115,9 @@ export function lookupUsers(ids: string[]): Promise<UserBrief[]> {
 /**
  * 分页查询用户列表（大页容量一次拉全，前端表格本地筛选）
  *
+ * 选择器类场景（批量分配角色、租户加人）用这个：它们需要一批候选用户做本地过滤。
+ * 用户管理列表页走 `fetchUserPage`（服务端分页/搜索/排序）。
+ *
  * skipCount=true：不统计总数。千万行表上 `SELECT COUNT(*) WHERE del_flag=0` 要走全索引扫描
  * （实测 17.8 秒），而列表页只需要知道「是否还有更多」。返回 total/pages = -1、带 hasNext。
  */
@@ -123,6 +126,25 @@ export function fetchUsers(keyword = '', status = ''): Promise<UserListResult> {
   if (keyword) params.set('keyword', keyword)
   if (status) params.set('status', status)
   return getApiResult<UserListResult>(`/backend-api/v1/users?${params.toString()}`)
+}
+
+/** 用户列表页的服务端分页查询：搜索/状态筛选/排序/翻页全部由接口完成 */
+export function fetchUserPage(params: {
+  page: number
+  pageSize: number
+  keyword?: string
+  status?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+}): Promise<UserListResult> {
+  const qs = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) })
+  if (params.keyword) qs.set('keyword', params.keyword)
+  if (params.status) qs.set('status', params.status)
+  if (params.sortBy) {
+    qs.set('sortBy', params.sortBy)
+    qs.set('sortOrder', params.sortOrder ?? 'asc')
+  }
+  return getApiResult<UserListResult>(`/backend-api/v1/users?${qs.toString()}`)
 }
 
 /**

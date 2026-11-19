@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
+import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useServerTable, type ServerTableQuery } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { saveBlobFile } from '@/lib/download'
 import { notifyPermissionsChanged, isSuperRoleCode } from '@/lib/permissions'
@@ -18,7 +18,7 @@ import type { MenuTreeNode } from './components/role-permission-dialog'
 import { RoleFormDialog, type RoleFormValues } from './components/role-form-dialog'
 import { RoleImportDialog } from './components/role-import-dialog'
 import { RolePermissionDialog } from './components/role-permission-dialog'
-import { createRole, deleteRole, deleteRoles, exportRoles, fetchRoleMenuIds, fetchRoles, saveRoleMenus, updateRole, type Role } from './api'
+import { createRole, deleteRole, deleteRoles, exportRoles, fetchRoleMenuIds, fetchRolePage, fetchRoles, saveRoleMenus, updateRole, type Role } from './api'
 import { toastBatchResult } from '@/lib/batch-delete'
 
 const columnLabels: Record<string, string> = {
@@ -30,10 +30,7 @@ const columnLabels: Record<string, string> = {
 }
 
 export function RolePage() {
-  const [list, setList] = useState<Role[] | null>(null)
   const [menuTree, setMenuTree] = useState<MenuTreeNode[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Role | null>(null)
   const [deleting, setDeleting] = useState<Role | null>(null)
@@ -44,52 +41,45 @@ export function RolePage() {
   const [importOpen, setImportOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
 
-  const load = () => {
-    setLoading(true)
-    setError(null)
-    // 菜单树加载失败不阻塞列表（授权弹窗会提示重试）
-    Promise.all([fetchRoles(), fetchMenuTree().catch(() => [] as MenuTreeNode[])])
-      .then(([roleList, tree]) => {
-        setList(roleList)
-        setMenuTree(tree)
-      })
-      .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
-      .finally(() => setLoading(false))
-  }
+  // 菜单树是授权弹窗的数据源，与列表筛选无关：单独拉一次，失败不阻塞列表
+  useEffect(() => {
+    fetchMenuTree()
+      .then(setMenuTree)
+      .catch(() => setMenuTree([]))
+  }, [])
 
-  useEffect(load, [])
-
-  const roles = useMemo(() => list ?? [], [list])
+  /** 列表查询：搜索/归属筛选/排序/翻页都由接口完成 */
+  const fetchPage = useCallback(
+    ({ page, pageSize, keyword, filters, sortBy, sortOrder }: ServerTableQuery<{ tenantId: string }>) =>
+      fetchRolePage({
+        page,
+        pageSize,
+        keyword,
+        tenantId: filters.tenantId === 'all' ? undefined : Number(filters.tenantId),
+        sortBy,
+        sortOrder
+      }),
+    []
+  )
 
   /* ---------- 归属筛选 + 分组（平台视角下会看到多个租户各自的同名角色模板） ---------- */
 
-  /** 归属筛选：key 是 tenantId 的字符串形式，'0' = 平台共享，'all' = 不筛选 */
+  /** 归属筛选：key 是 tenantId 的字符串形式，'0' = 平台共享，'all' = 不筛选（由接口过滤） */
   const [ownerFilter, setOwnerFilter] = useState<string>('all')
-  const ownerItems = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const role of roles) {
-      const key = String(role.tenantId ?? 0)
-      if (!map.has(key)) map.set(key, key === '0' ? '平台共享' : (role.tenantName ?? `租户 ${key}`))
-    }
-    return { all: '全部归属', ...Object.fromEntries(map) }
-  }, [roles])
-  /**
-   * 筛选 + 分组排序：平台共享（0）排最前，租户按名称排序、组内保持创建时间顺序。
-   * 排好序后 DataTable 的 groupOf 按「首次出现顺序」切段即可。
-   */
-  const visibleRoles = useMemo(() => {
-    const filtered = ownerFilter === 'all' ? roles : roles.filter(role => String(role.tenantId ?? 0) === ownerFilter)
-    return [...filtered].sort((a, b) => {
-      const ta = Number(a.tenantId ?? 0)
-      const tb = Number(b.tenantId ?? 0)
-      if (ta === 0 && tb !== 0) return -1
-      if (ta !== 0 && tb === 0) return 1
-      if (ta === 0) return 0
-      const nameA = a.tenantName ?? `租户 ${ta}`
-      const nameB = b.tenantName ?? `租户 ${tb}`
-      return nameA.localeCompare(nameB, 'zh-Hans-CN') || ta - tb
-    })
-  }, [roles, ownerFilter])
+  /** 归属下拉选项：进入页面时拉一次全量快照（角色总量小），之后切筛选不会丢选项 */
+  const [ownerOptions, setOwnerOptions] = useState<Record<string, string>>({ all: '全部归属' })
+  useEffect(() => {
+    fetchRoles()
+      .then(list => {
+        const map: Record<string, string> = {}
+        for (const role of list) {
+          const key = String(role.tenantId ?? 0)
+          if (!map[key]) map[key] = key === '0' ? '平台共享' : (role.tenantName ?? `租户 ${key}`)
+        }
+        setOwnerOptions({ all: '全部归属', ...map })
+      })
+      .catch(() => setOwnerOptions({ all: '全部归属' }))
+  }, [])
 
   const groupOf = useCallback((role: Role) => String(role.tenantId ?? 0), [])
   const groupLabel = useCallback(
@@ -101,24 +91,25 @@ export function RolePage() {
           </span>
         )
       }
-      const tenantName = roles.find(role => String(role.tenantId ?? 0) === groupId)?.tenantName ?? `租户 ${groupId}`
+      const tenantName = ownerOptions[groupId] ?? `租户 ${groupId}`
       return <span title="租户私有角色：只在归属租户内可见、可分配">租户：{tenantName}</span>
     },
-    [roles]
+    [ownerOptions]
   )
 
   /** 正在切换状态的行 id（行级 loading，防止连点） */
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const togglingRef = useRef<string | null>(null)
+  /** 重新拉当前页：表格数据在 useServerTable 内部，行内操作完成后用它刷新（定义在表格之后） */
+  const reloadRef = useRef<(() => void) | null>(null)
 
-  /** 表格里直接开关角色状态：乐观更新，失败回滚；停用后该角色立即失去权限 */
+  /** 表格里直接开关角色状态；停用后该角色立即失去权限 */
   const toggleStatus = useCallback(
     (role: Role, checked: boolean) => {
       const next = checked ? 1 : 0
       if (role.status === next || togglingRef.current) return
       togglingRef.current = role.id
       setTogglingId(role.id)
-      setList(prev => (prev ?? []).map(item => (item.id === role.id ? { ...item, status: next } : item)))
       updateRole(role.id, { status: next })
         .then(() => {
           toast.success(
@@ -127,14 +118,11 @@ export function RolePage() {
           // 权限接口（菜单树/按钮码）有会话级缓存，通知清一下，被停用角色的在线用户下次拉取就看不到菜单了
           notifyPermissionsChanged()
         })
-        .catch(e => {
-          // 回滚
-          setList(prev => (prev ?? []).map(item => (item.id === role.id ? { ...item, status: role.status ?? 1 } : item)))
-          toast.error(e instanceof Error ? e.message : '状态修改失败')
-        })
+        .catch(e => toast.error(e instanceof Error ? e.message : '状态修改失败'))
         .finally(() => {
           togglingRef.current = null
           setTogglingId(null)
+          reloadRef.current?.()
         })
     },
     []
@@ -286,8 +274,19 @@ export function RolePage() {
     [permLoading, togglingId, toggleStatus]
   )
 
-  // 角色是全量返回的小表：pageSize 放大到 50，避免分组跨页重复出组头
-  const { table, keyword, setKeyword, rowSelection, setRowSelection } = useDataTable({ data: visibleRoles, columns, pageSize: 50, getRowId: role => role.id })
+  // 服务端分页：角色总量小，pageSize 放大到 50，分组表头基本不会跨页重复
+  const { table, keyword, setKeyword, loading, booted, error, total, reload, rowSelection, setRowSelection } = useServerTable({
+    columns,
+    query: fetchPage,
+    filters: { tenantId: ownerFilter },
+    pageSize: 50,
+    getRowId: role => role.id
+  })
+  useEffect(() => {
+    reloadRef.current = reload
+  }, [reload])
+  // 供表格之外的行内操作刷新（toggleStatus 定义在表格之前）
+  const pageRoles = table.getRowModel().rows.map(row => row.original)
   const selectedCount = Object.keys(rowSelection).filter(key => rowSelection[key]).length
   const [batchDeleting, setBatchDeleting] = useState(false)
   const [batchBusy, setBatchBusy] = useState(false)
@@ -301,7 +300,7 @@ export function RolePage() {
       toastBatchResult(result, '角色')
       setBatchDeleting(false)
       setRowSelection({})
-      load()
+      reload()
     } finally {
       setBatchBusy(false)
     }
@@ -313,7 +312,7 @@ export function RolePage() {
       .then(() => {
         toast.success(editing ? '角色已更新' : '角色已创建')
         setFormOpen(false)
-        load()
+        reload()
       })
       .catch(e => toast.error(e instanceof Error ? e.message : '保存失败'))
   }
@@ -327,7 +326,7 @@ export function RolePage() {
         // 角色权限可能变化，通知侧边栏重新计算可见菜单
         notifyPermissionsChanged()
         setPermRole(null)
-        load()
+        reload()
       })
       .catch(e => toast.error(e instanceof Error ? e.message : '保存失败'))
       .finally(() => setPermSaving(false))
@@ -339,7 +338,7 @@ export function RolePage() {
       .then(() => {
         toast.success(`已删除角色「${deleting.roleName ?? deleting.roleCode}」`)
         setDeleting(null)
-        load()
+        reload()
       })
       .catch(e => {
         toast.error(e instanceof Error ? e.message : '删除失败')
@@ -365,9 +364,8 @@ export function RolePage() {
         <div>
           <h1 className="text-2xl font-bold">角色权限</h1>
           <p className="text-muted-foreground text-sm">
-            {ownerFilter === 'all'
-              ? `共 ${roles.length} 个角色`
-              : `筛选出 ${visibleRoles.length} 个角色（全部共 ${roles.length} 个）`}{permSaving && '（保存中…）'}
+            {ownerFilter === 'all' ? `共 ${total >= 0 ? total : 0} 个角色` : `筛选出 ${total >= 0 ? total : 0} 个角色`}
+            {permSaving && '（保存中…）'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -378,7 +376,7 @@ export function RolePage() {
             </Button>
           )}
           {hasPermission('system:role:export') && (
-            <Button variant="outline" onClick={handleExport} disabled={exporting || roles.length === 0}>
+            <Button variant="outline" onClick={handleExport} disabled={exporting || pageRoles.length === 0}>
               <Download />
               {exporting ? '导出中…' : '导出'}
             </Button>
@@ -396,7 +394,7 @@ export function RolePage() {
         </div>
       </div>
 
-      {loading ? (
+      {!booted ? (
         <Card>
           <CardContent className="space-y-3 py-6">
             <Skeleton className="h-9 w-full max-w-md" />
@@ -407,7 +405,7 @@ export function RolePage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <p className="text-muted-foreground text-sm">{error}</p>
-            <Button variant="outline" onClick={load}>
+            <Button variant="outline" onClick={reload}>
               重试
             </Button>
           </CardContent>
@@ -420,13 +418,13 @@ export function RolePage() {
                 <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
                 <Input placeholder="搜索名称 / 权限字符" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
               </div>
-              <Select value={ownerFilter} onValueChange={setOwnerFilter} items={ownerItems}>
+              <Select value={ownerFilter} onValueChange={setOwnerFilter} items={ownerOptions}>
                 <SelectTrigger className="h-9 w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">全部归属</SelectItem>
-                  {[...Object.entries(ownerItems).filter(([key]) => key !== 'all')].map(([key, label]) => (
+                  {[...Object.entries(ownerOptions).filter(([key]) => key !== 'all')].map(([key, label]) => (
                     <SelectItem key={key} value={key}>
                       {label}
                     </SelectItem>
@@ -436,7 +434,7 @@ export function RolePage() {
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 
-            <DataTable table={table} emptyText="没有匹配的角色" groupOf={groupOf} groupLabel={groupLabel} />
+            <DataTable table={table} loading={loading} emptyText="没有匹配的角色" groupOf={groupOf} groupLabel={groupLabel} />
             <DataTablePagination table={table} />
           </CardContent>
         </Card>
@@ -478,7 +476,7 @@ export function RolePage() {
         onConfirm={handleBatchDelete}
       />
 
-      {importOpen && <RoleImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={load} />}
+      {importOpen && <RoleImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={reload} />}
     </div>
   )
 }

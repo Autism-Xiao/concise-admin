@@ -68,6 +68,8 @@ export function TenantPage() {
   // 区分「服务连不上」和「业务失败」：前者要解释成因并给重试，后者直接显示原因
   const [error, setError] = useState<{ message: string; unavailable: boolean } | null>(null)
   const [loading, setLoading] = useState(true)
+  /** 首次加载完成前才显示骨架屏；之后的搜索保持表格挂载，避免输入框失焦与布局跳动 */
+  const [booted, setBooted] = useState(false)
   const [statusFilter, setStatusFilter] = useState('all')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Tenant | null>(null)
@@ -86,16 +88,27 @@ export function TenantPage() {
   const canDelete = hasPermission('system:tenant:delete')
   const canAssign = hasPermission('system:tenant:user')
 
-  const load = () => {
+  /** 搜索走接口：输入停顿 300ms 再请求 */
+  const [searchKeyword, setSearchKeyword] = useState('')
+  const [appliedKeyword, setAppliedKeyword] = useState('')
+  useEffect(() => {
+    const timer = setTimeout(() => setAppliedKeyword(searchKeyword.trim()), 300)
+    return () => clearTimeout(timer)
+  }, [searchKeyword])
+
+  const load = useCallback(() => {
     setLoading(true)
     setError(null)
-    fetchTenants()
+    fetchTenants(appliedKeyword)
       .then(setList)
       .catch(e => setError({ message: userMessageOf(e, '加载失败'), unavailable: isUnavailableError(e) }))
-      .finally(() => setLoading(false))
-  }
+      .finally(() => {
+        setLoading(false)
+        setBooted(true)
+      })
+  }, [appliedKeyword])
 
-  useEffect(load, [])
+  useEffect(load, [load])
 
   const tenants = useMemo(() => list ?? [], [list])
 
@@ -265,7 +278,15 @@ export function TenantPage() {
   )
 
   const columnFilters = useMemo(() => (statusFilter === 'all' ? [] : [{ id: 'status', value: statusFilter }]), [statusFilter])
-  const { table, keyword, setKeyword } = useDataTable({ data: tenants, columns, columnFilters, hiddenColumns: HIDDEN_COLUMNS })
+  // 关键字由接口过滤（manualFiltering），状态下拉仍是本地筛选
+  const { table, keyword, setKeyword } = useDataTable({
+    data: tenants,
+    columns,
+    columnFilters,
+    manualFiltering: true,
+    onKeywordChange: setSearchKeyword,
+    hiddenColumns: HIDDEN_COLUMNS
+  })
 
   const handleSubmit = (values: Omit<Tenant, 'id' | 'userCount'>) => {
     setSaving(true)
@@ -318,7 +339,7 @@ export function TenantPage() {
         </div>
       </div>
 
-      {loading ? (
+      {!booted ? (
         <Card>
           <CardContent className="space-y-3 py-6">
             <Skeleton className="h-9 w-full max-w-md" />
@@ -365,7 +386,7 @@ export function TenantPage() {
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 
-            <DataTable table={table} emptyText="没有匹配的租户" />
+            <DataTable table={table} loading={loading} emptyText="没有匹配的租户" />
             <DataTablePagination table={table} />
           </CardContent>
         </Card>

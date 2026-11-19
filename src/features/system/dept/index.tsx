@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type DragEvent, type ReactNode } from 'react'
-import { ChevronRight, Download, GripVertical, Plus, Search, SquarePen, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState, type DragEvent, type ReactNode } from 'react'
+import { ChevronRight, Download, GripVertical, Loader2, Plus, Search, SquarePen, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -71,6 +71,8 @@ export function DeptPage() {
   const [list, setList] = useState<Dept[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  /** 首次加载完成前才显示骨架屏；之后的搜索保持表格挂载，避免输入框失焦与布局跳动 */
+  const [booted, setBooted] = useState(false)
   const [saving, setSaving] = useState(false)
   const [keyword, setKeyword] = useState('')
   const [exporting, setExporting] = useState(false)
@@ -85,16 +87,26 @@ export function DeptPage() {
   const [batchDeleting, setBatchDeleting] = useState(false)
   const [batchBusy, setBatchBusy] = useState(false)
 
-  const load = () => {
+  /** 搜索走接口：后端按名称/描述模糊匹配；关键字非空时列表是「平铺结果」，清空后回到完整树 */
+  const [appliedKeyword, setAppliedKeyword] = useState('')
+  useEffect(() => {
+    const timer = setTimeout(() => setAppliedKeyword(keyword.trim()), 300)
+    return () => clearTimeout(timer)
+  }, [keyword])
+
+  const load = useCallback(() => {
     setLoading(true)
     setError(null)
-    fetchDepts()
+    fetchDepts(appliedKeyword)
       .then(setList)
       .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
-      .finally(() => setLoading(false))
-  }
+      .finally(() => {
+        setLoading(false)
+        setBooted(true)
+      })
+  }, [appliedKeyword])
 
-  useEffect(load, [])
+  useEffect(load, [load])
 
   const depts = useMemo(() => list ?? [], [list])
 
@@ -135,13 +147,9 @@ export function DeptPage() {
 
   const tree = useMemo(() => buildTree(depts), [depts])
 
-  const filtering = keyword.trim() !== ''
-  const flatList = useMemo(() => {
-    const kw = keyword.trim().toLowerCase()
-    return depts
-      .filter(d => !kw || d.departName.toLowerCase().includes(kw) || (d.description ?? '').toLowerCase().includes(kw))
-      .sort((a, b) => a.departOrder - b.departOrder)
-  }, [depts, keyword])
+  const filtering = appliedKeyword !== ''
+  /** 搜索结果已由接口筛好并排好序，这里直接用（不再本地二次过滤） */
+  const flatList = useMemo(() => depts, [depts])
 
   const selectableDepts = filtering ? flatList : depts
   const selectedCount = depts.filter(dept => selectedIds.has(dept.id)).length
@@ -172,7 +180,7 @@ export function DeptPage() {
   /** 导出：带完整路径，keyword 与列表筛选一致 */
   const handleExport = () => {
     setExporting(true)
-    exportDepts({ keyword: keyword.trim() })
+    exportDepts({ keyword: appliedKeyword })
       .then(({ filename, blob }) => {
         saveBlobFile(filename, blob)
         toast.success('部门已导出')
@@ -444,7 +452,7 @@ export function DeptPage() {
         </div>
       </div>
       {/* 整页只占一屏：卡片吃掉剩余高度，部门再多也只在表格内滚动，页面本身不再上下跑 */}
-      {loading ? (
+      {!booted ? (
         <Card className="flex min-h-0 flex-1 flex-col">
           <CardContent className="flex min-h-0 flex-1 flex-col space-y-3 py-6">
             <Skeleton className="h-9 w-full max-w-md shrink-0" />
@@ -470,7 +478,13 @@ export function DeptPage() {
               </div>
             </div>
 
-            <Table containerClassName="min-h-0 flex-1 overflow-y-auto rounded-md border">
+            <div className="relative min-h-0 flex-1">
+              {loading && (
+                <div className="bg-background/60 absolute inset-0 z-20 flex items-center justify-center" aria-live="polite">
+                  <Loader2 className="text-muted-foreground size-5 animate-spin" />
+                </div>
+              )}
+              <Table containerClassName="h-full overflow-y-auto rounded-md border">
               <TableHeader className="bg-card sticky top-0 z-10">
                 <TableRow>
                   <TableHead className="w-10">
@@ -522,6 +536,7 @@ export function DeptPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}

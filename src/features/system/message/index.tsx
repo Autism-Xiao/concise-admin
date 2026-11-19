@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { Mail, Plus, Search, Trash2, Users } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Loader2, Mail, Plus, Search, Trash2, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -23,25 +23,42 @@ import { deleteMessage, fetchMessages, formatDateTime, sendMessage, type Message
  */
 export function MessagePage() {
   const [list, setList] = useState<MessageRecord[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  /** 首次加载完成前才显示骨架屏；之后的翻页/搜索保持列表挂载，避免闪烁 */
+  const [booted, setBooted] = useState(false)
+  /** 搜索框草稿 + 已生效关键字：回车/点搜索才查，避免每敲一个字都请求 */
   const [keyword, setKeyword] = useState('')
+  const [appliedKeyword, setAppliedKeyword] = useState('')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 20
   const [sendOpen, setSendOpen] = useState(false)
   const [deleting, setDeleting] = useState<MessageRecord | null>(null)
   const canSend = hasPermission('system:message:send')
   const canDelete = hasPermission('system:message:delete')
+  const pageCount = Math.max(Math.ceil(total / PAGE_SIZE), 1)
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true)
-    fetchMessages({ pageSize: 50, keyword: keyword || undefined })
-      .then(res => setList(res.records ?? []))
+    fetchMessages({ page, pageSize: PAGE_SIZE, keyword: appliedKeyword || undefined })
+      .then(res => {
+        setList(res.records ?? [])
+        setTotal(res.total ?? 0)
+      })
       .catch(() => toast.error('发送记录加载失败'))
-      .finally(() => setLoading(false))
-  }
+      .finally(() => {
+        setLoading(false)
+        setBooted(true)
+      })
+  }, [page, appliedKeyword])
 
-  useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  useEffect(load, [load])
+
+  /** 提交搜索：回到第 1 页（否则在第 3 页搜新词会得到空结果） */
+  const submitSearch = () => {
+    setPage(1)
+    setAppliedKeyword(keyword.trim())
+  }
 
   return (
     <div className="space-y-4">
@@ -60,7 +77,7 @@ export function MessagePage() {
                 placeholder="按标题搜索"
                 value={keyword}
                 onChange={e => setKeyword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && load()}
+                onKeyDown={e => e.key === 'Enter' && submitSearch()}
               />
             </div>
             {canSend && (
@@ -72,16 +89,23 @@ export function MessagePage() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {!booted ? (
             <div className="space-y-2">
               {Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
-          ) : list.length === 0 ? (
-            <p className="text-muted-foreground py-10 text-center text-sm">还没有发送过消息</p>
           ) : (
-            <ul className="divide-border divide-y">
+            <div className="relative">
+              {loading && (
+                <div className="bg-background/60 absolute inset-0 z-10 flex items-center justify-center" aria-live="polite">
+                  <Loader2 className="text-muted-foreground size-5 animate-spin" />
+                </div>
+              )}
+              {list.length === 0 ? (
+                <p className="text-muted-foreground py-10 text-center text-sm">还没有发送过消息</p>
+              ) : (
+                <ul className="divide-border divide-y">
               {list.map(row => (
                 <li key={row.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
                   <span className="bg-primary/10 text-primary mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md">
@@ -104,7 +128,24 @@ export function MessagePage() {
                   )}
                 </li>
               ))}
-            </ul>
+                </ul>
+              )}
+            </div>
+          )}
+          {!loading && total > 0 && (
+            <div className="flex items-center justify-between border-t pt-3">
+              <p className="text-muted-foreground text-xs">
+                第 {page} / {pageCount} 页，共 {total} 条
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => Math.max(p - 1, 1))}>
+                  上一页
+                </Button>
+                <Button variant="outline" size="sm" disabled={page >= pageCount} onClick={() => setPage(p => p + 1)}>
+                  下一页
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

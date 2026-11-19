@@ -1,4 +1,4 @@
-import { getApiResult } from '@/lib/http'
+import { getApiResult, type PageResult } from '@/lib/http'
 
 /** 订单（生成器产物） */
 export interface BizOrder {
@@ -16,12 +16,12 @@ export interface BizOrder {
 
 export type BizOrderWritePayload = Partial<Omit<BizOrder, 'id' | 'createBy' | 'updateBy' | 'createdAt' | 'updatedAt'>>
 
-export function fetchBizOrders(params: { page?: number; pageSize?: number; keyword?: string } = {}) {
+export function fetchBizOrders(params: { page?: number; pageSize?: number; keyword?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' } = {}) {
   const qs = new URLSearchParams()
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== '') qs.set(key, String(value))
   })
-  return getApiResult<{ records: BizOrder[]; total: number }>(`/backend-api/v1/biz_orders?${qs.toString()}`)
+  return getApiResult<PageResult<BizOrder>>(`/backend-api/v1/biz_orders?${qs.toString()}`)
 }
 
 export function createBizOrder(payload: BizOrderWritePayload) {

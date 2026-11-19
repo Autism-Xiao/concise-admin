@@ -28,9 +28,9 @@ export interface PostWritePayload {
   description?: string | null
 }
 
-/** 岗位列表（统一分页结构，全量返回；keyword 模糊匹配名称/编码/描述，可按部门过滤） */
+/** 岗位列表（分页结构，一次取 100 条；keyword 模糊匹配名称/编码/描述，可按部门过滤） */
 export async function fetchPosts(keyword = '', deptId = ''): Promise<Post[]> {
-  const params = new URLSearchParams()
+  const params = new URLSearchParams({ page: '1', pageSize: '100' })
   if (keyword) params.set('keyword', keyword)
   if (deptId) params.set('deptId', deptId)
   const qs = params.toString()

@@ -53,8 +53,8 @@ export interface TaskWritePayload {
   dueDate?: string | null
 }
 
-/** 任务分页列表（需要 system:task:list） */
-export function fetchTasks(params: TaskListParams = {}): Promise<PageResult<Task>> {
+/** 任务分页列表（需要 system:task:list）；搜索/筛选/排序/翻页全部由接口完成 */
+export function fetchTasks(params: TaskListParams & { sortBy?: string; sortOrder?: 'asc' | 'desc' } = {}): Promise<PageResult<Task>> {
   const qs = new URLSearchParams()
   if (params.page) qs.set('page', String(params.page))
   if (params.pageSize) qs.set('pageSize', String(params.pageSize))
@@ -62,20 +62,30 @@ export function fetchTasks(params: TaskListParams = {}): Promise<PageResult<Task
   if (params.priority !== undefined) qs.set('priority', String(params.priority))
   if (params.status !== undefined) qs.set('status', String(params.status))
   if (params.assigneeId) qs.set('assigneeId', params.assigneeId)
+  if (params.sortBy) {
+    qs.set('sortBy', params.sortBy)
+    qs.set('sortOrder', params.sortOrder ?? 'asc')
+  }
   const query = qs.toString()
   return getApiResult<PageResult<Task>>(`/backend-api/v1/tasks${query ? `?${query}` : ''}`)
 }
 
 /** 我负责的任务（登录即可，不要求 system:task:list） */
-export function fetchMyTasks(params: { page?: number; pageSize?: number; status?: TaskStatus } = {}): Promise<PageResult<Task>> {
+export function fetchMyTasks(params: TaskListParams & { sortBy?: string; sortOrder?: 'asc' | 'desc' } = {}): Promise<PageResult<Task>> {
   return fetchTasksBy('/backend-api/v1/tasks/mine', params)
 }
 
-function fetchTasksBy(path: string, params: { page?: number; pageSize?: number; status?: TaskStatus }): Promise<PageResult<Task>> {
+function fetchTasksBy(path: string, params: TaskListParams & { sortBy?: string; sortOrder?: 'asc' | 'desc' }): Promise<PageResult<Task>> {
   const qs = new URLSearchParams()
   if (params.page) qs.set('page', String(params.page))
   if (params.pageSize) qs.set('pageSize', String(params.pageSize))
   if (params.status !== undefined) qs.set('status', String(params.status))
+  if (params.priority !== undefined) qs.set('priority', String(params.priority))
+  if (params.keyword?.trim()) qs.set('keyword', params.keyword.trim())
+  if (params.sortBy) {
+    qs.set('sortBy', params.sortBy)
+    qs.set('sortOrder', params.sortOrder ?? 'asc')
+  }
   const query = qs.toString()
   return getApiResult<PageResult<Task>>(`${path}${query ? `?${query}` : ''}`)
 }

@@ -1,4 +1,4 @@
-import { getApiResult } from '@/lib/http'
+import { getApiResult, type PageResult } from '@/lib/http'
 
 /** 客户（生成器产物） */
 export interface Customer {
@@ -17,12 +17,12 @@ export interface Customer {
 
 export type CustomerWritePayload = Partial<Omit<Customer, 'id' | 'createBy' | 'updateBy' | 'createdAt' | 'updatedAt'>>
 
-export function fetchCustomers(params: { page?: number; pageSize?: number; keyword?: string } = {}) {
+export function fetchCustomers(params: { page?: number; pageSize?: number; keyword?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' } = {}) {
   const qs = new URLSearchParams()
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== '') qs.set(key, String(value))
   })
-  return getApiResult<{ records: Customer[]; total: number }>(`/backend-api/v1/customers?${qs.toString()}`)
+  return getApiResult<PageResult<Customer>>(`/backend-api/v1/customers?${qs.toString()}`)
 }
 
 export function createCustomer(payload: CustomerWritePayload) {

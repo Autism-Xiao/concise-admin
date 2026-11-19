@@ -72,8 +72,8 @@ export function UserLoginLogDialog({ open, onOpenChange, user }: UserLoginLogDia
     if (!open) return
     setLoading(true)
     setError(null)
-    fetchLoginLogs(user.id)
-      .then(setLogs)
+    fetchLoginLogs({ userId: user.id, page: 1, pageSize: 100 })
+      .then(res => setLogs(res.records ?? []))
       .catch(e => setError(e instanceof Error ? e.message : '加载登录日志失败'))
       .finally(() => setLoading(false))
   }, [open, user.id])

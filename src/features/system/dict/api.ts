@@ -58,9 +58,11 @@ const DICT_BASE = '/backend-api/v1/dicts'
 const ITEM_BASE = '/backend-api/v1/dict-items'
 
 /** 字典列表（统一分页结构，全量返回；keyword 模糊匹配名称/编码） */
+/** 字典类型列表：搜索由接口完成（keyword 模糊匹配名称/编码）；字典类型量级小，一次取 100 条足够铺满左侧列表 */
 export async function fetchDicts(keyword?: string): Promise<Dict[]> {
-  const search = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
-  const page = await getApiResult<PageResult<Dict>>(`${DICT_BASE}${search}`)
+  const search = new URLSearchParams({ page: '1', pageSize: '100' })
+  if (keyword?.trim()) search.set('keyword', keyword.trim())
+  const page = await getApiResult<PageResult<Dict>>(`${DICT_BASE}?${search.toString()}`)
   return page.records
 }
 

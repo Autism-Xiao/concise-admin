@@ -26,12 +26,35 @@ interface UseDataTableOptions<TData> {
    * 只在首次渲染生效（跟随 TanStack 的 initialState 语义）。
    */
   hiddenColumns?: string[]
+  /**
+   * 关键字已经由接口过滤（服务端搜索），前端不再本地二次过滤
+   *
+   * 用于「小表 + 服务端搜索」的组合（角色/岗位/职级/租户/字典）：
+   * 数据仍一次全量取回（要展示分组/整棵树），但搜索词交给后端，
+   * 避免前后端过滤口径不一致（比如后端只搜名称/编码，本地还搜了描述）。
+   */
+  manualFiltering?: boolean
+  /**
+   * 关键字变化回调（配合 manualFiltering 用）
+   *
+   * 页面拿它去发接口请求（自己加防抖）。普通本地过滤模式不需要传。
+   */
+  onKeywordChange?: (keyword: string) => void
 }
 
 const EMPTY_FILTERS: ColumnFiltersState = []
 
 // 封装 TanStack Table 常用装配：全局搜索、列过滤、排序、分页、行多选
-export function useDataTable<TData>({ data, columns, columnFilters, pageSize = 10, getRowId, hiddenColumns }: UseDataTableOptions<TData>) {
+export function useDataTable<TData>({
+  data,
+  columns,
+  columnFilters,
+  pageSize = 10,
+  getRowId,
+  hiddenColumns,
+  manualFiltering = false,
+  onKeywordChange
+}: UseDataTableOptions<TData>) {
   const [keyword, setKeyword] = useState('')
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
@@ -40,16 +63,23 @@ export function useDataTable<TData>({ data, columns, columnFilters, pageSize = 1
     data,
     columns,
     state: {
-      globalFilter: keyword,
+      // 服务端过滤时把 globalFilter 置空：关键字只用于发请求，不再参与本地行过滤
+      globalFilter: manualFiltering ? undefined : keyword,
+      // 列筛选（状态下拉等）不受影响：小表全量在本地，这类筛选仍走本地更快
       columnFilters: columnFilters ?? EMPTY_FILTERS,
       rowSelection
     },
-    onGlobalFilterChange: setKeyword,
+    onGlobalFilterChange: updater => {
+      const next = typeof updater === 'function' ? updater(keyword) : updater
+      setKeyword(next)
+      onKeywordChange?.(next)
+    },
     onRowSelectionChange: setRowSelection,
     enableRowSelection: true,
     getRowId,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    // 列筛选要用过滤模型；只关掉全局（关键字）过滤时也必须保留它
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: {

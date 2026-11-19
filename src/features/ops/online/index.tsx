@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { LogOut, RefreshCw, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useDataTable } from '@/components/data-table'
+import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useServerTable, type ServerTableQuery } from '@/components/data-table'
 import { hasPermission } from '@/lib/auth'
 import { toastBatchResult } from '@/lib/batch-delete'
 import { batchKickUsers, fetchOnlineUsers, formatDateTime, kickUser, type OnlineUser } from './api'
@@ -25,27 +25,15 @@ const columnLabels: Record<string, string> = {
 }
 
 export function OnlineUsersPage() {
-  const [list, setList] = useState<OnlineUser[]>([])
-  const [total, setTotal] = useState(0)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
   const [kicking, setKicking] = useState<OnlineUser | null>(null)
   const [batchKicking, setBatchKicking] = useState(false)
   const [batchBusy, setBatchBusy] = useState(false)
 
-  const load = () => {
-    setLoading(true)
-    setError(null)
-    fetchOnlineUsers()
-      .then(res => {
-        setList(res.records ?? [])
-        setTotal(res.total ?? 0)
-      })
-      .catch(e => setError(e instanceof Error ? e.message : '加载失败'))
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(load, [])
+  /** 服务端分页 + 搜索 */
+  const fetchPage = useCallback(
+    ({ page, pageSize, keyword }: ServerTableQuery<Record<string, never>>) => fetchOnlineUsers({ page, pageSize, keyword }),
+    []
+  )
 
   const columns = useMemo<ColumnDef<OnlineUser>[]>(
     () => [
@@ -122,7 +110,12 @@ export function OnlineUsersPage() {
     []
   )
 
-  const { table, keyword, setKeyword, rowSelection, setRowSelection } = useDataTable({ data: list, columns, getRowId: user => user.sessionId })
+  const { table, keyword, setKeyword, loading, booted, error, total, reload, rowSelection, setRowSelection } = useServerTable({
+    columns,
+    query: fetchPage,
+    pageSize: 20,
+    getRowId: user => user.sessionId
+  })
   const selectedCount = Object.keys(rowSelection).filter(key => rowSelection[key]).length
 
   /** 批量强退：一次请求，后端逐条踢并返回失败原因（会话已过期的会出现在失败列表） */
@@ -135,7 +128,7 @@ export function OnlineUsersPage() {
       toastBatchResult(result, '会话')
       setBatchKicking(false)
       setRowSelection({})
-      load()
+      reload()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '批量下线失败')
     } finally {
@@ -149,7 +142,7 @@ export function OnlineUsersPage() {
       await kickUser(kicking.sessionId)
       toast.success(`已将「${kicking.username}」强制下线`)
       setKicking(null)
-      load()
+      reload()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '操作失败')
     }
@@ -161,7 +154,7 @@ export function OnlineUsersPage() {
         <div>
           <h1 className="text-2xl font-bold">在线用户</h1>
           <p className="text-muted-foreground text-sm">
-            当前共 {total} 人在线（来自 Redis 实时会话{total > list.length ? `，展示最近登录的 ${list.length} 个` : ''}）
+            当前共 {total >= 0 ? total : 0} 人在线（来自 Redis 实时会话，每页 {table.getState().pagination.pageSize} 个）
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -171,14 +164,14 @@ export function OnlineUsersPage() {
               批量下线（{selectedCount}）
             </Button>
           )}
-          <Button variant="outline" onClick={load}>
+          <Button variant="outline" onClick={reload}>
             <RefreshCw />
             刷新
           </Button>
         </div>
       </div>
 
-      {loading ? (
+      {!booted ? (
         <Card>
           <CardContent className="space-y-3 py-6">
             <Skeleton className="h-9 w-full max-w-md" />
@@ -189,7 +182,7 @@ export function OnlineUsersPage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <p className="text-muted-foreground text-sm">{error}</p>
-            <Button variant="outline" onClick={load}>
+            <Button variant="outline" onClick={reload}>
               重试
             </Button>
           </CardContent>
@@ -205,7 +198,7 @@ export function OnlineUsersPage() {
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 
-            <DataTable table={table} emptyText="没有匹配的在线用户" />
+            <DataTable table={table} loading={loading} emptyText="没有匹配的在线用户" />
             <DataTablePagination table={table} />
           </CardContent>
         </Card>
