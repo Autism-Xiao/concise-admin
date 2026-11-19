@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useState } from 'react'
-import { LogOut, RefreshCw, Search } from 'lucide-react'
+import { LogOut, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -164,10 +165,7 @@ export function OnlineUsersPage() {
               批量下线（{selectedCount}）
             </Button>
           )}
-          <Button variant="outline" onClick={reload}>
-            <RefreshCw />
-            刷新
-          </Button>
+          <RefreshButton onClick={() => void reload()} />
         </div>
       </div>
 

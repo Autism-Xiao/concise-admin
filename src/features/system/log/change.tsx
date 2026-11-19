@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Eraser, RefreshCw, Search } from 'lucide-react'
+import { Eraser, Search } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -120,10 +121,7 @@ export function ChangeLogPage() {
           <h1 className="text-2xl font-bold">字段变更日志</h1>
           <p className="text-muted-foreground text-sm">数据本身被改了什么：哪张表的哪条记录、哪个字段、从什么改成什么</p>
         </div>
-        <Button variant="outline" onClick={reload}>
-          <RefreshCw />
-          刷新
-        </Button>
+        <RefreshButton onClick={() => void reload()} />
       </div>
 
       <Card>

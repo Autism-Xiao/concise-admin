@@ -3,6 +3,7 @@ import { CircleAlert, KeyRound, Layers, MoreHorizontal, Pencil, Plus, RefreshCw,
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -369,6 +370,7 @@ export function TenantPage() {
         <Card>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
+              <RefreshButton onClick={() => void load()} disabled={loading} spinning={loading} />
               <div className="relative w-full max-w-xs">
                 <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
                 <Input placeholder="搜索名称 / 编码 / 联系人" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />

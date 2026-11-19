@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Database, Gauge, HardDrive, KeyRound, RefreshCw, Trash2 } from 'lucide-react'
+import { Database, Gauge, HardDrive, KeyRound, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -108,10 +109,7 @@ export function CacheMonitorPage() {
               清理应用缓存
             </Button>
           )}
-          <Button variant="outline" onClick={load}>
-            <RefreshCw />
-            刷新
-          </Button>
+          <RefreshButton onClick={() => void load()} />
         </div>
       </div>
 

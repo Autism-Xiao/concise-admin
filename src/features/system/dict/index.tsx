@@ -3,6 +3,7 @@ import { Download, Loader2, Pencil, Plus, Search, Trash2, Upload } from 'lucide-
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -355,9 +356,12 @@ export function DictPage() {
             <CardTitle className="text-base">字典类型</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="relative">
-              <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
-              <Input placeholder="搜索名称 / 编码" className="ps-8" value={dictKeyword} onChange={e => setDictKeyword(e.target.value)} />
+            <div className="flex items-center gap-2">
+              <RefreshButton onClick={() => loadDicts(undefined, debouncedDictKeyword)} disabled={loadingDicts} spinning={loadingDicts} title="刷新字典类型" />
+              <div className="relative flex-1">
+                <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
+                <Input placeholder="搜索名称 / 编码" className="ps-8" value={dictKeyword} onChange={e => setDictKeyword(e.target.value)} />
+              </div>
             </div>
 
             {!dictsBooted ? (
@@ -413,6 +417,7 @@ export function DictPage() {
             </div>
             {activeDict && (
               <div className="flex items-center gap-1">
+                <RefreshButton onClick={() => loadItems(activeDict.id)} disabled={loadingItems} spinning={loadingItems} title="刷新字典项" />
                 {hasPermission('system:dict:delete') && selectedCount > 0 && (
                   <Button variant="outline" size="sm" onClick={() => setBatchDeleting(true)} disabled={batchBusy}>
                     <Trash2 className="size-4" />

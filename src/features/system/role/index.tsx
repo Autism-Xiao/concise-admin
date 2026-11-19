@@ -3,6 +3,7 @@ import { Download, Pencil, Plus, Search, ShieldCheck, Trash2, Upload } from 'luc
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -414,6 +415,7 @@ export function RolePage() {
         <Card>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
+              <RefreshButton onClick={() => void reload()} />
               <div className="relative w-full max-w-xs">
                 <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
                 <Input placeholder="搜索名称 / 权限字符" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />

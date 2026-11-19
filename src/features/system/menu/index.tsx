@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ChevronRight, Download, Plus, RefreshCw, Search, SquarePen, Trash2 } from 'lucide-react'
+import { ChevronRight, Download, Plus, Search, SquarePen, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -275,6 +276,7 @@ export function MenuPage() {
             <Button size="sm" variant="outline" className="h-9" onClick={resetSearch}>
               重置
             </Button>
+            <RefreshButton onClick={() => void load()} disabled={loading} spinning={loading} />
           </div>
 
           {/* 操作 Tab：新增常驻；搜索态提供「查询全部」一键还原 */}
@@ -304,10 +306,7 @@ export function MenuPage() {
           {loadError ? (
             <div className="flex flex-col items-center gap-3 py-10">
               <p className="text-muted-foreground text-sm">菜单数据加载失败</p>
-              <Button variant="outline" size="sm" onClick={load}>
-                <RefreshCw />
-                重新加载
-              </Button>
+              <RefreshButton onClick={() => void load()} title="重新加载" />
             </div>
           ) : loading ? (
             <div className="space-y-2">

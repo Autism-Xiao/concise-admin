@@ -3,6 +3,7 @@ import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -162,17 +163,20 @@ export function CustomerPage() {
           <h1 className="text-2xl font-bold">客户管理</h1>
           <p className="text-muted-foreground text-sm">共 {total >= 0 ? total : 0} 个客户</p>
         </div>
-        {hasPermission('customer:add') && (
-          <Button
-            onClick={() => {
-              setEditing(null)
-              setFormOpen(true)
-            }}
-          >
-            <Plus />
-            新增客户
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={() => void reload()} />
+          {hasPermission('customer:add') && (
+            <Button
+              onClick={() => {
+                setEditing(null)
+                setFormOpen(true)
+              }}
+            >
+              <Plus />
+              新增客户
+            </Button>
+          )}
+        </div>
       </div>
 
       {!booted ? (

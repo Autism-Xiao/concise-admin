@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Loader2, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -64,6 +65,7 @@ export function SupplierPage() {
         <CardHeader className="flex flex-wrap items-center justify-between gap-2 space-y-0 pb-3">
           <CardTitle className="text-base">供应商管理</CardTitle>
           <div className="flex items-center gap-2">
+            <RefreshButton onClick={load} disabled={loading} spinning={loading} />
             <div className="relative">
               <Search className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
               <Input

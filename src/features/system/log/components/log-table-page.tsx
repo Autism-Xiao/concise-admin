@@ -5,6 +5,7 @@ import { Download, Eraser, Search, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -188,6 +189,7 @@ export function LogTablePage<T extends BaseLog>({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <RefreshButton onClick={() => void reload()} />
           {hasPermission('system:log:export') && (
             <Button variant="outline" onClick={handleExport} disabled={exporting || pageLogs.length === 0}>
               <Download />

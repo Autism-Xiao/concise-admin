@@ -3,6 +3,7 @@ import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -154,17 +155,20 @@ export function BizOrderPage() {
           <h1 className="text-2xl font-bold">订单管理</h1>
           <p className="text-muted-foreground text-sm">共 {total >= 0 ? total : 0} 个订单</p>
         </div>
-        {hasPermission('biz_order:add') && (
-          <Button
-            onClick={() => {
-              setEditing(null)
-              setFormOpen(true)
-            }}
-          >
-            <Plus />
-            新增订单
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={() => void reload()} />
+          {hasPermission('biz_order:add') && (
+            <Button
+              onClick={() => {
+                setEditing(null)
+                setFormOpen(true)
+              }}
+            >
+              <Plus />
+              新增订单
+            </Button>
+          )}
+        </div>
       </div>
 
       {!booted ? (

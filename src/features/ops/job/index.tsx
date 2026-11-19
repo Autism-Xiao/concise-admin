@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useState } from 'react'
-import { CirclePause, CirclePlay, Download, Pencil, Play, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
+import { CirclePause, CirclePlay, Download, Pencil, Play, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -252,10 +253,7 @@ export function JobPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={reload}>
-            <RefreshCw />
-            刷新
-          </Button>
+          <RefreshButton onClick={() => void reload()} />
           {hasPermission('system:job:export') && (
             <Button variant="outline" onClick={handleExport} disabled={exporting || total <= 0}>
               <Download />

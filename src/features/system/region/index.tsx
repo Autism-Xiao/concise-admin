@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ChevronRight, ChevronsDown, ChevronsDownUp, MapPin, Pencil, Plus, RefreshCw, Search, Trash2, Upload } from 'lucide-react'
+import { ChevronRight, ChevronsDown, ChevronsDownUp, MapPin, Pencil, Plus, Search, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -343,10 +344,7 @@ export function RegionPage() {
             <Upload />
             导入区划
           </Button>
-          <Button variant="outline" onClick={refresh} disabled={refreshing}>
-            <RefreshCw />
-            {refreshing ? '刷新中…' : '刷新'}
-          </Button>
+          <RefreshButton onClick={refresh} disabled={refreshing} spinning={refreshing} />
           <Button onClick={openCreate}>
             <Plus />
             新增区划
