@@ -20,7 +20,7 @@ export function DataTableViewOptions<TData>({ table, columnLabels }: DataTableVi
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="ms-auto h-8">
+        <Button variant="outline" size="sm" className="h-8">
           <SlidersHorizontal className="size-4" />
           列显示
         </Button>

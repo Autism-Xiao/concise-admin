@@ -306,7 +306,7 @@ export function JobPage() {
                   <SelectItem value="-1">已暂停</SelectItem>
                 </SelectContent>
               </Select>
-              <RefreshButton onClick={() => void reload()} />
+              <RefreshButton onClick={() => void reload()} className="ms-auto" />
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 

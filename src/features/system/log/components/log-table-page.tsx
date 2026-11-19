@@ -245,7 +245,7 @@ export function LogTablePage<T extends BaseLog>({
                   <SelectItem value="失败">失败</SelectItem>
                 </SelectContent>
               </Select>
-              <RefreshButton onClick={() => void reload()} />
+              <RefreshButton onClick={() => void reload()} className="ms-auto" />
               <DataTableViewOptions table={table} columnLabels={{ ...baseColumnLabels, ...extraColumnLabels }} />
             </div>
 

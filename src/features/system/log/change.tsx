@@ -194,7 +194,7 @@ export function ChangeLogPage() {
               清除条件
             </Button>
             <span className="text-muted-foreground ml-auto text-xs">服务端分页，按时间倒序</span>
-            <RefreshButton onClick={() => void reload()} />
+            <RefreshButton onClick={() => void reload()} className="ms-auto" />
             <DataTableViewOptions table={table} columnLabels={columnLabels} />
           </div>
         </CardContent>

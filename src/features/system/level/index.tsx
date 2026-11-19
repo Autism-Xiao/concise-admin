@@ -259,7 +259,7 @@ export function LevelPage() {
                   <SelectItem value="0">停用</SelectItem>
                 </SelectContent>
               </Select>
-              <RefreshButton onClick={() => void load()} disabled={loading} spinning={loading} />
+              <RefreshButton onClick={() => void load()} disabled={loading} spinning={loading} className="ms-auto" />
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 
