@@ -725,6 +725,16 @@ export function CodegenPage() {
                       >
                         <FileCode2 className="size-3.5 shrink-0 opacity-70" />
                         <span className="truncate font-mono text-[11px]">{file.path}</span>
+                        {file.stagedStatus === 'skip' && (
+                          <span className="text-muted-foreground shrink-0 text-[10px]" title="该文件已存在，默认生成会跳过；勾选重新生成会先备份再覆盖">
+                            已存在
+                          </span>
+                        )}
+                        {file.stagedStatus === 'overwrite' && (
+                          <span className="shrink-0 text-[10px] text-amber-600" title="该文件已存在，本次会先备份再覆盖">
+                            将覆盖
+                          </span>
+                        )}
                         <span className="text-muted-foreground ms-auto shrink-0 text-[10px] tabular-nums">{file.lines} 行</span>
                       </button>
                     )

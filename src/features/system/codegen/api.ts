@@ -62,6 +62,8 @@ export interface CodegenFile {
   lines: number
   truncated: boolean
   content: string
+  /** 预览时该文件在真实仓库的状态：new=将新建 / skip=已存在将跳过 / overwrite=将覆盖 */
+  stagedStatus?: 'new' | 'skip' | 'overwrite'
 }
 
 export interface CodegenPreview {
