@@ -199,21 +199,39 @@ export function MenuPage() {
           <TableCell className="text-muted-foreground w-40 whitespace-nowrap text-xs tabular-nums">{formatDateTime(node.createTime)}</TableCell>
           <TableCell className="table-sticky-action text-end whitespace-nowrap">
             {hasPermission('system:menu:add') && (
-              <Button variant="ghost" size="sm" className="text-primary hover:text-primary h-7 gap-0.5 px-1.5" onClick={() => openCreate(node.id)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                title="新增"
+                aria-label="新增"
+                className="text-primary hover:text-primary size-7"
+                onClick={() => openCreate(node.id)}
+              >
                 <Plus className="size-3.5" />
-                新增
               </Button>
             )}
             {hasPermission('system:menu:update') && (
-              <Button variant="ghost" size="sm" className="text-primary hover:text-primary h-7 gap-0.5 px-1.5" onClick={() => openEdit(node)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                title="修改"
+                aria-label="修改"
+                className="text-primary hover:text-primary size-7"
+                onClick={() => openEdit(node)}
+              >
                 <SquarePen className="size-3.5" />
-                修改
               </Button>
             )}
             {hasPermission('system:menu:delete') && (
-              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive h-7 gap-0.5 px-1.5" onClick={() => setDeleting(node)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                title="删除"
+                aria-label="删除"
+                className="text-destructive hover:text-destructive size-7"
+                onClick={() => setDeleting(node)}
+              >
                 <Trash2 className="size-3.5" />
-                删除
               </Button>
             )}
           </TableCell>
