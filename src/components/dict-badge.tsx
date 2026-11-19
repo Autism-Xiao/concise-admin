@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { dictColorClass } from '@/lib/dict-color'
+import { dictColorVisual } from '@/lib/dict-color'
 import { useDictMeta } from '@/lib/dict'
 
 interface DictBadgeProps {
@@ -33,9 +33,9 @@ export function DictBadge({ code, value, label, placeholder = '-', className }: 
 
   const entry = meta[key]
   const text = label ?? entry?.text ?? key
-  const colorClass = dictColorClass(entry?.color)
+  const visual = dictColorVisual(entry?.color)
 
-  if (!colorClass) {
+  if (!visual) {
     return <span className={className}>{text}</span>
   }
 
@@ -43,9 +43,10 @@ export function DictBadge({ code, value, label, placeholder = '-', className }: 
     <span
       className={cn(
         'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap',
-        colorClass,
+        visual.className,
         className
       )}
+      style={visual.style}
     >
       <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" />
       {text}

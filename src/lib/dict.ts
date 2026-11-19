@@ -60,7 +60,7 @@ function toMeta(entries: DictEntry[]): DictMeta {
   for (const entry of entries) {
     meta[String(entry.itemValue)] = {
       text: entry.itemText,
-      // 认不出的色（后端先加了新色、前端还没发版）当没配处理，渲染层退化成纯文本
+      // 语义名与 #RRGGBB 都直接透传给渲染层；认不出的值由 dictColorVisual 退化成纯文本
       color: (entry.color || undefined) as DictColor | undefined
     }
   }
