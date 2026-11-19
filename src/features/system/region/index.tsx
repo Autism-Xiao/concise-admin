@@ -344,7 +344,6 @@ export function RegionPage() {
             <Upload />
             导入区划
           </Button>
-          <RefreshButton onClick={refresh} disabled={refreshing} spinning={refreshing} />
           <Button onClick={openCreate}>
             <Plus />
             新增区划
@@ -411,6 +410,7 @@ export function RegionPage() {
                   </Button>
                 </>
               )}
+              <RefreshButton onClick={refresh} disabled={refreshing} spinning={refreshing} className="ms-auto" />
             </div>
 
             <Table containerClassName="min-h-0 flex-1 overflow-y-auto rounded-md border">

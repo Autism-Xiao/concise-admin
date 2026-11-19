@@ -276,7 +276,7 @@ export function MenuPage() {
             <Button size="sm" variant="outline" className="h-9" onClick={resetSearch}>
               重置
             </Button>
-            <RefreshButton onClick={() => void load()} disabled={loading} spinning={loading} />
+            <RefreshButton onClick={() => void load()} disabled={loading} spinning={loading} className="ms-auto" />
           </div>
 
           {/* 操作 Tab：新增常驻；搜索态提供「查询全部」一键还原 */}

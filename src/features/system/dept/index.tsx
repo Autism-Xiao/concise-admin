@@ -473,11 +473,11 @@ export function DeptPage() {
         <Card className="flex min-h-0 flex-1 flex-col">
           <CardContent className="flex min-h-0 flex-1 flex-col gap-4">
             <div className="flex shrink-0 flex-wrap items-center gap-2">
-              <RefreshButton onClick={() => void load()} disabled={loading} spinning={loading} />
               <div className="relative w-full max-w-xs">
                 <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
                 <Input placeholder="搜索部门 / 描述" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
               </div>
+              <RefreshButton onClick={() => void load()} disabled={loading} spinning={loading} className="ms-auto" />
             </div>
 
             <div className="relative min-h-0 flex-1">
