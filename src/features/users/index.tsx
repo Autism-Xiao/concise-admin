@@ -29,6 +29,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { StatusBadge } from '@/components/status-badge'
 import { DataTable, DataTableColumnHeader, DataTablePagination, DataTableViewOptions, useServerTable, type ServerTableQuery } from '@/components/data-table'
 import { getUsername, hasPermission } from '@/lib/auth'
 import { UserFormDrawer } from './components/user-form-drawer'
@@ -199,8 +200,8 @@ export function UsersPage() {
         header: ({ column }) => <DataTableColumnHeader column={column} title="状态" />,
         cell: ({ row }) => {
           const status = row.getValue<number>('status')
-          const meta = userStatusMap[status] ?? { label: String(status), className: 'bg-muted text-muted-foreground' }
-          return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${meta.className}`}>{meta.label}</span>
+          const meta = userStatusMap[status] ?? { label: String(status) }
+          return <StatusBadge ok={status === 1} label={meta.label} />
         },
         filterFn: (row, id, value) => String(row.getValue(id)) === String(value)
       },
@@ -235,14 +236,8 @@ export function UsersPage() {
         cell: ({ row }) => {
           const user = row.original
           const enforcedLabel = user.watermarkEnforced === 1 ? '（强制开）' : user.watermarkEnforced === 2 ? '（强制关）' : ''
-          return (
-            <span
-              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${user.watermarkEffective ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-muted text-muted-foreground'}`}
-            >
-              {user.watermarkEffective ? '已开启' : '已关闭'}
-              {enforcedLabel}
-            </span>
-          )
+          const effective = user.watermarkEffective === true
+          return <StatusBadge ok={effective} label={`${effective ? '已开启' : '已关闭'}${enforcedLabel}`} />
         }
       },
       {
