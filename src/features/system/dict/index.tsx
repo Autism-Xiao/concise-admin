@@ -417,7 +417,7 @@ export function DictPage() {
             </div>
             {activeDict && (
               <div className="flex items-center gap-1">
-                <RefreshButton onClick={() => loadItems(activeDict.id)} disabled={loadingItems} spinning={loadingItems} title="刷新字典项" />
+
                 {hasPermission('system:dict:delete') && selectedCount > 0 && (
                   <Button variant="outline" size="sm" onClick={() => setBatchDeleting(true)} disabled={batchBusy}>
                     <Trash2 className="size-4" />
@@ -483,6 +483,7 @@ export function DictPage() {
                       <SelectItem value="0">不启用</SelectItem>
                     </SelectContent>
                   </Select>
+                  <RefreshButton onClick={() => loadItems(activeDict.id)} disabled={loadingItems} spinning={loadingItems} title="刷新字典项" />
                   <DataTableViewOptions table={table} columnLabels={itemColumnLabels} />
                 </div>
 

@@ -165,7 +165,7 @@ export function OnlineUsersPage() {
               批量下线（{selectedCount}）
             </Button>
           )}
-          <RefreshButton onClick={() => void reload()} />
+
         </div>
       </div>
 
@@ -193,6 +193,7 @@ export function OnlineUsersPage() {
                 <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
                 <Input placeholder="搜索账号 / 部门 / IP" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
               </div>
+              <RefreshButton onClick={() => void reload()} />
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 

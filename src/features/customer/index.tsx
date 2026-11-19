@@ -48,7 +48,6 @@ export function CustomerPage() {
     []
   )
 
-
   const columns = useMemo<ColumnDef<Customer>[]>(
     () => [
       {
@@ -164,7 +163,6 @@ export function CustomerPage() {
           <p className="text-muted-foreground text-sm">共 {total >= 0 ? total : 0} 个客户</p>
         </div>
         <div className="flex items-center gap-2">
-          <RefreshButton onClick={() => void reload()} />
           {hasPermission('customer:add') && (
             <Button
               onClick={() => {
@@ -203,6 +201,7 @@ export function CustomerPage() {
                 <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
                 <Input placeholder="搜索" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
               </div>
+              <RefreshButton onClick={() => void reload()} />
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 

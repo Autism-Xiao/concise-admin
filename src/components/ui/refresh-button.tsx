@@ -21,7 +21,7 @@ interface RefreshButtonProps {
  */
 export function RefreshButton({ onClick, disabled, spinning, title = '刷新', className }: RefreshButtonProps) {
   return (
-    <Button variant="outline" size="icon" title={title} aria-label={title} onClick={onClick} disabled={disabled} className={className}>
+    <Button variant="outline" size="icon-sm" title={title} aria-label={title} onClick={onClick} disabled={disabled} className={className}>
       <RefreshCw className={cn('size-4', spinning && 'animate-spin')} />
     </Button>
   )

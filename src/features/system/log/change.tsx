@@ -116,12 +116,9 @@ export function ChangeLogPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">字段变更日志</h1>
-          <p className="text-muted-foreground text-sm">数据本身被改了什么：哪张表的哪条记录、哪个字段、从什么改成什么</p>
-        </div>
-        <RefreshButton onClick={() => void reload()} />
+      <div>
+        <h1 className="text-2xl font-bold">字段变更日志</h1>
+        <p className="text-muted-foreground text-sm">数据本身被改了什么：哪张表的哪条记录、哪个字段、从什么改成什么</p>
       </div>
 
       <Card>
@@ -197,6 +194,7 @@ export function ChangeLogPage() {
               清除条件
             </Button>
             <span className="text-muted-foreground ml-auto text-xs">服务端分页，按时间倒序</span>
+            <RefreshButton onClick={() => void reload()} />
             <DataTableViewOptions table={table} columnLabels={columnLabels} />
           </div>
         </CardContent>

@@ -253,7 +253,6 @@ export function JobPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <RefreshButton onClick={() => void reload()} />
           {hasPermission('system:job:export') && (
             <Button variant="outline" onClick={handleExport} disabled={exporting || total <= 0}>
               <Download />
@@ -307,6 +306,7 @@ export function JobPage() {
                   <SelectItem value="-1">已暂停</SelectItem>
                 </SelectContent>
               </Select>
+              <RefreshButton onClick={() => void reload()} />
               <DataTableViewOptions table={table} columnLabels={columnLabels} />
             </div>
 
