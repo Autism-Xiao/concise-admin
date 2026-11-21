@@ -65,6 +65,7 @@ export function LogTablePage<T extends BaseLog>({
   const [statusFilter, setStatusFilter] = useState('all')
   const [deleting, setDeleting] = useState<T | null>(null)
   const [clearing, setClearing] = useState(false)
+  const [batchDeleting, setBatchDeleting] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
 
@@ -88,12 +89,40 @@ export function LogTablePage<T extends BaseLog>({
     deleteLogs(deleteKind, ids)
       .then(() => {
         toast.success(`已删除 ${ids.length} 条日志`)
+        setRowSelection({})
         reload()
       })
       .catch(e => toast.error(e instanceof Error ? e.message : '删除失败'))
 
   const columns = useMemo<ColumnDef<T>[]>(
     () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <input
+            type="checkbox"
+            className="accent-primary size-4 cursor-pointer align-middle"
+            aria-label="全选本页"
+            checked={table.getIsAllPageRowsSelected()}
+            ref={el => {
+              if (el) el.indeterminate = table.getIsSomePageRowsSelected()
+            }}
+            onChange={table.getToggleAllPageRowsSelectedHandler()}
+          />
+        ),
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            className="accent-primary size-4 cursor-pointer align-middle"
+            aria-label={`选择日志 #${row.original.id}`}
+            checked={row.getIsSelected()}
+            disabled={!row.getCanSelect()}
+            onChange={row.getToggleSelectedHandler()}
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false
+      },
       {
         accessorKey: 'id',
         header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />
@@ -142,7 +171,7 @@ export function LogTablePage<T extends BaseLog>({
     []
   )
 
-  const { table, keyword, setKeyword, loading, booted, error, total, reload } = useServerTable({
+  const { table, keyword, setKeyword, loading, booted, error, total, reload, rowSelection, setRowSelection } = useServerTable({
     columns,
     query: fetchPage,
     filters: tableFilters,
@@ -151,6 +180,8 @@ export function LogTablePage<T extends BaseLog>({
   })
   /** 当前页行（「清空」作用范围就是这一页，文案里写明） */
   const pageLogs = table.getRowModel().rows.map(row => row.original)
+  /** 当前勾选（跨页保留），批量删除按勾选 id 走统一接口 */
+  const selectedCount = Object.keys(rowSelection).filter(k => rowSelection[k]).length
 
   const handleDelete = () => {
     if (!deleting) return
@@ -162,6 +193,14 @@ export function LogTablePage<T extends BaseLog>({
     // 只清当前页：全量清空要按筛选条件批量删，接口暂不支持「无 ids 清空」，不在这里假装做到
     removeIds(pageLogs.map(l => l.id))
     setClearing(false)
+  }
+
+  /** 批量删除勾选行（勾选跨页保留，一次请求带走所有选中 id） */
+  const handleBatchDelete = () => {
+    const ids = Object.keys(rowSelection).filter(k => rowSelection[k])
+    setBatchDeleting(false)
+    if (!ids.length) return
+    removeIds(ids)
   }
 
   /** 导出 Excel：把当前搜索关键字与状态筛选带给后端，导出筛选后的结果（不筛选即全量） */
@@ -200,6 +239,12 @@ export function LogTablePage<T extends BaseLog>({
             <Button variant="outline" onClick={() => setImportOpen(true)}>
               <Upload />
               导入
+            </Button>
+          )}
+          {hasPermission('system:log:delete') && selectedCount > 0 && (
+            <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setBatchDeleting(true)}>
+              <Trash2 />
+              批量删除（{selectedCount}）
             </Button>
           )}
           {hasPermission('system:log:delete') && (
@@ -270,6 +315,15 @@ export function LogTablePage<T extends BaseLog>({
         title="确认清空"
         description={<>即将删除当前页的 {pageLogs.length} 条日志，该操作不可恢复。</>}
         onConfirm={handleClear}
+      />
+
+      <ConfirmDialog
+        confirmText="删除"
+        open={batchDeleting}
+        onOpenChange={setBatchDeleting}
+        title="确认批量删除"
+        description={<>即将删除勾选的 {selectedCount} 条日志（可能包含其他页勾选的记录），该操作不可恢复。</>}
+        onConfirm={handleBatchDelete}
       />
 
       {importOpen && (
