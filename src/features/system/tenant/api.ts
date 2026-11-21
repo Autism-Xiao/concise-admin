@@ -164,6 +164,20 @@ export function fetchTenantDashboard(): Promise<TenantDashboard> {
   return getApiResult(`${API}/dashboard`)
 }
 
+/* ---------- 数据导出（平台运营：退租交接 / 审计归档） ---------- */
+
+/** 导出捆绑包的字段口径见后端 tenant-export.service.ts；这里只带文件名需要的信息 */
+export interface TenantExportBundle {
+  meta: { exportedAt: string; version: number; format: 'json' }
+  tenant: { id: number; name: string; code: string; plan: string }
+  summary: { memberCount: number; roleCount: number; menuCount: number; fileCount: number; usageRows: number }
+}
+
+/** 拉取完整导出包（调用方自行 JSON.stringify 落盘） */
+export function fetchTenantExport(tenantId: number): Promise<TenantExportBundle> {
+  return getApiResult(`${API}/${tenantId}/export`)
+}
+
 /* ---------- 我的租户 / 切换（所有登录用户） ---------- */
 
 export function fetchMyTenants(): Promise<{ current: number | null; isSuper: boolean; tenants: MyTenant[] }> {

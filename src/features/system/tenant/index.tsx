@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CalendarClock, CircleAlert, KeyRound, Layers, MoreHorizontal, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus, Users, WifiOff, BarChart3 } from 'lucide-react'
+import { CalendarClock, CircleAlert, Download, KeyRound, Layers, MoreHorizontal, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus, Users, WifiOff, BarChart3 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from 'cn'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -21,7 +21,7 @@ import { TenantPackageDialog } from './components/tenant-package-dialog'
 import { TenantUserDialog } from './components/tenant-user-dialog'
 import { ExpiringTenantsDialog } from './components/expiring-tenants-dialog'
 import { TenantDashboardDialog } from './components/tenant-dashboard-dialog'
-import { createTenant, deleteTenant, fetchExpiringTenants, fetchTenants, provisionAllTenants, provisionTenant, updateTenant, type Tenant, type TenantPlan, type TenantProvisionRole } from './api'
+import { createTenant, deleteTenant, fetchExpiringTenants, fetchTenantExport, fetchTenants, provisionAllTenants, provisionTenant, updateTenant, type Tenant, type TenantPlan, type TenantProvisionRole } from './api'
 
 const columnLabels: Record<string, string> = {
   id: 'ID',
@@ -152,9 +152,25 @@ export function TenantPage() {
       .finally(() => setProvisioning(null))
   }, [])
 
+  /** 导出租户数据：拉完整 JSON 包后落盘为下载文件（文件名含租户编码与日期，交接/归档可溯源） */
+  const handleExport = (tenant: Tenant) => {
+    fetchTenantExport(tenant.id)
+      .then(bundle => {
+        const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        const day = new Date().toISOString().slice(0, 10)
+        a.href = url
+        a.download = `tenant-${tenant.code}-${day}.json`
+        a.click()
+        URL.revokeObjectURL(url)
+        toast.success(`已导出「${tenant.name}」数据（${bundle.summary.memberCount} 成员 / ${bundle.summary.fileCount} 文件）`)
+      })
+      .catch(error => toast.error(error instanceof Error ? error.message : '导出失败'))
+  }
+
   /** 全部租户一次补齐：平台新增租户级菜单后，各租户的管理员角色需要跟上 */
-  const handleProvisionAll = () => {
-    setProvisioning('all')
+  const handleProvisionAll = () => {    setProvisioning('all')
     provisionAllTenants()
       .then(result => {
         const changed = result.createdRoles > 0 || result.addedGrants > 0
@@ -283,6 +299,10 @@ export function TenantPage() {
                   <DropdownMenuItem onClick={() => handleProvision(row.original)} disabled={provisioning !== null}>
                     <KeyRound />
                     初始化默认角色
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void handleExport(row.original)}>
+                    <Download />
+                    导出数据
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
