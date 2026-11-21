@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ChevronRight, Download, Folder, Plus, SquarePen, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { ChevronRight, Download, Folder, ListTree, MousePointerClick, PanelTop, Plus, SquarePen, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { RefreshButton } from '@/components/ui/refresh-button'
@@ -169,6 +169,23 @@ export function MenuPage() {
   const byId = useMemo(() => new Map(list.map(m => [m.id, m])), [list])
   const selected = selectedId ? (byId.get(selectedId) ?? null) : null
 
+  /** 首次加载完成自动选中第一个「菜单」节点，避免刚进来右侧空白 */
+  const autoSelectedRef = useRef(false)
+  useEffect(() => {
+    if (loading || loadError || autoSelectedRef.current || tree.length === 0) return
+    autoSelectedRef.current = true
+    const findFirstMenu = (nodes: MenuNode[]): MenuNode | null => {
+      for (const n of nodes) {
+        if (n.menuType === 1) return n
+        const child = findFirstMenu(n.children)
+        if (child) return child
+      }
+      return null
+    }
+    const first = findFirstMenu(tree) ?? tree[0]
+    if (first) setSelectedId(first.id)
+  }, [loading, loadError, tree])
+
   /** 选中的目录/菜单直属按钮（按钮权限列表数据源） */
   const buttonChildren = useMemo(() => {
     if (!selected || selected.menuType === 2) return []
@@ -176,6 +193,19 @@ export function MenuPage() {
       .filter(m => m.parentId === selected.id && m.menuType === 2)
       .sort((a, b) => a.sortNo - b.sortNo)
   }, [list, selected])
+
+  /** 根目录总览：类型统计 */
+  const stats = useMemo(() => {
+    let dirs = 0
+    let menus = 0
+    let buttons = 0
+    for (const m of list) {
+      if (m.menuType === 0) dirs++
+      else if (m.menuType === 1) menus++
+      else if (m.menuType === 2) buttons++
+    }
+    return { total: list.length, dirs, menus, buttons }
+  }, [list])
 
   /** 搜索：命中名称/路由/权限字符的扁平列表（左树切换为搜索结果模式） */
   const searching = keyword.trim() !== ''
@@ -396,7 +426,7 @@ export function MenuPage() {
       <div className="min-w-0 space-y-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base">菜单详情</CardTitle>
+            <CardTitle className="text-base">{selected ? '菜单详情' : '菜单总览'}</CardTitle>
             <div className="flex items-center gap-2">
               {hasPermission('system:menu:add') && (
                 <Button
@@ -433,8 +463,54 @@ export function MenuPage() {
           <CardContent>
             {selected ? (
               <dl className="grid grid-cols-1 gap-x-8 gap-y-0 sm:grid-cols-2">{detailRows}</dl>
+            ) : loading ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-[70px] w-full rounded-lg" />
+                ))}
+              </div>
+            ) : stats.total === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-8">
+                <p className="text-muted-foreground text-sm">还没有任何菜单</p>
+                {hasPermission('system:menu:add') && (
+                  <Button size="sm" onClick={() => openCreate(null)}>
+                    <Plus className="size-4" />
+                    创建第一个菜单
+                  </Button>
+                )}
+              </div>
             ) : (
-              <p className="text-muted-foreground py-6 text-center text-sm">请从左侧选择要查看的菜单</p>
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <StatBlock icon={<ListTree className="size-4" />} label="菜单总数" value={stats.total} />
+                  <StatBlock icon={<Folder className="size-4" />} label="目录" value={stats.dirs} />
+                  <StatBlock icon={<PanelTop className="size-4" />} label="页面菜单" value={stats.menus} />
+                  <StatBlock icon={<MousePointerClick className="size-4" />} label="按钮权限" value={stats.buttons} />
+                </div>
+                <div>
+                  <p className="text-muted-foreground mb-2 text-xs">顶级菜单速览 · 点击卡片查看详情</p>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {tree.map(node => (
+                      <button
+                        key={node.id}
+                        type="button"
+                        className="hover:border-primary/40 hover:bg-accent/50 flex items-center gap-2.5 rounded-lg border p-3 text-start transition-colors"
+                        onClick={() => setSelectedId(node.id)}
+                      >
+                        <span className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-md">
+                          {node.menuType === 0 ? <Folder className="size-4" /> : <PanelTop className="size-4" />}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium">{node.name}</span>
+                          <span className="text-muted-foreground block text-xs">
+                            {node.children.length ? `${countDescendants(node)} 个子项` : '暂无子级'}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -538,4 +614,22 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
       <dd className="min-w-0 flex-1 truncate text-sm">{children}</dd>
     </div>
   )
+}
+
+/** 总览统计块：图标 + 数字 + 标签 */
+function StatBlock({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
+  return (
+    <div className="bg-muted/40 flex items-center gap-3 rounded-lg border px-3 py-3">
+      <span className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-md">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-xl leading-tight font-semibold tabular-nums">{value}</p>
+        <p className="text-muted-foreground truncate text-xs">{label}</p>
+      </div>
+    </div>
+  )
+}
+
+/** 递归统计子孙节点数（含按钮） */
+function countDescendants(node: MenuNode): number {
+  return node.children.reduce((acc, c) => acc + 1 + countDescendants(c), 0)
 }
