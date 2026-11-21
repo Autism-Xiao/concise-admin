@@ -773,8 +773,8 @@ export function UsersPage() {
           <div className="px-3 pt-2 pb-1">
             <Input placeholder="搜索部门名称" className="h-8 text-sm" value={deptKeyword} onChange={e => setDeptKeyword(e.target.value)} />
           </div>
-          {/* data-scroll：滚动条默认隐藏、悬停显现，与侧边栏一致 */}
-          <CardContent data-scroll="tree" className="max-h-[calc(100vh-300px)] overflow-y-auto px-2 pb-2">
+          {/* data-scroll：滚动条默认隐藏、悬停显现，与侧边栏一致；偏移量与 system/menu 左树保持一致（两页卡片结构相同） */}
+          <CardContent data-scroll="tree" className="max-h-[calc(100vh-260px)] overflow-y-auto px-2 pb-2">
             <div className="py-1">
               {/* 虚拟根节点：不选部门 = 不过滤（游客模式/游离账号都能看全量） */}
               <button
