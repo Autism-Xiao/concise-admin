@@ -35,7 +35,8 @@ import { isAuthenticated, login, setAvatar, setMenuTree, setMustChangePassword, 
 import { resolveHomePath } from '@/lib/home-path'
 import { notifyPermissionsChanged } from '@/lib/permissions'
 import { clearRememberToken, getDeviceId, getRememberToken, REMEMBER_DAYS_DEFAULT, REMEMBER_OPTIONS, setRememberToken, type RememberDays } from '@/lib/remember-token'
-import { exchangeRememberLogin, fetchCaptcha, fetchPermissions, fetchSsoConfig, loginRequest, verifyCaptcha, type LoginResult } from './api'
+import { exchangeRememberLogin, fetchCaptcha, fetchPermissions, fetchSsoConfig, loginRequestEncrypted, verifyCaptcha, type LoginResult } from './api'
+import { fetchEncryptPublicKey } from '@/lib/request-encrypt'
 import { ForgotPasswordDialog } from './forgot-password-dialog'
 
 const APP_NAME = import.meta.env.VITE_APP_NAME
@@ -91,6 +92,8 @@ export function LoginPage() {
   // 挂载时探测一次：后端关了验证码就不显示滑块，也不生成图片（避免每次进登录页都白算一张图）
   useEffect(() => {
     let alive = true
+    // 顺手取请求加密公钥（后端 ENCRYPT_ENABLED=false 时静默 no-op，sessionStorage 不留缓存）
+    fetchEncryptPublicKey().catch(() => undefined)
     fetchCaptcha()
       .then(data => {
         if (!alive) return
@@ -223,7 +226,7 @@ export function LoginPage() {
     }
     setSubmitting(true)
     try {
-      const data = await loginRequest({
+      const data = await loginRequestEncrypted({
         username: account.trim(),
         password,
         // 后端关闭验证码时不传：避免把一个空字符串当成「有票据」送过去
@@ -476,6 +479,19 @@ export function LoginPage() {
               {(submitting || silentLoggingIn) && <Loader2 className="animate-spin" />}
               {silentLoggingIn ? t('login.resuming') : submitting ? t('login.submitting') : t('login.submit')}
             </Button>
+            {/* 演示一键填充：只填表单不自动提交（保持验证码/2FA 流程完整）；需要先跑
+                scripts/seed-demo-viewer.cjs 造出 demo_viewer 账号，没跑过填了也登不进去 */}
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-foreground text-xs underline-offset-4 hover:underline"
+              onClick={() => {
+                setAccount('demo_viewer')
+                setPassword('Demo@123456')
+                setSubmitError(null)
+              }}
+            >
+              演示账号一键填充
+            </button>
             {/* 忘记密码：邮件验证码重置（自建通道，不依赖短信/第三方） */}
             <div className="text-center">
               <button

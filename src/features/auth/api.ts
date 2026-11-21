@@ -1,4 +1,5 @@
 import { getApiResult } from '@/lib/http'
+import { encryptedLoginBody } from '@/lib/request-encrypt'
 
 /* ---------- 真实后端（Go）：/backend-api 由 vite 代理到 BACKEND_URL ---------- */
 
@@ -83,6 +84,16 @@ export function loginRequest(payload: LoginPayload): Promise<LoginResult> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
+  })
+}
+
+/** 加密登录：后端 ENCRYPT_ENABLED=true 且取到公钥时走信封加密（X-Encrypted 头），否则回退明文 */
+export async function loginRequestEncrypted(payload: LoginPayload): Promise<LoginResult> {
+  const { body, encrypted } = await encryptedLoginBody(payload as unknown as Record<string, unknown> & { username: string; password: string })
+  return getApiResult<LoginResult>('/backend-api/v1/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(encrypted ? { 'X-Encrypted': 'aes-rsa-v1' } : {}) },
+    body
   })
 }
 
