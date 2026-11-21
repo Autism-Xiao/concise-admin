@@ -7,7 +7,8 @@ const LOCALE_KEY = 'concise-locale'
 interface LocaleContextValue {
   locale: Locale
   setLocale: (locale: Locale) => void
-  t: (key: TranslationKey) => string
+  /** 取译文；params 用于填充文案里的 {name} 占位符（如 login.desc 的 {app}） */
+  t: (key: TranslationKey, params?: Record<string, string | number>) => string
 }
 
 const LocaleContext = createHmrSafeContext<LocaleContextValue | null>('concise.context.locale', null)
@@ -27,7 +28,11 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en'
   }, [locale])
 
-  const t = (key: TranslationKey) => dictionaries[locale][key]
+  const t = (key: TranslationKey, params?: Record<string, string | number>) => {
+    const text = dictionaries[locale][key]
+    if (!params) return text
+    return text.replace(/\{(\w+)\}/g, (match, name: string) => (name in params ? String(params[name]) : match))
+  }
 
   return <LocaleContext.Provider value={{ locale, setLocale, t }}>{children}</LocaleContext.Provider>
 }

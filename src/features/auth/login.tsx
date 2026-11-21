@@ -319,9 +319,7 @@ export function LoginPage() {
           <div className="space-y-2 text-center">
             <Logo className="mx-auto size-12 lg:hidden" />
             <h2 className="text-2xl font-semibold tracking-tight">{t('login.welcome')}</h2>
-            <p className="text-muted-foreground text-sm">
-              {t('login.desc')} {APP_NAME}
-            </p>
+            <p className="text-muted-foreground text-sm">{t('login.desc', { app: APP_NAME })}</p>
           </div>
 
           {/* autoComplete 开着：浏览器密码管理器认得「username + current-password」才肯自动填充 */}
@@ -479,21 +477,22 @@ export function LoginPage() {
               {(submitting || silentLoggingIn) && <Loader2 className="animate-spin" />}
               {silentLoggingIn ? t('login.resuming') : submitting ? t('login.submitting') : t('login.submit')}
             </Button>
-            {/* 演示一键填充：只填表单不自动提交（保持验证码/2FA 流程完整）；需要先跑
-                scripts/seed-demo-viewer.cjs 造出 demo_viewer 账号，没跑过填了也登不进去 */}
-            <button
-              type="button"
-              className="text-muted-foreground hover:text-foreground text-xs underline-offset-4 hover:underline"
-              onClick={() => {
-                setAccount('demo_viewer')
-                setPassword('Demo@123456')
-                setSubmitError(null)
-              }}
-            >
-              演示账号一键填充
-            </button>
-            {/* 忘记密码：邮件验证码重置（自建通道，不依赖短信/第三方） */}
-            <div className="text-center">
+            {/* 演示一键填充 + 忘记密码：同一行左右分布；演示填充只填表单不自动提交
+                （保持验证码/2FA 流程完整）；需要先跑 scripts/seed-demo-viewer.cjs
+                造出 demo_viewer 账号，没跑过填了也登不进去 */}
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground text-xs underline-offset-4 hover:underline"
+                onClick={() => {
+                  setAccount('demo_viewer')
+                  setPassword('Demo@123456')
+                  setSubmitError(null)
+                }}
+              >
+                演示账号一键填充
+              </button>
+              {/* 忘记密码：邮件验证码重置（自建通道，不依赖短信/第三方） */}
               <button
                 type="button"
                 className="text-muted-foreground hover:text-foreground text-xs underline-offset-4 hover:underline"

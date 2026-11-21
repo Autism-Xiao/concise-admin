@@ -123,7 +123,7 @@ export const zh = {
   'shortcut.reset': '重置默认',
   // 登录页
   'login.title': '登录',
-  'login.desc': '输入账号密码和验证码登录系统',
+  'login.desc': '登录 {app}，开始您的工作',
   'login.account': '账号',
   'login.accountPlaceholder': '请输入账号',
   'login.password': '密码',
@@ -276,7 +276,7 @@ export const en: Record<TranslationKey, string> = {
   'shortcut.hint': 'Click the pencil then press a new combo: Esc cancels, Backspace clears',
   'shortcut.reset': 'Reset to default',
   'login.title': 'Sign in to',
-  'login.desc': 'Enter your account, password and captcha',
+  'login.desc': 'Sign in to {app} to continue',
   'login.account': 'Account',
   'login.accountPlaceholder': 'Enter your account',
   'login.password': 'Password',
