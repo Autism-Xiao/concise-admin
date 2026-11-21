@@ -36,7 +36,7 @@ export function TenantWorkspace({ homePath }: { homePath: string }) {
             <Link to={homePath as never} className="group-data-[collapsible=icon]:justify-center">
               <Logo className="text-sidebar-primary size-8! shrink-0" />
               <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-                <span className="truncate font-medium" title={appName}>
+                <span className="truncate font-medium text-[90%]" title={appName}>
                   {appName}
                 </span>
                 <span className="text-muted-foreground text-xs">{APP_VERSION}</span>
@@ -56,7 +56,10 @@ export function TenantWorkspace({ homePath }: { homePath: string }) {
             <SidebarMenuButton size="lg" tooltip="切换租户" className="data-[state=open]:bg-sidebar-accent">
               <Logo className="text-sidebar-primary size-8! shrink-0" />
               <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-                <span className="truncate font-medium">{currentLabel}</span>
+                {/* 90% 字号让「平台视角」这类 4 字标签完整放下，truncate 仅兜底超长租户名 */}
+                <span className="truncate font-medium text-[90%]" title={currentLabel}>
+                  {currentLabel}
+                </span>
                 {/* 用 rem 而非 px：跟随「字号」偏好与侧边栏同步缩放，比例恒定；
                     Windows Chrome 在 90%/70% 缩放下字形宽度取整最多膨胀 ~24%，必须留足余量 */}
                 <span className="text-muted-foreground truncate text-[0.7rem]" title={`${appName} · ${APP_VERSION}`}>
