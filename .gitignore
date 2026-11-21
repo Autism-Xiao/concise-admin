@@ -28,3 +28,7 @@ dist-ssr
 
 # 用户界面设置（个人偏好不入库）
 settings.json
+
+# WorkBuddy 工作区数据与本地文档（不入库）
+/.workbuddy/
+/docs/
