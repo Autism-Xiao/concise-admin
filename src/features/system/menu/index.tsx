@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ChevronRight, Download, Plus, Search, SquarePen, Trash2 } from 'lucide-react'
+import { ChevronRight, Download, Folder, Plus, SquarePen, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { RefreshButton } from '@/components/ui/refresh-button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -50,12 +50,103 @@ function formatDateTime(value?: string | null): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
+/** 左侧树单行（目录/菜单） */
+function TreeRow({
+  node,
+  depth,
+  collapsed,
+  selectedId,
+  onToggle,
+  onSelect,
+  onAddChild
+}: {
+  node: MenuNode
+  depth: number
+  collapsed: Set<string>
+  selectedId: string | null
+  onToggle: (id: string) => void
+  onSelect: (menu: Menu) => void
+  onAddChild: (parentId: string) => void
+}) {
+  const hasChildren = node.children.length > 0
+  const isCollapsed = collapsed.has(node.id)
+  const isButton = node.menuType === 2
+  const selected = selectedId === node.id
+  return (
+    <div>
+      <div
+        className={cn(
+          'group hover:bg-accent flex cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-sm',
+          selected && 'bg-accent font-medium'
+        )}
+        style={{ paddingInlineStart: depth * 16 + 8 }}
+        onClick={() => onSelect(node)}
+      >
+        {isButton ? (
+          <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs leading-none">按钮</span>
+        ) : (
+          <>
+            {hasChildren ? (
+              <button
+                type="button"
+                className="hover:bg-muted -ms-1 flex size-5 items-center justify-center rounded"
+                onClick={e => {
+                  e.stopPropagation()
+                  onToggle(node.id)
+                }}
+                aria-label={isCollapsed ? '展开' : '收起'}
+              >
+                <ChevronRight className={cn('size-3.5 transition-transform', !isCollapsed && 'rotate-90')} />
+              </button>
+            ) : (
+              <span className="size-5" />
+            )}
+            <Folder className="text-muted-foreground size-3.5 shrink-0" />
+          </>
+        )}
+        <span className="truncate">{node.name}</span>
+        {!isButton && hasPermission('system:menu:add') && (
+          <Button
+            variant="ghost"
+            size="icon"
+            title="新增子菜单"
+            aria-label={`在「${node.name}」下新增`}
+            className="ms-auto size-6 opacity-0 transition-opacity group-hover:opacity-100"
+            onClick={e => {
+              e.stopPropagation()
+              onAddChild(node.id)
+            }}
+          >
+            <Plus className="size-3.5" />
+          </Button>
+        )}
+      </div>
+      {!isCollapsed && hasChildren && (
+        <div>
+          {node.children.map(child => (
+            <TreeRow
+              key={child.id}
+              node={child}
+              depth={depth + 1}
+              collapsed={collapsed}
+              selectedId={selectedId}
+              onToggle={onToggle}
+              onSelect={onSelect}
+              onAddChild={onAddChild}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function MenuPage() {
   const [list, setList] = useState<Menu[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [keyword, setKeyword] = useState('')
-  const [appliedKeyword, setAppliedKeyword] = useState('')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [formOpen, setFormOpen] = useState(false)
@@ -73,6 +164,39 @@ export function MenuPage() {
   }, [])
 
   useEffect(load, [load])
+
+  const tree = useMemo(() => buildTree(list), [list])
+  const byId = useMemo(() => new Map(list.map(m => [m.id, m])), [list])
+  const selected = selectedId ? (byId.get(selectedId) ?? null) : null
+
+  /** 选中的目录/菜单直属按钮（按钮权限列表数据源） */
+  const buttonChildren = useMemo(() => {
+    if (!selected || selected.menuType === 2) return []
+    return list
+      .filter(m => m.parentId === selected.id && m.menuType === 2)
+      .sort((a, b) => a.sortNo - b.sortNo)
+  }, [list, selected])
+
+  /** 搜索：命中名称/路由/权限字符的扁平列表（左树切换为搜索结果模式） */
+  const searching = keyword.trim() !== ''
+  const searchResults = useMemo(() => {
+    const kw = keyword.trim().toLowerCase()
+    if (!kw) return []
+    return list.filter(
+      m => m.name.toLowerCase().includes(kw) || (m.url ?? '').toLowerCase().includes(kw) || (m.perms ?? '').toLowerCase().includes(kw)
+    )
+  }, [list, keyword])
+
+  const toggle = (id: string) =>
+    setCollapsed(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
 
   /** 导出权限快照：只导出不导入（菜单主键/父级关系跨库无法对应） */
   const handleExport = () => {
@@ -126,232 +250,262 @@ export function MenuPage() {
     withOperationLog(`删除菜单「${deleting.name}」`, () => deleteMenu(deleting.id))
       .then(() => {
         toast.success(`已删除菜单「${deleting.name}」`)
+        if (deleting.id === selectedId) setSelectedId(null)
         load()
       })
       .catch(e => toast.error(e instanceof Error ? e.message : '删除失败（有子菜单时需先删子级）'))
     setDeleting(null)
   }
 
-  const searching = appliedKeyword.trim() !== ''
-  const tree = useMemo(() => buildTree(list), [list])
-  const flatList = useMemo(() => {
-    const kw = appliedKeyword.trim().toLowerCase()
-    return list.filter(m => !kw || m.name.toLowerCase().includes(kw) || (m.url ?? '').toLowerCase().includes(kw) || (m.perms ?? '').toLowerCase().includes(kw))
-  }, [list, appliedKeyword])
-
-  const resetSearch = () => {
-    setKeyword('')
-    setAppliedKeyword('')
-  }
-
-  const toggle = (id: string) =>
-    setCollapsed(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
-
-  // counter 贯穿递归，保证序号按「展开后的视觉顺序」连续递增
-  const renderRows = (nodes: MenuNode[], depth: number, counter: { n: number } = { n: 0 }): ReactNode[] =>
-    nodes.flatMap(node => {
-      const hasChildren = node.children.length > 0
-      const isCollapsed = collapsed.has(node.id)
-      const isButton = node.menuType === 2
-      const row = (
-        <TableRow key={node.id}>
-          <TableCell className="text-muted-foreground w-14 text-center tabular-nums">{++counter.n}</TableCell>
-          <TableCell>
-            <div className="flex items-center gap-1" style={{ paddingInlineStart: depth * 20 }}>
-              {hasChildren ? (
-                <Button variant="ghost" size="icon" className="size-6" onClick={() => toggle(node.id)}>
-                  <ChevronRight className={cn('size-4 transition-transform', isCollapsed ? '' : 'rotate-90')} />
-                  <span className="sr-only">展开 / 收起</span>
-                </Button>
-              ) : (
-                <span className="size-6" />
-              )}
-              <span className="font-medium">{node.name}</span>
-            </div>
-          </TableCell>
-          <TableCell>
-            {isButton ? (
-              <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs">按钮</span>
-            ) : (
-              <span className="bg-primary/10 text-primary rounded px-1.5 py-0.5 text-xs">{menuTypeMap[node.menuType] ?? '菜单'}</span>
-            )}
-          </TableCell>
-          <TableCell>
-            <span className="text-muted-foreground font-mono text-xs">{node.url ?? '-'}</span>
-          </TableCell>
-          <TableCell>
-            <span className="text-muted-foreground font-mono text-xs">{node.component ?? '-'}</span>
-          </TableCell>
-          <TableCell>
-            <span className="text-muted-foreground font-mono text-xs">{node.perms ?? '-'}</span>
-          </TableCell>
-          <TableCell className="w-14 tabular-nums">{node.sortNo}</TableCell>
-          <TableCell className="w-24">
-            <StatusBadge ok={node.status === '1'} label={node.status === '1' ? '正常' : '停用'} />
-          </TableCell>
-          <TableCell className="text-muted-foreground w-40 whitespace-nowrap text-xs tabular-nums">{formatDateTime(node.createTime)}</TableCell>
-          <TableCell className="table-sticky-action text-end whitespace-nowrap">
-            {hasPermission('system:menu:add') && (
-              <Button
-                variant="ghost"
-                size="icon"
-                title="新增"
-                aria-label="新增"
-                className="text-primary hover:text-primary size-7"
-                onClick={() => openCreate(node.id)}
-              >
-                <Plus className="size-3.5" />
-              </Button>
-            )}
-            {hasPermission('system:menu:update') && (
-              <Button
-                variant="ghost"
-                size="icon"
-                title="修改"
-                aria-label="修改"
-                className="text-primary hover:text-primary size-7"
-                onClick={() => openEdit(node)}
-              >
-                <SquarePen className="size-3.5" />
-              </Button>
-            )}
-            {hasPermission('system:menu:delete') && (
-              <Button
-                variant="ghost"
-                size="icon"
-                title="删除"
-                aria-label="删除"
-                className="text-destructive hover:text-destructive size-7"
-                onClick={() => setDeleting(node)}
-              >
-                <Trash2 className="size-3.5" />
-              </Button>
-            )}
-          </TableCell>
-        </TableRow>
-      )
-      return isCollapsed ? [row] : [row, ...renderRows(node.children, depth + 1, counter)]
-    })
+  /** 菜单详情两列描述（字段顺序对齐参考稿：类型/状态、名称/路由、外链/显示） */
+  const detailRows: ReactNode = selected ? (
+    <>
+      <DetailRow label="菜单类型">
+        {selected.menuType === 2 ? (
+          <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs">按钮</span>
+        ) : (
+          <span className="bg-primary/10 text-primary rounded px-1.5 py-0.5 text-xs">{menuTypeMap[selected.menuType] ?? '菜单'}</span>
+        )}
+      </DetailRow>
+      <DetailRow label="菜单状态">
+        <StatusBadge ok={selected.status === '1'} label={selected.status === '1' ? '正常' : '停用'} />
+      </DetailRow>
+      <DetailRow label="菜单名称">{selected.name}</DetailRow>
+      <DetailRow label="路由地址">
+        <span className="font-mono text-xs">{selected.url ?? '-'}</span>
+      </DetailRow>
+      <DetailRow label="是否外链">
+        <span className={cn('rounded px-1.5 py-0.5 text-xs', selected.internalOrExternal === 1 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground')}>
+          {selected.internalOrExternal === 1 ? '是' : '否'}
+        </span>
+      </DetailRow>
+      <DetailRow label="显示状态">
+        <span className={cn('rounded px-1.5 py-0.5 text-xs', selected.hidden === 1 ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary')}>
+          {selected.hidden === 1 ? '隐藏' : '显示'}
+        </span>
+      </DetailRow>
+      {selected.menuType === 1 && (
+        <DetailRow label="组件路径">
+          <span className="font-mono text-xs">{selected.component ?? '-'}</span>
+        </DetailRow>
+      )}
+      {selected.perms && (
+        <DetailRow label="权限标识">
+          <span className="font-mono text-xs">{selected.perms}</span>
+        </DetailRow>
+      )}
+      <DetailRow label="排序">{selected.sortNo}</DetailRow>
+      <DetailRow label="创建时间">
+        <span className="text-muted-foreground text-xs tabular-nums">{formatDateTime(selected.createTime)}</span>
+      </DetailRow>
+    </>
+  ) : null
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">菜单管理</h1>
-          <p className="text-muted-foreground text-sm">{loading ? '加载中…' : `共 ${list.length} 个菜单（含按钮权限）`}</p>
+    <div className="grid gap-4 xl:grid-cols-[280px_1fr]">
+      {/* 左：菜单树（搜索 + 快捷新增） */}
+      <Card className="h-fit xl:sticky xl:top-4">
+        <div className="flex items-center justify-between px-3 pt-3">
+          <span className="text-sm font-semibold">菜单列表</span>
+          <div className="flex items-center gap-0.5">
+            {hasPermission('system:menu:add') && (
+              <Button variant="ghost" size="icon" className="size-7" title="新增根菜单" onClick={() => openCreate(null)}>
+                <Plus className="size-4" />
+              </Button>
+            )}
+            {hasPermission('system:menu:export') && (
+              <Button variant="ghost" size="icon" className="size-7" title="导出" onClick={handleExport} disabled={exporting || list.length === 0}>
+                <Download className="size-4" />
+              </Button>
+            )}
+            <RefreshButton onClick={() => void load()} disabled={loading} spinning={loading} className="size-7" />
+          </div>
         </div>
-        {hasPermission('system:menu:export') && (
-          <Button variant="outline" onClick={handleExport} disabled={exporting || list.length === 0}>
-            <Download />
-            {exporting ? '导出中…' : '导出'}
-          </Button>
-        )}
-      </div>
-
-      <Card>
-        <CardContent className="space-y-4">
-          {/* 搜索行：输入菜单标题 → 查询；重置恢复全量树 */}
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              placeholder="请输入菜单标题 / 路由 / 权限标识"
-              className="h-9 w-72"
-              value={keyword}
-              onChange={e => setKeyword(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') setAppliedKeyword(keyword)
-              }}
-            />
-            <Button size="sm" className="h-9" onClick={() => setAppliedKeyword(keyword)}>
-              <Search className="size-4" />
-              查询
-            </Button>
-            <Button size="sm" variant="outline" className="h-9" onClick={resetSearch}>
-              重置
-            </Button>
-            <RefreshButton onClick={() => void load()} disabled={loading} spinning={loading} className="ms-auto" />
-          </div>
-
-          {/* 操作 Tab：新增常驻；搜索态提供「查询全部」一键还原 */}
-          <div className="border-b">
-            <div className="flex items-center gap-1">
-              {hasPermission('system:menu:add') && (
-                <button
-                  type="button"
-                  className="text-primary border-primary -mb-px border-b-2 px-3 pb-2 text-sm font-medium"
-                  onClick={() => openCreate(null)}
-                >
-                  新增
-                </button>
-              )}
-              {searching && (
-                <button
-                  type="button"
-                  className="text-muted-foreground hover:text-foreground -mb-px border-b-2 border-transparent px-3 pb-2 text-sm font-medium"
-                  onClick={resetSearch}
-                >
-                  查询全部
-                </button>
-              )}
-            </div>
-          </div>
-
+        <div className="px-3 pt-2 pb-1">
+          <Input placeholder="请输入菜单名称" className="h-8 text-sm" value={keyword} onChange={e => setKeyword(e.target.value)} />
+        </div>
+        <CardContent className="max-h-[calc(100vh-260px)] overflow-y-auto px-2 pb-2">
           {loadError ? (
-            <div className="flex flex-col items-center gap-3 py-10">
+            <div className="flex flex-col items-center gap-2 py-8">
               <p className="text-muted-foreground text-sm">菜单数据加载失败</p>
               <RefreshButton onClick={() => void load()} title="重新加载" />
             </div>
           ) : loading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
+            <div className="space-y-2 py-1">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-8 w-full" />
               ))}
             </div>
+          ) : searching ? (
+            <div className="py-1">
+              {searchResults.length ? (
+                searchResults.map(m => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className={cn(
+                      'hover:bg-accent flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-start text-sm',
+                      selectedId === m.id && 'bg-accent font-medium'
+                    )}
+                    onClick={() => setSelectedId(m.id)}
+                  >
+                    {m.menuType === 2 ? (
+                      <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs leading-none">按钮</span>
+                    ) : (
+                      <Folder className="text-muted-foreground size-3.5 shrink-0" />
+                    )}
+                    <span className="truncate">{m.name}</span>
+                  </button>
+                ))
+              ) : (
+                <p className="text-muted-foreground py-6 text-center text-sm">没有匹配的菜单</p>
+              )}
+            </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-14 text-center">序号</TableHead>
-                  <TableHead>菜单名称</TableHead>
-                  <TableHead className="w-20">菜单类型</TableHead>
-                  <TableHead>路由地址</TableHead>
-                  <TableHead>组件路径</TableHead>
-                  <TableHead>权限标识</TableHead>
-                  <TableHead className="w-14">排序</TableHead>
-                  <TableHead className="w-24">状态</TableHead>
-                  <TableHead className="w-40">创建时间</TableHead>
-                  <TableHead className="table-sticky-action text-end">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {searching ? (
-                  flatList.length ? (
-                    renderRows(
-                      flatList.map(m => ({ ...m, children: [] })),
-                      0
-                    )
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={10} className="text-muted-foreground py-10 text-center">
-                        没有匹配的菜单
-                      </TableCell>
-                    </TableRow>
-                  )
-                ) : (
-                  renderRows(tree, 0)
+            <div className="py-1">
+              {/* 虚拟根节点：对齐后端 parent=null 语义，快捷建顶级菜单 */}
+              <button
+                type="button"
+                className={cn(
+                  'hover:bg-accent flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-start text-sm',
+                  !selectedId && 'bg-accent font-medium'
                 )}
-              </TableBody>
-            </Table>
+                onClick={() => setSelectedId(null)}
+              >
+                <Folder className="text-muted-foreground size-3.5 shrink-0" />
+                根目录
+              </button>
+              {tree.map(node => (
+                <TreeRow
+                  key={node.id}
+                  node={node}
+                  depth={1}
+                  collapsed={collapsed}
+                  selectedId={selectedId}
+                  onToggle={toggle}
+                  onSelect={menu => setSelectedId(menu.id)}
+                  onAddChild={parentId => openCreate(parentId)}
+                />
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
+
+      {/* 右：菜单详情 + 按钮权限列表 */}
+      <div className="min-w-0 space-y-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-base">菜单详情</CardTitle>
+            <div className="flex items-center gap-2">
+              {hasPermission('system:menu:add') && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-primary"
+                  disabled={!selected || selected.menuType === 2}
+                  onClick={() => openCreate(selected!.id)}
+                >
+                  <Plus className="size-4" />
+                  新增子菜单
+                </Button>
+              )}
+              {hasPermission('system:menu:update') && (
+                <Button size="sm" variant="outline" className="h-8" disabled={!selected} onClick={() => openEdit(selected!)}>
+                  <SquarePen className="size-4" />
+                  编辑
+                </Button>
+              )}
+              {hasPermission('system:menu:delete') && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-destructive hover:text-destructive h-8"
+                  disabled={!selected}
+                  onClick={() => setDeleting(selected!)}
+                >
+                  <Trash2 className="size-4" />
+                  删除
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {selected ? (
+              <dl className="grid grid-cols-1 gap-x-8 gap-y-0 sm:grid-cols-2">{detailRows}</dl>
+            ) : (
+              <p className="text-muted-foreground py-6 text-center text-sm">请从左侧选择要查看的菜单</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {selected && selected.menuType !== 2 && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-base">按钮权限列表</CardTitle>
+              <RefreshButton onClick={() => void load()} disabled={loading} spinning={loading} />
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              ) : buttonChildren.length ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-14 text-center">序号</TableHead>
+                      <TableHead>菜单名称</TableHead>
+                      <TableHead>权限字符</TableHead>
+                      <TableHead className="w-24">菜单状态</TableHead>
+                      <TableHead className="w-44">创建时间</TableHead>
+                      <TableHead className="text-end">操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {buttonChildren.map((m, i) => (
+                      <TableRow key={m.id}>
+                        <TableCell className="text-muted-foreground text-center tabular-nums">{i + 1}</TableCell>
+                        <TableCell className="font-medium">{m.name}</TableCell>
+                        <TableCell>
+                          <span className="text-muted-foreground font-mono text-xs">{m.perms ?? '-'}</span>
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge ok={m.status === '1'} label={m.status === '1' ? '正常' : '停用'} />
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs tabular-nums">{formatDateTime(m.createTime)}</TableCell>
+                        <TableCell className="text-end whitespace-nowrap">
+                          {hasPermission('system:menu:update') && (
+                            <Button variant="ghost" size="icon" title="修改" className="text-primary hover:text-primary size-7" onClick={() => openEdit(m)}>
+                              <SquarePen className="size-3.5" />
+                            </Button>
+                          )}
+                          {hasPermission('system:menu:delete') && (
+                            <Button variant="ghost" size="icon" title="删除" className="text-destructive hover:text-destructive size-7" onClick={() => setDeleting(m)}>
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-muted-foreground py-6 text-center text-sm">
+                  暂无按钮权限
+                  {hasPermission('system:menu:add') && (
+                    <button type="button" className="text-primary ms-2 hover:underline" onClick={() => openCreate(selected.id)}>
+                      新增按钮
+                    </button>
+                  )}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {formOpen && (
         <MenuFormDialog
@@ -372,6 +526,16 @@ export function MenuPage() {
         description={<>即将删除菜单「{deleting?.name}」。存在子菜单时删除会被拒绝；删除为软删除，不影响历史授权记录。</>}
         onConfirm={handleDelete}
       />
+    </div>
+  )
+}
+
+/** 详情描述行：灰 label + 值，两列栅格 */
+function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="border-border/60 flex items-center gap-3 border-b px-2 py-2.5 last:border-b-0">
+      <dt className="text-muted-foreground w-20 shrink-0 text-sm">{label}</dt>
+      <dd className="min-w-0 flex-1 truncate text-sm">{children}</dd>
     </div>
   )
 }
