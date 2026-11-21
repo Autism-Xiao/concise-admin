@@ -754,7 +754,7 @@ export function UsersPage() {
       {/* 左：部门树 —— 可选过滤器，不选 = 查全部；无部门/接口失败时整块隐藏，降级为单列表格 */}
       {depts === null ? (
         <Card className="h-fit xl:sticky xl:top-4">
-          <div className="px-3 pt-3">
+          <div className="px-3">
             <Skeleton className="h-6 w-24" />
             <Skeleton className="mt-3 h-8 w-full" />
           </div>
@@ -766,7 +766,7 @@ export function UsersPage() {
         </Card>
       ) : depts.length === 0 ? null : (
         <Card className="h-fit xl:sticky xl:top-4">
-          <div className="flex items-center justify-between px-3 pt-3">
+          <div className="flex items-center justify-between px-3">
             <span className="text-sm font-semibold">部门</span>
             <RefreshButton onClick={reloadDepts} className="size-7" spinning={depts === null} />
           </div>

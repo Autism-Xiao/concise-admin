@@ -335,7 +335,7 @@ export function MenuPage() {
     <div className="grid gap-4 xl:grid-cols-[280px_1fr]">
       {/* 左：菜单树（搜索 + 快捷新增） */}
       <Card className="h-fit xl:sticky xl:top-4">
-        <div className="flex items-center justify-between px-3 pt-3">
+        <div className="flex items-center justify-between px-3">
           <span className="text-sm font-semibold">菜单列表</span>
           <div className="flex items-center gap-0.5">
             {hasPermission('system:menu:add') && (
