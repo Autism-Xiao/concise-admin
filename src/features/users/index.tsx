@@ -143,10 +143,7 @@ function DeptTreeRow({
   return (
     <div>
       <div
-        className={cn(
-          'hover:bg-accent group flex cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-sm',
-          selected && 'bg-accent font-medium'
-        )}
+        className={cn('hover:bg-accent group flex cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-sm', selected && 'bg-accent font-medium')}
         style={{ paddingInlineStart: depth * 16 + 8 }}
         onClick={() => onSelect(node)}
       >
@@ -606,12 +603,14 @@ export function UsersPage() {
     if (!targets.length) return
     setBatchBusy(true)
     withOperationLog(`批量${next === 2 ? '停用' : '启用'} ${targets.length} 个用户`, () =>
-      batchUpdateUsersStatus(targets.map(user => user.id), next, '管理员批量操作')
+      batchUpdateUsersStatus(
+        targets.map(user => user.id),
+        next,
+        '管理员批量操作'
+      )
     )
       .then(result => {
-        toast.success(
-          `已${next === 2 ? '停用' : '启用'} ${result.updated} 个用户${result.kicked ? `，强制下线 ${result.kicked} 个在线会话` : ''}`
-        )
+        toast.success(`已${next === 2 ? '停用' : '启用'} ${result.updated} 个用户${result.kicked ? `，强制下线 ${result.kicked} 个在线会话` : ''}`)
         result.skipped?.forEach(item => toast.warning(`「${item.username}」已跳过：${item.reason}`))
         setRowSelection({})
         setBatchStatusTarget(null)
@@ -721,11 +720,7 @@ export function UsersPage() {
     if (!target) return
     const { user, next } = target
     withOperationLog(`${next === 2 ? '冻结' : '解冻'}用户「${user.realname || user.username}」`, () => updateUserStatus(user.id, next))
-      .then(result =>
-        toast.success(
-          next === 2 ? `已冻结「${user.username}」，并下线其 ${result.kicked} 个在线会话` : `已解冻「${user.username}」`
-        )
-      )
+      .then(result => toast.success(next === 2 ? `已冻结「${user.username}」，并下线其 ${result.kicked} 个在线会话` : `已解冻「${user.username}」`))
       .catch(e => toast.error(e instanceof Error ? e.message : '操作失败'))
       .finally(() => reload())
     setStatusTarget(null)
@@ -750,76 +745,17 @@ export function UsersPage() {
   }, [])
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[240px_minmax(0,1fr)]">
-      {/* 左：部门树 —— 可选过滤器，不选 = 查全部；无部门/接口失败时整块隐藏，降级为单列表格 */}
-      {depts === null ? (
-        <Card className="h-fit xl:sticky xl:top-4">
-          <div className="px-3">
-            <Skeleton className="h-6 w-24" />
-            <Skeleton className="mt-3 h-8 w-full" />
-          </div>
-          <CardContent className="space-y-2 px-3 pt-3 pb-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-7 w-full" />
-            ))}
-          </CardContent>
-        </Card>
-      ) : depts.length === 0 ? null : (
-        <Card className="h-fit xl:sticky xl:top-4">
-          <div className="flex items-center justify-between px-3">
-            <span className="text-sm font-semibold">部门</span>
-            <RefreshButton onClick={reloadDepts} className="size-7" spinning={depts === null} />
-          </div>
-          <div className="px-3 pt-2 pb-1">
-            <Input placeholder="搜索部门名称" className="h-8 text-sm" value={deptKeyword} onChange={e => setDeptKeyword(e.target.value)} />
-          </div>
-          {/* data-scroll：滚动条默认隐藏、悬停显现，与侧边栏一致；偏移量与 system/menu 左树保持一致（两页卡片结构相同） */}
-          <CardContent data-scroll="tree" className="max-h-[calc(100vh-260px)] overflow-y-auto px-2 pb-2">
-            <div className="py-1">
-              {/* 虚拟根节点：不选部门 = 不过滤（游客模式/游离账号都能看全量） */}
-              <button
-                type="button"
-                className={cn(
-                  'hover:bg-accent flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-start text-sm',
-                  !selectedDeptId && 'bg-accent font-medium'
-                )}
-                onClick={() => setSelectedDeptId(null)}
-              >
-                <Users className="text-muted-foreground size-3.5 shrink-0" />
-                全部部门
-              </button>
-              {visibleDeptTree.map(node => (
-                <DeptTreeRow
-                  key={node.id}
-                  node={node}
-                  depth={1}
-                  collapsed={deptCollapsed}
-                  selectedId={selectedDeptId}
-                  onToggle={toggleDept}
-                  onSelect={dept => setSelectedDeptId(dept.id)}
-                  onAddUser={deptId => openCreate(deptId)}
-                  canAdd={hasPermission('system:user:add')}
-                />
-              ))}
-              {visibleDeptTree.length === 0 && deptSearching && (
-                <p className="text-muted-foreground py-6 text-center text-sm">没有匹配的部门</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 右：标题 + 用户表格（部门树隐藏时自动占满整行） */}
-      <div className="min-w-0 space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h1 className="text-2xl font-bold">用户管理</h1>
-            <p className="text-muted-foreground text-sm">
-              {/* 服务端分页后会拿到真实总数；total=-1 说明本次跳过了 COUNT，只能报「当前页 N 条」 */}
-              {total >= 0 ? `共 ${total} 个用户` : `当前页 ${pageRows.length} 个用户`}
-              {selectedDept && ` · 「${selectedDept.departName}」及下级`}
-            </p>
-          </div>
+    <div className="space-y-6">
+      {/* 页标题：整行置顶（与其他页面惯例一致），下方才是主从网格 */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-bold">用户管理</h1>
+          <p className="text-muted-foreground text-sm">
+            {/* 服务端分页后会拿到真实总数；total=-1 说明本次跳过了 COUNT，只能报「当前页 N 条」 */}
+            {total >= 0 ? `共 ${total} 个用户` : `当前页 ${pageRows.length} 个用户`}
+            {selectedDept && ` · 「${selectedDept.departName}」及下级`}
+          </p>
+        </div>
         <div className="flex flex-wrap gap-2">
           {hasPermission('system:user:export') && (
             <Button variant="outline" onClick={handleExport} disabled={exporting || pageRows.length === 0}>
@@ -880,54 +816,112 @@ export function UsersPage() {
         </div>
       </div>
 
-      {!booted ? (
-        <Card>
-          <CardContent className="space-y-3 py-6">
-            <Skeleton className="h-9 w-full max-w-md" />
-            <Skeleton className="h-64 w-full" />
-          </CardContent>
-        </Card>
-      ) : error ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-12">
-            <p className="text-muted-foreground text-sm">{error}</p>
-            <Button variant="outline" onClick={reload}>
-              重试
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-
-              <div className="relative w-full max-w-xs">
-                <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
-                <Input placeholder="搜索账号 / 姓名 / 手机号" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter} items={statusItems}>
-                <SelectTrigger className="h-9 w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部状态</SelectItem>
-                  {Object.entries(userStatusMap).map(([value, { label }]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <RefreshButton onClick={() => void reload()} className="ms-auto" />
-              <DataTableViewOptions table={table} columnLabels={columnLabels} />
+      <div className="grid gap-4 xl:grid-cols-[240px_minmax(0,1fr)]">
+        {/* 左：部门树 —— 可选过滤器，不选 = 查全部；无部门/接口失败时整块隐藏，降级为单列表格 */}
+        {depts === null ? (
+          <Card className="h-fit xl:sticky xl:top-4">
+            <div className="px-3">
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="mt-3 h-8 w-full" />
             </div>
+            <CardContent className="space-y-2 px-3 pt-3 pb-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-7 w-full" />
+              ))}
+            </CardContent>
+          </Card>
+        ) : depts.length === 0 ? null : (
+          <Card className="h-fit xl:sticky xl:top-4">
+            <div className="flex items-center justify-between px-3">
+              <span className="text-sm font-semibold">部门</span>
+              <RefreshButton onClick={reloadDepts} className="size-7" spinning={depts === null} />
+            </div>
+            <div className="px-3 pt-2 pb-1">
+              <Input placeholder="搜索部门名称" className="h-8 text-sm" value={deptKeyword} onChange={e => setDeptKeyword(e.target.value)} />
+            </div>
+            {/* data-scroll：滚动条默认隐藏、悬停显现，与侧边栏一致；偏移量与 system/menu 左树保持一致（两页卡片结构相同） */}
+            <CardContent data-scroll="tree" className="max-h-[calc(100vh-260px)] overflow-y-auto px-2 pb-2">
+              <div className="py-1">
+                {/* 虚拟根节点：不选部门 = 不过滤（游客模式/游离账号都能看全量） */}
+                <button
+                  type="button"
+                  className={cn(
+                    'hover:bg-accent flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-start text-sm',
+                    !selectedDeptId && 'bg-accent font-medium'
+                  )}
+                  onClick={() => setSelectedDeptId(null)}
+                >
+                  <Users className="text-muted-foreground size-3.5 shrink-0" />
+                  全部部门
+                </button>
+                {visibleDeptTree.map(node => (
+                  <DeptTreeRow
+                    key={node.id}
+                    node={node}
+                    depth={1}
+                    collapsed={deptCollapsed}
+                    selectedId={selectedDeptId}
+                    onToggle={toggleDept}
+                    onSelect={dept => setSelectedDeptId(dept.id)}
+                    onAddUser={deptId => openCreate(deptId)}
+                    canAdd={hasPermission('system:user:add')}
+                  />
+                ))}
+                {visibleDeptTree.length === 0 && deptSearching && <p className="text-muted-foreground py-6 text-center text-sm">没有匹配的部门</p>}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-            <DataTable table={table} loading={loading} emptyText="没有匹配的用户" />
-            <DataTablePagination table={table} />
-          </CardContent>
-        </Card>
-      )}
+        {/* 右：用户表格（部门树隐藏时自动占满整行） */}
+        <div className="min-w-0 space-y-6">
+          {!booted ? (
+            <Card>
+              <CardContent className="space-y-3 py-6">
+                <Skeleton className="h-9 w-full max-w-md" />
+                <Skeleton className="h-64 w-full" />
+              </CardContent>
+            </Card>
+          ) : error ? (
+            <Card>
+              <CardContent className="flex flex-col items-center gap-3 py-12">
+                <p className="text-muted-foreground text-sm">{error}</p>
+                <Button variant="outline" onClick={reload}>
+                  重试
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative w-full max-w-xs">
+                    <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
+                    <Input placeholder="搜索账号 / 姓名 / 手机号" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
+                  </div>
+                  <Select value={statusFilter} onValueChange={setStatusFilter} items={statusItems}>
+                    <SelectTrigger className="h-9 w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">全部状态</SelectItem>
+                      {Object.entries(userStatusMap).map(([value, { label }]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <RefreshButton onClick={() => void reload()} className="ms-auto" />
+                  <DataTableViewOptions table={table} columnLabels={columnLabels} />
+                </div>
 
+                <DataTable table={table} loading={loading} emptyText="没有匹配的用户" />
+                <DataTablePagination table={table} />
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
       {formOpen && (
@@ -956,15 +950,7 @@ export function UsersPage() {
         />
       )}
 
-      {vipTarget && (
-        <UserVipDialog
-          key={vipTarget.id}
-          open={!!vipTarget}
-          onOpenChange={v => !v && setVipTarget(null)}
-          user={vipTarget}
-          onSaved={reload}
-        />
-      )}
+      {vipTarget && <UserVipDialog key={vipTarget.id} open={!!vipTarget} onOpenChange={v => !v && setVipTarget(null)} user={vipTarget} onSaved={reload} />}
 
       {superviseTarget && (
         <SuperviseDeptsDialog
@@ -997,7 +983,12 @@ export function UsersPage() {
         onConfirm={handleBatchDelete}
       />
 
-      <ResetPasswordResultDialog open={!!resetResult} onOpenChange={v => !v && setResetResult(null)} username={resetResult?.username} password={resetResult?.password} />
+      <ResetPasswordResultDialog
+        open={!!resetResult}
+        onOpenChange={v => !v && setResetResult(null)}
+        username={resetResult?.username}
+        password={resetResult?.password}
+      />
 
       <ConfirmDialog
         confirmText={statusTarget?.next === 2 ? '冻结' : '解冻'}
@@ -1026,9 +1017,7 @@ export function UsersPage() {
 
       <RecycleBinDialog open={recycleOpen} onOpenChange={setRecycleOpen} onRestored={reload} />
 
-      {logTarget && (
-        <UserLoginLogDialog key={logTarget.id} open={!!logTarget} onOpenChange={v => !v && setLogTarget(null)} user={logTarget} />
-      )}
+      {logTarget && <UserLoginLogDialog key={logTarget.id} open={!!logTarget} onOpenChange={v => !v && setLogTarget(null)} user={logTarget} />}
 
       {batchRolesOpen && selectedCount > 0 && (
         <BatchRolesDialog
