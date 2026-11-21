@@ -17,7 +17,8 @@ import {
   Trash2,
   Unlock,
   Upload,
-  UserCog
+  UserCog,
+  Network
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -41,6 +42,7 @@ import { saveBlobFile } from '@/lib/download'
 import { UserImportDialog } from './components/user-import-dialog'
 import { UserLoginLogDialog } from './components/user-login-log-dialog'
 import { BatchRolesDialog } from './components/batch-roles-dialog'
+import { SuperviseDeptsDialog } from './components/supervise-depts-dialog'
 import { BATCH_WATERMARK_MODE_LABEL, BatchWatermarkDialog } from './components/batch-watermark-dialog'
 import {
   batchAssignRoles,
@@ -87,6 +89,7 @@ export function UsersPage() {
   const [deleting, setDeleting] = useState<User | null>(null)
   const [watermarkTarget, setWatermarkTarget] = useState<User | null>(null)
   const [vipTarget, setVipTarget] = useState<User | null>(null)
+  const [superviseTarget, setSuperviseTarget] = useState<User | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   /** 重置密码结果：非空时弹一次性明文展示框 */
@@ -328,6 +331,13 @@ export function UsersPage() {
                     <DropdownMenuItem onClick={() => setLogTarget(user)}>
                       <FileClock className="size-4" />
                       登录日志
+                    </DropdownMenuItem>
+                  )}
+                  {/* 管辖部门（ReBAC 监管数据权限）：data_scope 部门档的用户额外可见所选部门的数据 */}
+                  {hasPermission('system:user:update') && (
+                    <DropdownMenuItem onClick={() => setSuperviseTarget(user)}>
+                      <Network className="size-4" />
+                      管辖部门
                     </DropdownMenuItem>
                   )}
                   {/* 平台级操作：权限点 scope=platform，后端还会拒绝取消自己/最后一个，所以自己那一行不显示 */}
@@ -667,6 +677,16 @@ export function UsersPage() {
           open={!!vipTarget}
           onOpenChange={v => !v && setVipTarget(null)}
           user={vipTarget}
+          onSaved={reload}
+        />
+      )}
+
+      {superviseTarget && (
+        <SuperviseDeptsDialog
+          key={superviseTarget.id}
+          open={!!superviseTarget}
+          onOpenChange={v => !v && setSuperviseTarget(null)}
+          user={superviseTarget}
           onSaved={reload}
         />
       )}

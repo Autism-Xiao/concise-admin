@@ -266,6 +266,22 @@ export function updateMyProfile(payload: MyProfilePatch): Promise<User> {
 export { fetchRoleOptions }
 export type { Role }
 
+/* ---------- 管辖部门（ReBAC 监管数据权限） ---------- */
+
+/** 读取用户当前租户下被授权监管的部门 id（配置回显用） */
+export function fetchUserSuperviseDepts(id: string): Promise<string[]> {
+  return getApiResult<{ deptIds: string[] }>(`/backend-api/v1/users/${id}/supervise-depts`).then(r => r.deptIds ?? [])
+}
+
+/** 配置用户管辖部门（全量覆盖；后端自动展开子孙部门，仅对 data_scope 部门档生效） */
+export function assignUserSuperviseDepts(id: string, deptIds: string[]): Promise<unknown> {
+  return getApiResult(`/backend-api/v1/users/${id}/supervise-depts`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ deptIds })
+  })
+}
+
 /** 后端部门列表（/api/v1/depts 扁平结构，供用户表单部门下拉使用；响应为统一分页结构） */
 export async function fetchBackendDepts(): Promise<Array<{ id: string; departName: string; parentId?: string | null; status?: string }>> {
   const page = await getApiResult<{ records: Array<{ id: string; departName: string; parentId?: string | null; status?: string }> }>('/backend-api/v1/depts')
