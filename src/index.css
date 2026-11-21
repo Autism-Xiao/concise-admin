@@ -245,11 +245,10 @@ tr:hover > .table-sticky-action-popover {
   height: 0;
 }
 
-/* 侧边栏、主内容区、页签栏与弹框滚动条：细窄样式，默认透明，鼠标进入滚动区域时显现 */
+/* 侧边栏与任意 data-scroll 容器（main/tabs/dialog/tree…）：细窄滚动条，默认透明，鼠标进入滚动区域时显现。
+   注意：main 值被 tenant-scope-provider / watermark 用 main[data-scroll="main"] 查询，勿改名。 */
 [data-sidebar='content'],
-[data-scroll='main'],
-[data-scroll='tabs'],
-[data-scroll='dialog'] {
+[data-scroll] {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }

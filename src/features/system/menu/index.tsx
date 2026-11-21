@@ -354,7 +354,8 @@ export function MenuPage() {
         <div className="px-3 pt-2 pb-1">
           <Input placeholder="请输入菜单名称" className="h-8 text-sm" value={keyword} onChange={e => setKeyword(e.target.value)} />
         </div>
-        <CardContent className="max-h-[calc(100vh-260px)] overflow-y-auto px-2 pb-2">
+        {/* data-scroll：复用全局「默认隐藏、悬停显现」滚动条样式，与侧边栏一致 */}
+        <CardContent data-scroll="tree" className="max-h-[calc(100vh-260px)] overflow-y-auto px-2 pb-2">
           {loadError ? (
             <div className="flex flex-col items-center gap-2 py-8">
               <p className="text-muted-foreground text-sm">菜单数据加载失败</p>
