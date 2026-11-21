@@ -332,3 +332,39 @@ export function saveTenantPackage(tenantId: number, menuIds: string[]): Promise<
     body: JSON.stringify({ menuIds })
   })
 }
+
+/* ---------- 租户用量与配额变更（租户侧自助视图） ---------- */
+
+/** 当前租户月度用量（GET /v1/metering/usage，metrics 键如 api.calls / api.errors / file.upload.bytes） */
+export interface TenantUsage {
+  period: string
+  tenantId: number
+  metrics: Record<string, number>
+}
+
+export function fetchTenantUsage(period?: string): Promise<TenantUsage> {
+  const qs = period ? `?period=${period}` : ''
+  return getApiResult(`/backend-api/v1/metering/usage${qs}`)
+}
+
+/** 配置（含配额）变更流水项 */
+export interface QuotaChangeItem {
+  id: string
+  tenantId: number
+  /** 参数键（如 tenant.quota.maxUsers） */
+  configKey?: string
+  /** 参数中文名 */
+  configName?: string
+  oldValue: string | null
+  newValue: string | null
+  operateUserName?: string | null
+  createTime: string
+}
+
+export function fetchQuotaChanges(params?: { page?: number; pageSize?: number; configKey?: string }): Promise<PageResult<QuotaChangeItem>> {
+  const qs = new URLSearchParams()
+  if (params?.page) qs.set('page', String(params.page))
+  if (params?.pageSize) qs.set('pageSize', String(params.pageSize))
+  if (params?.configKey) qs.set('configKey', params.configKey)
+  return getApiResult(`/backend-api/v1/metering/quota-changes${qs.size ? `?${qs}` : ''}`)
+}

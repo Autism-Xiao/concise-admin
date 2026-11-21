@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { Building2, ChevronsUpDown, LogOut, Settings, User } from 'lucide-react'
+import { Building2, ChevronsUpDown, Gauge, LogOut, Settings, User } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -16,6 +16,7 @@ import { useLocale } from '@/context/locale-provider'
 import { useTenantScope } from '@/context/tenant-scope-provider'
 import { AUTH_CHANGED_EVENT, getAvatar, getName, getUsername, logout, resolveAvatarUrl } from '@/lib/auth'
 import { TenantSwitchDialog } from '@/features/system/tenant/components/tenant-switch-dialog'
+import { TenantUsageDialog } from '@/features/system/tenant/components/tenant-usage-dialog'
 
 export function NavUser() {
   const navigate = useNavigate()
@@ -30,6 +31,8 @@ export function NavUser() {
   // 单租户普通用户 switchable=false，菜单项不渲染
   const { tenants, isSuper, current, currentLabel, switchable, tenantInfoLoaded, switching, switchTo } = useTenantScope()
   const [switchOpen, setSwitchOpen] = useState(false)
+  // 租户用量弹窗：在具体租户视角（current > 0）才显示入口；平台视角请先切换租户
+  const [usageOpen, setUsageOpen] = useState(false)
   useEffect(() => {
     const sync = () => {
       setName(getName())
@@ -106,6 +109,17 @@ export function NavUser() {
                   切换租户
                 </DropdownMenuItem>
               ) : null}
+              {current !== null && current > 0 ? (
+                <DropdownMenuItem
+                  onClick={() => {
+                    closeMobileSidebar()
+                    setUsageOpen(true)
+                  }}
+                >
+                  <Gauge />
+                  租户用量
+                </DropdownMenuItem>
+              ) : null}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -136,6 +150,7 @@ export function NavUser() {
         void switchTo(tenantId)
       }}
     />
+    <TenantUsageDialog open={usageOpen} onOpenChange={setUsageOpen} />
     </>
   )
 }
