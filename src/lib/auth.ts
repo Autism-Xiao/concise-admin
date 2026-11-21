@@ -1,4 +1,5 @@
 import { clearLocalSettings } from '@/lib/settings'
+import { clearRememberToken, getRememberToken } from '@/lib/remember-token'
 
 const AUTH_KEY = 'concise-auth'
 const USER_KEY = 'concise-user'
@@ -119,6 +120,17 @@ export function logout(): void {
       body: JSON.stringify({ refreshToken })
     }).catch(() => undefined)
   }
+  // 「记住登录」凭证必须随登出吊销并清除：否则下次进登录页会被静默续登回去，
+  // 登出就失去了「换人/换账号」的意义（后端幂等，请求失败也不残留本地副本）
+  const rememberToken = getRememberToken()
+  if (rememberToken) {
+    void fetch('/backend-api/v1/auth/remember/revoke', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: rememberToken })
+    }).catch(() => undefined)
+  }
+  clearRememberToken()
   localStorage.removeItem(AUTH_KEY)
   localStorage.removeItem(USER_KEY)
   localStorage.removeItem(NAME_KEY)

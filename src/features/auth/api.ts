@@ -37,6 +37,12 @@ export interface LoginPayload {
   captchaTicket?: string
   /** 两步验证 6 位动态码（账号开启 2FA 后登录必填，见 BIZ_CODE.TOTP_REQUIRED） */
   totpCode?: string
+  /** 勾选「记住登录」：后端签发 Redis 凭证用于免密续登（不存密码） */
+  rememberMe?: boolean
+  /** 记住有效期（天），后端收敛到 1-15 */
+  rememberDays?: number
+  /** 设备指纹：凭证与设备绑定，换设备续登会被拒 */
+  deviceId?: string
 }
 
 /** 登录成功返回的 data：字段名做宽松兼容，接后端联调后再收紧 */
@@ -46,6 +52,10 @@ export interface LoginResult {
   refreshToken?: string
   /** 密码已过期或被管理员标记：前端必须先引导改密，改完才放行进入系统 */
   mustChangePassword?: boolean
+  /** 勾选「记住登录」且后端启用时返回：本机只存这张凭证，密码不再落盘 */
+  rememberToken?: string
+  /** 后端收敛后的实际记住天数 */
+  rememberDays?: number
   userInfo?: {
     username?: string
     nickname?: string
@@ -73,6 +83,26 @@ export function loginRequest(payload: LoginPayload): Promise<LoginResult> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
+  })
+}
+
+/* ---------- 记住登录凭证（方案 C）：免密续登 / 吊销 ---------- */
+
+/** 用记住凭证 + 设备绑定换新令牌对；失效（过期/改密/换设备）会抛 401 错误 */
+export function exchangeRememberLogin(token: string, deviceId: string): Promise<LoginResult> {
+  return getApiResult<LoginResult>('/backend-api/v1/auth/remember/exchange', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, deviceId })
+  })
+}
+
+/** 登出时吊销服务端凭证记录（幂等，token 不存在也返回成功） */
+export function revokeRememberLogin(token: string): Promise<{ revoked: boolean }> {
+  return getApiResult<{ revoked: boolean }>('/backend-api/v1/auth/remember/revoke', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token })
   })
 }
 

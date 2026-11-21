@@ -31,11 +31,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useLocale } from '@/context/locale-provider'
 import { isApiError } from '@/lib/api-error'
 import { BIZ_CODE } from '@/lib/biz-code'
-import { login, setAvatar, setMenuTree, setMustChangePassword, setPermissions, setTokens } from '@/lib/auth'
+import { isAuthenticated, login, setAvatar, setMenuTree, setMustChangePassword, setPermissions, setTokens } from '@/lib/auth'
 import { resolveHomePath } from '@/lib/home-path'
 import { notifyPermissionsChanged } from '@/lib/permissions'
-import { clearRemember, readRemember, readRememberPassword, REMEMBER_DAYS_DEFAULT, REMEMBER_OPTIONS, writeRemember, type RememberDays } from '@/lib/remember'
-import { fetchCaptcha, fetchPermissions, fetchSsoConfig, loginRequest, verifyCaptcha } from './api'
+import { clearRememberToken, getDeviceId, getRememberToken, REMEMBER_DAYS_DEFAULT, REMEMBER_OPTIONS, setRememberToken, type RememberDays } from '@/lib/remember-token'
+import { exchangeRememberLogin, fetchCaptcha, fetchPermissions, fetchSsoConfig, loginRequest, verifyCaptcha, type LoginResult } from './api'
 import { ForgotPasswordDialog } from './forgot-password-dialog'
 
 const APP_NAME = import.meta.env.VITE_APP_NAME
@@ -43,15 +43,15 @@ const APP_NAME = import.meta.env.VITE_APP_NAME
 export function LoginPage() {
   const navigate = useNavigate()
   const { t } = useLocale()
-  // 已过期/损坏的记住记录在读取时就被清掉，这里只在首帧读一次
-  const [remembered] = useState(readRemember)
-  const [account, setAccount] = useState(remembered?.username ?? '')
-  const [password, setPassword] = useState(() => (remembered ? (readRememberPassword(remembered.username) ?? '') : ''))
+  const [account, setAccount] = useState('')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  // 记住密码：勾选后按所选天数保存，登录成功才落盘，取消勾选立即清除
-  const [remember, setRemember] = useState(!!remembered)
-  const [rememberDays, setRememberDays] = useState<RememberDays>(remembered?.days ?? REMEMBER_DAYS_DEFAULT)
+  // 记住登录（方案 C）：勾选后后端签发 Redis 凭证（本机只存凭证、不存密码），登录成功才落盘
+  const [remember, setRemember] = useState(false)
+  const [rememberDays, setRememberDays] = useState<RememberDays>(REMEMBER_DAYS_DEFAULT)
+  // 静默续登：本机有有效凭证时进登录页先免密换令牌对，成功直接进系统；失败清凭证回退表单
+  const [silentLoggingIn, setSilentLoggingIn] = useState(false)
   // 字段级非空校验（Element Plus 风格：错误红字内联显示，输入即清除）
   const [errors, setErrors] = useState<{ account?: string; password?: string }>({})
   // 提交级错误：toast 会消失，这里常驻展示「还可尝试 N 次 / 账号已锁定 24 小时」
@@ -150,6 +150,63 @@ export function LoginPage() {
     sliderRef.current?.refresh()
   }, [])
 
+  // 登录成功后的公共处理（密码登录与静默续登共用）：落令牌/账号信息 → 权限汇总 → 进首页
+  const applyLoginResult = useCallback(
+    async (data: LoginResult, fallbackUsername: string) => {
+      const user = data.userInfo ?? data.user ?? {}
+      const username = user.username ?? fallbackUsername
+      setTokens(data.accessToken ?? data.token, data.refreshToken)
+      // 后端 roles 是对象数组（[{ roleCode }]），取第一个角色的 code
+      const firstRole = Array.isArray(user.roles) ? user.roles[0] : undefined
+      const roleCode = typeof firstRole === 'string' ? firstRole : (firstRole?.roleCode ?? user.role ?? 'viewer')
+      login({ username, name: user.nickname ?? user.realname ?? user.name ?? username, role: roleCode })
+      // 头像一起缓存：顶栏/侧边栏/锁屏读本地缓存渲染，不额外发请求
+      setAvatar(user.avatar)
+      // 密码过期 / 管理员标记强制改密：进系统前由布局层弹不可关闭的改密框
+      setMustChangePassword(!!data.mustChangePassword)
+      // 登录后拉一次权限汇总（角色/按钮权限/菜单树），失败不阻塞进入系统（无菜单权限，进 403）
+      try {
+        const perm = await fetchPermissions()
+        setPermissions(perm.permissions ?? [])
+        setMenuTree(perm.menus ?? [])
+      } catch {
+        // 权限接口异常时不写入菜单，permissions.ts 按「无可见菜单」处理
+      }
+      notifyPermissionsChanged()
+      toast.success(t('login.success'))
+      // 首页是常驻页面（数据按权限裁剪），任何账号都落到 /dashboard
+      void navigate({ to: resolveHomePath() as never })
+    },
+    [navigate, t]
+  )
+
+  // 静默续登：本机有「记住登录」凭证且当前未登录时，进登录页先免密换令牌对。
+  // 成功直接进系统（用户无感）；失败（过期/改密/换设备/凭证被吊销）清掉本机副本，回退到表单登录。
+  // 登出会主动吊销凭证，所以「登出后立刻被送回来」不会发生；锁屏解锁不受此影响（走 verify-password）
+  useEffect(() => {
+    const token = getRememberToken()
+    if (!token || isAuthenticated()) return
+    let alive = true
+    setSilentLoggingIn(true)
+    exchangeRememberLogin(token, getDeviceId())
+      .then(data => {
+        if (!alive) return
+        void applyLoginResult(data, '')
+      })
+      .catch(() => {
+        // 凭证失效自愈：清掉本机副本，避免下次进页面再白试一次
+        clearRememberToken()
+      })
+      .finally(() => {
+        if (alive) setSilentLoggingIn(false)
+      })
+    return () => {
+      alive = false
+    }
+    // applyLoginResult 依赖 navigate/t，挂载后不变；只跑一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (lockedOut) return
@@ -172,35 +229,16 @@ export function LoginPage() {
         // 后端关闭验证码时不传：避免把一个空字符串当成「有票据」送过去
         captchaTicket: captchaRequired ? ticketRef.current : undefined,
         // 未开启 2FA 的账号传了后端也不校验，统一带上有状态更简单
-        totpCode: needTotp ? totpCode : undefined
+        totpCode: needTotp ? totpCode : undefined,
+        // 记住登录（方案 C）：后端签发 Redis 凭证；后端未启用时返回体里没有 rememberToken
+        rememberMe: remember,
+        rememberDays,
+        deviceId: getDeviceId()
       })
-      // 宽松兼容后端返回的 token / 用户字段
-      const user = data.userInfo ?? data.user ?? {}
-      const username = user.username ?? account.trim()
-      setTokens(data.accessToken ?? data.token, data.refreshToken)
-      // 登录成功才落盘记住密码（失败不保存，避免存下错密码反复撞库）
-      if (remember) writeRemember(account.trim(), password, rememberDays)
-      else clearRemember()
-      // 后端 roles 是对象数组（[{ roleCode }]），取第一个角色的 code
-      const firstRole = Array.isArray(user.roles) ? user.roles[0] : undefined
-      const roleCode = typeof firstRole === 'string' ? firstRole : (firstRole?.roleCode ?? user.role ?? 'viewer')
-      login({ username, name: user.nickname ?? user.realname ?? user.name ?? username, role: roleCode })
-      // 头像一起缓存：顶栏/侧边栏/锁屏读本地缓存渲染，不额外发请求
-      setAvatar(user.avatar)
-      // 密码过期 / 管理员标记强制改密：进系统前由布局层弹不可关闭的改密框
-      setMustChangePassword(!!data.mustChangePassword)
-      // 登录后拉一次权限汇总（角色/按钮权限/菜单树），失败不阻塞进入系统（无菜单权限，进 403）
-      try {
-        const perm = await fetchPermissions()
-        setPermissions(perm.permissions ?? [])
-        setMenuTree(perm.menus ?? [])
-      } catch {
-        // 权限接口异常时不写入菜单，permissions.ts 按「无可见菜单」处理
-      }
-      notifyPermissionsChanged()
-      toast.success(t('login.success'))
-      // 首页是常驻页面（数据按权限裁剪），任何账号都落到 /dashboard
-      void navigate({ to: resolveHomePath() as never })
+      // 登录成功才落盘凭证（失败不保存）；后端没签发（Redis 关/开关关）时清掉旧凭证
+      if (remember) setRememberToken(data.rememberToken)
+      else clearRememberToken()
+      await applyLoginResult(data, account.trim())
     } catch (err) {
       // 后端 message 直接透出：验证码错误 / 用户名或密码错误，还可尝试 4 次 / 账号已锁定 24 小时
       const message = err instanceof Error ? err.message : t('login.credentialsError')
@@ -208,7 +246,7 @@ export function LoginPage() {
       // 锁定判定按业务码（可靠），message 文本匹配只作旧版本兜底
       setLockedOut(isApiError(err) ? err.code === BIZ_CODE.ACCOUNT_LOCKED : message.includes('已锁定'))
       // 2105：账号开了两步验证 → 展开动态码输入框（提示同时落在错误条上）
-      // 2106：动态码不对 → 清空输入等用户重输；两者都不动「记住密码」，密码本身是验过的
+      // 2106：动态码不对 → 清空输入等用户重输；两者都不动「记住登录」，密码本身是验过的
       if (isApiError(err)) {
         if (err.code === BIZ_CODE.TOTP_REQUIRED) setNeedTotp(true)
         if (err.code === BIZ_CODE.TOTP_INVALID) setTotpCode('')
@@ -331,18 +369,13 @@ export function LoginPage() {
                 </Button>
               </div>
               {errors.password && <p className="text-destructive text-xs">{errors.password}</p>}
-              {/* 记住密码：勾选后按所选天数保存账号密码，到期自动失效 */}
+              {/* 记住登录：勾选后按所选天数在服务端签发免密续登凭证（本机不存密码），到期自动失效 */}
               <div className="flex items-center justify-between gap-2 pt-1">
                 <label className="text-muted-foreground flex cursor-pointer items-center gap-1.5 text-xs select-none">
                   <input
                     type="checkbox"
                     checked={remember}
-                    onChange={e => {
-                      const next = e.target.checked
-                      setRemember(next)
-                      // 取消勾选立即清除本地凭证，不留残余
-                      if (!next) clearRemember()
-                    }}
+                    onChange={e => setRemember(e.target.checked)}
                     className="accent-primary size-3.5 cursor-pointer"
                   />
                   {t('login.remember')}
@@ -439,9 +472,9 @@ export function LoginPage() {
                 <span className="leading-relaxed">{submitError}</span>
               </div>
             )}
-            <Button type="submit" className="w-full" disabled={submitting || lockedOut}>
-              {submitting && <Loader2 className="animate-spin" />}
-              {submitting ? t('login.submitting') : t('login.submit')}
+            <Button type="submit" className="w-full" disabled={submitting || lockedOut || silentLoggingIn}>
+              {(submitting || silentLoggingIn) && <Loader2 className="animate-spin" />}
+              {silentLoggingIn ? t('login.resuming') : submitting ? t('login.submitting') : t('login.submit')}
             </Button>
             {/* 忘记密码：邮件验证码重置（自建通道，不依赖短信/第三方） */}
             <div className="text-center">
