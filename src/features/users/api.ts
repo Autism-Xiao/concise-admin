@@ -128,18 +128,21 @@ export function fetchUsers(keyword = '', status = ''): Promise<UserListResult> {
   return getApiResult<UserListResult>(`/backend-api/v1/users?${params.toString()}`)
 }
 
-/** 用户列表页的服务端分页查询：搜索/状态筛选/排序/翻页全部由接口完成 */
+/** 用户列表页的服务端分页查询：搜索/状态/部门/排序/翻页全部由接口完成 */
 export function fetchUserPage(params: {
   page: number
   pageSize: number
   keyword?: string
   status?: string
+  /** 部门过滤（含子孙部门由前端展开后传入，逗号分隔取并集） */
+  deptIds?: string[]
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }): Promise<UserListResult> {
   const qs = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) })
   if (params.keyword) qs.set('keyword', params.keyword)
   if (params.status) qs.set('status', params.status)
+  if (params.deptIds?.length) qs.set('deptIds', params.deptIds.join(','))
   if (params.sortBy) {
     qs.set('sortBy', params.sortBy)
     qs.set('sortOrder', params.sortOrder ?? 'asc')
@@ -386,10 +389,11 @@ export interface UserImportResult {
 }
 
 /** 导出用户 Excel（与列表同过滤条件，不传即全量） */
-export function exportUsers(params: { keyword?: string; status?: string } = {}): Promise<{ filename: string; blob: Blob }> {
+export function exportUsers(params: { keyword?: string; status?: string; deptIds?: string[] } = {}): Promise<{ filename: string; blob: Blob }> {
   const qs = new URLSearchParams()
   if (params.keyword) qs.set('keyword', params.keyword)
   if (params.status) qs.set('status', params.status)
+  if (params.deptIds?.length) qs.set('deptIds', params.deptIds.join(','))
   const query = qs.toString()
   return downloadFromApi(`/v1/users/export${query ? `?${query}` : ''}`, 'users.xlsx')
 }

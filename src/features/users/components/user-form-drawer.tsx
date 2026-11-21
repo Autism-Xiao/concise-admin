@@ -15,6 +15,8 @@ interface UserFormDrawerProps {
   onOpenChange: (open: boolean) => void
   /** null 表示新增 */
   user: User | null
+  /** 新增时的默认部门（左树选中部门后点新增，自动带出，表单里仍可改） */
+  defaultDeptIds?: string[]
   onSubmit: (values: UserWritePayload) => void
 }
 
@@ -81,7 +83,7 @@ function CheckList({
 }
 
 /** 由父组件按 key 控制重挂载，保证打开时表单初始化为对应用户 */
-export function UserFormDrawer({ open, onOpenChange, user, onSubmit }: UserFormDrawerProps) {
+export function UserFormDrawer({ open, onOpenChange, user, defaultDeptIds, onSubmit }: UserFormDrawerProps) {
   /** 性别选项来自字典 sys_user_gender（兜底值保证字典被删/接口失败时下拉不空） */
   const genderItems = useDict('sys_user_gender', { 0: '未知', 1: '男', 2: '女' })
   const [form, setForm] = useState<FormState>(() =>
@@ -102,7 +104,7 @@ export function UserFormDrawer({ open, onOpenChange, user, onSubmit }: UserFormD
           passwordExpireAt: user.passwordExpireAt ? user.passwordExpireAt.slice(0, 10) : '',
           mustChangePassword: user.mustChangePassword ?? 0
         }
-      : emptyForm
+      : { ...emptyForm, deptIds: defaultDeptIds ?? [] }
   )
   const [roles, setRoles] = useState<Role[] | null>(null)
   const [depts, setDepts] = useState<Array<{ id: string; departName: string; status?: string }> | null>(null)
