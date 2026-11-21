@@ -114,6 +114,29 @@ export function deleteTenant(id: number): Promise<unknown> {
   return getApiResult(`${API}/${id}`, { method: 'DELETE' })
 }
 
+/* ---------- 即将到期（平台运营视图） ---------- */
+
+/** 即将到期租户项：expired=true 表示已到期未停用（后端读取判定会拦用户进入） */
+export interface ExpiringTenant {
+  id: number
+  name: string
+  code: string
+  plan: string
+  /** YYYY-MM-DD */
+  expireAt: string
+  /** 剩余天数：0 = 今天到期，负数 = 已过期 N 天 */
+  daysLeft: number
+  expired: boolean
+  ownerUserId: string | null
+  ownerName: string | null
+  userCount: number
+}
+
+/** 未来 N 天内到期的正常租户（含已到期未停用），按到期日升序 */
+export function fetchExpiringTenants(days = 30): Promise<ExpiringTenant[]> {
+  return getApiResult(`${API}/expiring?days=${days}`)
+}
+
 /* ---------- 我的租户 / 切换（所有登录用户） ---------- */
 
 export function fetchMyTenants(): Promise<{ current: number | null; isSuper: boolean; tenants: MyTenant[] }> {
