@@ -75,10 +75,7 @@ function TreeRow({
   return (
     <div>
       <div
-        className={cn(
-          'group hover:bg-accent flex cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-sm',
-          selected && 'bg-accent font-medium'
-        )}
+        className={cn('group hover:bg-accent flex cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-sm', selected && 'bg-accent font-medium')}
         style={{ paddingInlineStart: depth * 16 + 8 }}
         onClick={() => onSelect(node)}
       >
@@ -189,9 +186,7 @@ export function MenuPage() {
   /** 选中的目录/菜单直属按钮（按钮权限列表数据源） */
   const buttonChildren = useMemo(() => {
     if (!selected || selected.menuType === 2) return []
-    return list
-      .filter(m => m.parentId === selected.id && m.menuType === 2)
-      .sort((a, b) => a.sortNo - b.sortNo)
+    return list.filter(m => m.parentId === selected.id && m.menuType === 2).sort((a, b) => a.sortNo - b.sortNo)
   }, [list, selected])
 
   /** 根目录总览：类型统计 */
@@ -212,9 +207,7 @@ export function MenuPage() {
   const searchResults = useMemo(() => {
     const kw = keyword.trim().toLowerCase()
     if (!kw) return []
-    return list.filter(
-      m => m.name.toLowerCase().includes(kw) || (m.url ?? '').toLowerCase().includes(kw) || (m.perms ?? '').toLowerCase().includes(kw)
-    )
+    return list.filter(m => m.name.toLowerCase().includes(kw) || (m.url ?? '').toLowerCase().includes(kw) || (m.perms ?? '').toLowerCase().includes(kw))
   }, [list, keyword])
 
   const toggle = (id: string) =>
@@ -305,7 +298,9 @@ export function MenuPage() {
         <span className="font-mono text-xs">{selected.url ?? '-'}</span>
       </DetailRow>
       <DetailRow label="是否外链">
-        <span className={cn('rounded px-1.5 py-0.5 text-xs', selected.internalOrExternal === 1 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground')}>
+        <span
+          className={cn('rounded px-1.5 py-0.5 text-xs', selected.internalOrExternal === 1 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground')}
+        >
           {selected.internalOrExternal === 1 ? '是' : '否'}
         </span>
       </DetailRow>
@@ -332,256 +327,272 @@ export function MenuPage() {
   ) : null
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[280px_1fr]">
-      {/* 左：菜单树（搜索 + 快捷新增） */}
-      <Card className="h-fit xl:sticky xl:top-4">
-        <div className="flex items-center justify-between px-3">
-          <span className="text-sm font-semibold">菜单列表</span>
-          <div className="flex items-center gap-0.5">
-            {hasPermission('system:menu:add') && (
-              <Button variant="ghost" size="icon" className="size-7" title="新增根菜单" onClick={() => openCreate(null)}>
-                <Plus className="size-4" />
-              </Button>
-            )}
-            {hasPermission('system:menu:export') && (
-              <Button variant="ghost" size="icon" className="size-7" title="导出" onClick={handleExport} disabled={exporting || list.length === 0}>
-                <Download className="size-4" />
-              </Button>
-            )}
-            <RefreshButton onClick={() => void load()} disabled={loading} spinning={loading} className="size-7" />
-          </div>
+    <div className="space-y-6">
+      {/* 页标题：整行置顶（与其他页面惯例一致），下方才是主从网格 */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-bold">菜单管理</h1>
+          <p className="text-muted-foreground text-sm">共 {list.length} 个菜单</p>
         </div>
-        <div className="px-3 pt-2 pb-1">
-          <Input placeholder="请输入菜单名称" className="h-8 text-sm" value={keyword} onChange={e => setKeyword(e.target.value)} />
-        </div>
-        {/* data-scroll：复用全局「默认隐藏、悬停显现」滚动条样式，与侧边栏一致 */}
-        <CardContent data-scroll="tree" className="max-h-[calc(100vh-260px)] overflow-y-auto px-2 pb-2">
-          {loadError ? (
-            <div className="flex flex-col items-center gap-2 py-8">
-              <p className="text-muted-foreground text-sm">菜单数据加载失败</p>
-              <RefreshButton onClick={() => void load()} title="重新加载" />
-            </div>
-          ) : loading ? (
-            <div className="space-y-2 py-1">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-8 w-full" />
-              ))}
-            </div>
-          ) : searching ? (
-            <div className="py-1">
-              {searchResults.length ? (
-                searchResults.map(m => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    className={cn(
-                      'hover:bg-accent flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-start text-sm',
-                      selectedId === m.id && 'bg-accent font-medium'
-                    )}
-                    onClick={() => setSelectedId(m.id)}
-                  >
-                    {m.menuType === 2 ? (
-                      <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs leading-none">按钮</span>
-                    ) : (
-                      <Folder className="text-muted-foreground size-3.5 shrink-0" />
-                    )}
-                    <span className="truncate">{m.name}</span>
-                  </button>
-                ))
-              ) : (
-                <p className="text-muted-foreground py-6 text-center text-sm">没有匹配的菜单</p>
-              )}
-            </div>
-          ) : (
-            <div className="py-1">
-              {/* 虚拟根节点：对齐后端 parent=null 语义，快捷建顶级菜单 */}
-              <button
-                type="button"
-                className={cn(
-                  'hover:bg-accent flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-start text-sm',
-                  !selectedId && 'bg-accent font-medium'
-                )}
-                onClick={() => setSelectedId(null)}
-              >
-                <Folder className="text-muted-foreground size-3.5 shrink-0" />
-                根目录
-              </button>
-              {tree.map(node => (
-                <TreeRow
-                  key={node.id}
-                  node={node}
-                  depth={1}
-                  collapsed={collapsed}
-                  selectedId={selectedId}
-                  onToggle={toggle}
-                  onSelect={menu => setSelectedId(menu.id)}
-                  onAddChild={parentId => openCreate(parentId)}
-                />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      </div>
 
-      {/* 右：菜单详情 + 按钮权限列表 */}
-      <div className="min-w-0 space-y-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-base">{selected ? '菜单详情' : '菜单总览'}</CardTitle>
-            <div className="flex items-center gap-2">
+      <div className="grid gap-4 xl:grid-cols-[280px_1fr]">
+        {/* 左：菜单树（搜索 + 快捷新增） */}
+        <Card className="h-fit xl:sticky xl:top-4">
+          <div className="flex items-center justify-between px-3">
+            <span className="text-sm font-semibold">菜单列表</span>
+            <div className="flex items-center gap-0.5">
               {hasPermission('system:menu:add') && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-primary"
-                  disabled={!selected || selected.menuType === 2}
-                  onClick={() => openCreate(selected!.id)}
-                >
+                <Button variant="ghost" size="icon" className="size-7" title="新增根菜单" onClick={() => openCreate(null)}>
                   <Plus className="size-4" />
-                  新增子菜单
                 </Button>
               )}
-              {hasPermission('system:menu:update') && (
-                <Button size="sm" variant="outline" className="h-8" disabled={!selected} onClick={() => openEdit(selected!)}>
-                  <SquarePen className="size-4" />
-                  编辑
+              {hasPermission('system:menu:export') && (
+                <Button variant="ghost" size="icon" className="size-7" title="导出" onClick={handleExport} disabled={exporting || list.length === 0}>
+                  <Download className="size-4" />
                 </Button>
               )}
-              {hasPermission('system:menu:delete') && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-destructive hover:text-destructive h-8"
-                  disabled={!selected}
-                  onClick={() => setDeleting(selected!)}
-                >
-                  <Trash2 className="size-4" />
-                  删除
-                </Button>
-              )}
+              <RefreshButton onClick={() => void load()} disabled={loading} spinning={loading} className="size-7" />
             </div>
-          </CardHeader>
-          <CardContent>
-            {selected ? (
-              <dl className="grid grid-cols-1 gap-x-8 gap-y-0 sm:grid-cols-2">{detailRows}</dl>
+          </div>
+          <div className="px-3 pt-2 pb-1">
+            <Input placeholder="请输入菜单名称" className="h-8 text-sm" value={keyword} onChange={e => setKeyword(e.target.value)} />
+          </div>
+          {/* data-scroll：复用全局「默认隐藏、悬停显现」滚动条样式，与侧边栏一致 */}
+          <CardContent data-scroll="tree" className="max-h-[calc(100vh-260px)] overflow-y-auto px-2 pb-2">
+            {loadError ? (
+              <div className="flex flex-col items-center gap-2 py-8">
+                <p className="text-muted-foreground text-sm">菜单数据加载失败</p>
+                <RefreshButton onClick={() => void load()} title="重新加载" />
+              </div>
             ) : loading ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-[70px] w-full rounded-lg" />
+              <div className="space-y-2 py-1">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-8 w-full" />
                 ))}
               </div>
-            ) : stats.total === 0 ? (
-              <div className="flex flex-col items-center gap-3 py-8">
-                <p className="text-muted-foreground text-sm">还没有任何菜单</p>
-                {hasPermission('system:menu:add') && (
-                  <Button size="sm" onClick={() => openCreate(null)}>
-                    <Plus className="size-4" />
-                    创建第一个菜单
-                  </Button>
+            ) : searching ? (
+              <div className="py-1">
+                {searchResults.length ? (
+                  searchResults.map(m => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      className={cn(
+                        'hover:bg-accent flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-start text-sm',
+                        selectedId === m.id && 'bg-accent font-medium'
+                      )}
+                      onClick={() => setSelectedId(m.id)}
+                    >
+                      {m.menuType === 2 ? (
+                        <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs leading-none">按钮</span>
+                      ) : (
+                        <Folder className="text-muted-foreground size-3.5 shrink-0" />
+                      )}
+                      <span className="truncate">{m.name}</span>
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-muted-foreground py-6 text-center text-sm">没有匹配的菜单</p>
                 )}
               </div>
             ) : (
-              <div className="space-y-5">
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <StatBlock icon={<ListTree className="size-4" />} label="菜单总数" value={stats.total} />
-                  <StatBlock icon={<Folder className="size-4" />} label="目录" value={stats.dirs} />
-                  <StatBlock icon={<PanelTop className="size-4" />} label="页面菜单" value={stats.menus} />
-                  <StatBlock icon={<MousePointerClick className="size-4" />} label="按钮权限" value={stats.buttons} />
-                </div>
-                <div>
-                  <p className="text-muted-foreground mb-2 text-xs">顶级菜单速览 · 点击卡片查看详情</p>
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {tree.map(node => (
-                      <button
-                        key={node.id}
-                        type="button"
-                        className="hover:border-primary/40 hover:bg-accent/50 flex items-center gap-2.5 rounded-lg border p-3 text-start transition-colors"
-                        onClick={() => setSelectedId(node.id)}
-                      >
-                        <span className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-md">
-                          {node.menuType === 0 ? <Folder className="size-4" /> : <PanelTop className="size-4" />}
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-medium">{node.name}</span>
-                          <span className="text-muted-foreground block text-xs">
-                            {node.children.length ? `${countDescendants(node)} 个子项` : '暂无子级'}
-                          </span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              <div className="py-1">
+                {/* 虚拟根节点：对齐后端 parent=null 语义，快捷建顶级菜单 */}
+                <button
+                  type="button"
+                  className={cn(
+                    'hover:bg-accent flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-start text-sm',
+                    !selectedId && 'bg-accent font-medium'
+                  )}
+                  onClick={() => setSelectedId(null)}
+                >
+                  <Folder className="text-muted-foreground size-3.5 shrink-0" />
+                  根目录
+                </button>
+                {tree.map(node => (
+                  <TreeRow
+                    key={node.id}
+                    node={node}
+                    depth={1}
+                    collapsed={collapsed}
+                    selectedId={selectedId}
+                    onToggle={toggle}
+                    onSelect={menu => setSelectedId(menu.id)}
+                    onAddChild={parentId => openCreate(parentId)}
+                  />
+                ))}
               </div>
             )}
           </CardContent>
         </Card>
 
-        {selected && selected.menuType !== 2 && (
+        {/* 右：菜单详情 + 按钮权限列表 */}
+        <div className="min-w-0 space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-base">按钮权限列表</CardTitle>
-              <RefreshButton onClick={() => void load()} disabled={loading} spinning={loading} />
+              <CardTitle className="text-base">{selected ? '菜单详情' : '菜单总览'}</CardTitle>
+              <div className="flex items-center gap-2">
+                {hasPermission('system:menu:add') && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-primary h-8"
+                    disabled={!selected || selected.menuType === 2}
+                    onClick={() => openCreate(selected!.id)}
+                  >
+                    <Plus className="size-4" />
+                    新增子菜单
+                  </Button>
+                )}
+                {hasPermission('system:menu:update') && (
+                  <Button size="sm" variant="outline" className="h-8" disabled={!selected} onClick={() => openEdit(selected!)}>
+                    <SquarePen className="size-4" />
+                    编辑
+                  </Button>
+                )}
+                {hasPermission('system:menu:delete') && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-destructive hover:text-destructive h-8"
+                    disabled={!selected}
+                    onClick={() => setDeleting(selected!)}
+                  >
+                    <Trash2 className="size-4" />
+                    删除
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-10 w-full" />
+              {selected ? (
+                <dl className="grid grid-cols-1 gap-x-8 gap-y-0 sm:grid-cols-2">{detailRows}</dl>
+              ) : loading ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-[70px] w-full rounded-lg" />
                   ))}
                 </div>
-              ) : buttonChildren.length ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-14 text-center">序号</TableHead>
-                      <TableHead>菜单名称</TableHead>
-                      <TableHead>权限字符</TableHead>
-                      <TableHead className="w-24">菜单状态</TableHead>
-                      <TableHead className="w-44">创建时间</TableHead>
-                      <TableHead className="text-end">操作</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {buttonChildren.map((m, i) => (
-                      <TableRow key={m.id}>
-                        <TableCell className="text-muted-foreground text-center tabular-nums">{i + 1}</TableCell>
-                        <TableCell className="font-medium">{m.name}</TableCell>
-                        <TableCell>
-                          <span className="text-muted-foreground font-mono text-xs">{m.perms ?? '-'}</span>
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge ok={m.status === '1'} label={m.status === '1' ? '正常' : '停用'} />
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs tabular-nums">{formatDateTime(m.createTime)}</TableCell>
-                        <TableCell className="text-end whitespace-nowrap">
-                          {hasPermission('system:menu:update') && (
-                            <Button variant="ghost" size="icon" title="修改" className="text-primary hover:text-primary size-7" onClick={() => openEdit(m)}>
-                              <SquarePen className="size-3.5" />
-                            </Button>
-                          )}
-                          {hasPermission('system:menu:delete') && (
-                            <Button variant="ghost" size="icon" title="删除" className="text-destructive hover:text-destructive size-7" onClick={() => setDeleting(m)}>
-                              <Trash2 className="size-3.5" />
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <p className="text-muted-foreground py-6 text-center text-sm">
-                  暂无按钮权限
+              ) : stats.total === 0 ? (
+                <div className="flex flex-col items-center gap-3 py-8">
+                  <p className="text-muted-foreground text-sm">还没有任何菜单</p>
                   {hasPermission('system:menu:add') && (
-                    <button type="button" className="text-primary ms-2 hover:underline" onClick={() => openCreate(selected.id)}>
-                      新增按钮
-                    </button>
+                    <Button size="sm" onClick={() => openCreate(null)}>
+                      <Plus className="size-4" />
+                      创建第一个菜单
+                    </Button>
                   )}
-                </p>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <StatBlock icon={<ListTree className="size-4" />} label="菜单总数" value={stats.total} />
+                    <StatBlock icon={<Folder className="size-4" />} label="目录" value={stats.dirs} />
+                    <StatBlock icon={<PanelTop className="size-4" />} label="页面菜单" value={stats.menus} />
+                    <StatBlock icon={<MousePointerClick className="size-4" />} label="按钮权限" value={stats.buttons} />
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-2 text-xs">顶级菜单速览 · 点击卡片查看详情</p>
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {tree.map(node => (
+                        <button
+                          key={node.id}
+                          type="button"
+                          className="hover:border-primary/40 hover:bg-accent/50 flex items-center gap-2.5 rounded-lg border p-3 text-start transition-colors"
+                          onClick={() => setSelectedId(node.id)}
+                        >
+                          <span className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-md">
+                            {node.menuType === 0 ? <Folder className="size-4" /> : <PanelTop className="size-4" />}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-medium">{node.name}</span>
+                            <span className="text-muted-foreground block text-xs">
+                              {node.children.length ? `${countDescendants(node)} 个子项` : '暂无子级'}
+                            </span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
-        )}
+
+          {selected && selected.menuType !== 2 && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-base">按钮权限列表</CardTitle>
+                <RefreshButton onClick={() => void load()} disabled={loading} spinning={loading} />
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="space-y-2">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <Skeleton key={i} className="h-10 w-full" />
+                    ))}
+                  </div>
+                ) : buttonChildren.length ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-14 text-center">序号</TableHead>
+                        <TableHead>菜单名称</TableHead>
+                        <TableHead>权限字符</TableHead>
+                        <TableHead className="w-24">菜单状态</TableHead>
+                        <TableHead className="w-44">创建时间</TableHead>
+                        <TableHead className="text-end">操作</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {buttonChildren.map((m, i) => (
+                        <TableRow key={m.id}>
+                          <TableCell className="text-muted-foreground text-center tabular-nums">{i + 1}</TableCell>
+                          <TableCell className="font-medium">{m.name}</TableCell>
+                          <TableCell>
+                            <span className="text-muted-foreground font-mono text-xs">{m.perms ?? '-'}</span>
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge ok={m.status === '1'} label={m.status === '1' ? '正常' : '停用'} />
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs tabular-nums">{formatDateTime(m.createTime)}</TableCell>
+                          <TableCell className="text-end whitespace-nowrap">
+                            {hasPermission('system:menu:update') && (
+                              <Button variant="ghost" size="icon" title="修改" className="text-primary hover:text-primary size-7" onClick={() => openEdit(m)}>
+                                <SquarePen className="size-3.5" />
+                              </Button>
+                            )}
+                            {hasPermission('system:menu:delete') && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="删除"
+                                className="text-destructive hover:text-destructive size-7"
+                                onClick={() => setDeleting(m)}
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <p className="text-muted-foreground py-6 text-center text-sm">
+                    暂无按钮权限
+                    {hasPermission('system:menu:add') && (
+                      <button type="button" className="text-primary ms-2 hover:underline" onClick={() => openCreate(selected.id)}>
+                        新增按钮
+                      </button>
+                    )}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
       {formOpen && (
