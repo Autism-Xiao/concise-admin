@@ -35,8 +35,10 @@ export function TenantWorkspace({ homePath }: { homePath: string }) {
           <SidebarMenuButton size="lg" asChild>
             <Link to={homePath as never} className="group-data-[collapsible=icon]:justify-center">
               <Logo className="text-sidebar-primary size-8! shrink-0" />
-              <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-                <span className="truncate font-medium text-[90%]" title={appName}>
+              {/* 行高 1.4：leading-none(1.0) 的行框装不下加粗中文字形，
+                  顶部会被 truncate 的 overflow:hidden 竖着裁掉（「平」变「半」），Windows 100% 缩放下必现 */}
+              <div className="flex min-w-0 flex-col gap-0.5 leading-[1.4] group-data-[collapsible=icon]:hidden">
+                <span className="truncate font-medium" title={appName}>
                   {appName}
                 </span>
                 <span className="text-muted-foreground text-xs">{APP_VERSION}</span>
@@ -55,9 +57,9 @@ export function TenantWorkspace({ homePath }: { homePath: string }) {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton size="lg" tooltip="切换租户" className="data-[state=open]:bg-sidebar-accent">
               <Logo className="text-sidebar-primary size-8! shrink-0" />
-              <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-                {/* 90% 字号让「平台视角」这类 4 字标签完整放下，truncate 仅兜底超长租户名 */}
-                <span className="truncate font-medium text-[90%]" title={currentLabel}>
+              <div className="flex min-w-0 flex-col gap-0.5 leading-[1.4] group-data-[collapsible=icon]:hidden">
+                {/* truncate 仅兜底超长租户名，title 保证悬停可见全名 */}
+                <span className="truncate font-medium" title={currentLabel}>
                   {currentLabel}
                 </span>
                 {/* 用 rem 而非 px：跟随「字号」偏好与侧边栏同步缩放，比例恒定；
