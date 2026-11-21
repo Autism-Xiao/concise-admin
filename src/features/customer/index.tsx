@@ -71,7 +71,7 @@ export function CustomerPage() {
         header: ({ column }) => <DataTableColumnHeader column={column} title="电话" />,
         enableSorting: true,
         cell: ({ row }) => {
-  return <span className="font-medium">{row.getValue('phone') || '-'}</span>
+  return <span className="font-medium">{row.original.maskedFields?.includes('phone') ? '••••••' : row.getValue('phone') || '-'}</span>
         }
       },
       {
@@ -132,7 +132,10 @@ export function CustomerPage() {
   })
 
   const handleSubmit = (values: CustomerWritePayload) => {
-    const request = editing ? updateCustomer(editing.id, values) : createCustomer(values)
+    // 后端因字段权限移除了 phone 时，表单输入框是空的；不剔除就会把真实号码覆盖成空串
+    const payload = { ...values }
+    if (editing?.maskedFields?.includes('phone') && !payload.phone) delete payload.phone
+    const request = editing ? updateCustomer(editing.id, payload) : createCustomer(payload)
     request
       .then(() => {
         toast.success(editing ? '客户已更新' : '客户已创建')

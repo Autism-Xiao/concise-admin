@@ -80,6 +80,8 @@ export function CustomerFormDrawer({ open, onOpenChange, customer: editing, onSu
           <Input
             id="phone"
             value={String(form.phone ?? '')}
+            disabled={!!editing?.maskedFields?.includes('phone')}
+            placeholder={editing?.maskedFields?.includes('phone') ? '无权查看，需 data:sensitive:view 权限' : undefined}
             onChange={e => setField('phone', e.target.value)}
             aria-invalid={!!errors.phone}
           />

@@ -12,9 +12,11 @@ export interface BizOrder {
   updateBy?: string | null
   createdAt: string
   updatedAt: string
+  /** 后端按字段权限移除的敏感字段名（如 amount），前端只展示掩码，不回填表单 */
+  maskedFields?: string[]
 }
 
-export type BizOrderWritePayload = Partial<Omit<BizOrder, 'id' | 'createBy' | 'updateBy' | 'createdAt' | 'updatedAt'>>
+export type BizOrderWritePayload = Partial<Omit<BizOrder, 'id' | 'createBy' | 'updateBy' | 'createdAt' | 'updatedAt' | 'maskedFields'>>
 
 export function fetchBizOrders(params: { page?: number; pageSize?: number; keyword?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' } = {}) {
   const qs = new URLSearchParams()

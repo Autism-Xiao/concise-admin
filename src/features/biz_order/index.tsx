@@ -71,7 +71,7 @@ export function BizOrderPage() {
         header: ({ column }) => <DataTableColumnHeader column={column} title="金额" />,
         enableSorting: true,
         cell: ({ row }) => {
-  return <span className="tabular-nums">{row.getValue('amount') ?? '-'}</span>
+  return <span className="tabular-nums">{row.original.maskedFields?.includes('amount') ? '••••••' : row.getValue('amount') ?? '-'}</span>
         }
       },
       {
@@ -124,7 +124,10 @@ export function BizOrderPage() {
   })
 
   const handleSubmit = (values: BizOrderWritePayload) => {
-    const request = editing ? updateBizOrder(editing.id, values) : createBizOrder(values)
+    // 与电话同理：无权查看金额时表单为空，提交空值会覆盖真实金额
+    const payload = { ...values }
+    if (editing?.maskedFields?.includes('amount') && payload.amount === undefined) delete payload.amount
+    const request = editing ? updateBizOrder(editing.id, payload) : createBizOrder(payload)
     request
       .then(() => {
         toast.success(editing ? '订单已更新' : '订单已创建')

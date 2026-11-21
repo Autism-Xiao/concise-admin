@@ -87,6 +87,8 @@ export function BizOrderFormDrawer({ open, onOpenChange, bizOrder: editing, onSu
             step="0.01"
             min={0}
             value={form.amount ?? ''}
+            disabled={!!editing?.maskedFields?.includes('amount')}
+            placeholder={editing?.maskedFields?.includes('amount') ? '无权查看，需 data:sensitive:view 权限' : undefined}
             onChange={e => setField('amount', e.target.value === '' ? undefined : Number(e.target.value))}
             aria-invalid={!!errors.amount}
           />

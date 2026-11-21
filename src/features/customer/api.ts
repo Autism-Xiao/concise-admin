@@ -13,9 +13,11 @@ export interface Customer {
   updateBy?: string | null
   createdAt: string
   updatedAt: string
+  /** 后端按字段权限移除的敏感字段名（如 phone），前端只展示掩码，不回填表单 */
+  maskedFields?: string[]
 }
 
-export type CustomerWritePayload = Partial<Omit<Customer, 'id' | 'createBy' | 'updateBy' | 'createdAt' | 'updatedAt'>>
+export type CustomerWritePayload = Partial<Omit<Customer, 'id' | 'createBy' | 'updateBy' | 'createdAt' | 'updatedAt' | 'maskedFields'>>
 
 export function fetchCustomers(params: { page?: number; pageSize?: number; keyword?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' } = {}) {
   const qs = new URLSearchParams()
