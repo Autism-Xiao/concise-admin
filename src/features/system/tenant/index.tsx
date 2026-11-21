@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CalendarClock, CircleAlert, KeyRound, Layers, MoreHorizontal, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus, Users, WifiOff } from 'lucide-react'
+import { CalendarClock, CircleAlert, KeyRound, Layers, MoreHorizontal, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus, Users, WifiOff, BarChart3 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from 'cn'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -20,6 +20,7 @@ import { TenantAdminDialog } from './components/tenant-admin-dialog'
 import { TenantPackageDialog } from './components/tenant-package-dialog'
 import { TenantUserDialog } from './components/tenant-user-dialog'
 import { ExpiringTenantsDialog } from './components/expiring-tenants-dialog'
+import { TenantDashboardDialog } from './components/tenant-dashboard-dialog'
 import { createTenant, deleteTenant, fetchExpiringTenants, fetchTenants, provisionAllTenants, provisionTenant, updateTenant, type Tenant, type TenantPlan, type TenantProvisionRole } from './api'
 
 const columnLabels: Record<string, string> = {
@@ -88,6 +89,8 @@ export function TenantPage() {
   /** 即将到期弹窗：入口数量（30 天窗口，含已到期未停用），加载失败静默为 0 不挡页面 */
   const [expiringOpen, setExpiringOpen] = useState(false)
   const [expiringCount, setExpiringCount] = useState(0)
+  /** 运营概览弹窗：概览计数 / 套餐分布 / 注册趋势 / API 用量 Top / 配额水位 */
+  const [dashboardOpen, setDashboardOpen] = useState(false)
 
   const canAdd = hasPermission('system:tenant:add')
   const canEdit = hasPermission('system:tenant:edit')
@@ -393,6 +396,10 @@ export function TenantPage() {
                 即将到期
                 {expiringCount > 0 && <span className="bg-amber-500/15 text-amber-700 dark:text-amber-400 tabular-nums ms-0.5 rounded-full px-1.5 text-xs">{expiringCount}</span>}
               </Button>
+              <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={() => setDashboardOpen(true)}>
+                <BarChart3 className="size-4" />
+                运营概览
+              </Button>
               <div className="relative w-full max-w-xs">
                 <Search className="text-muted-foreground absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
                 <Input placeholder="搜索名称 / 编码 / 联系人" className="ps-8" value={keyword} onChange={e => setKeyword(e.target.value)} />
@@ -430,6 +437,7 @@ export function TenantPage() {
       {packaging && <TenantPackageDialog tenant={packaging} open onOpenChange={open => !open && setPackaging(null)} />}
 
       <ExpiringTenantsDialog open={expiringOpen} onOpenChange={setExpiringOpen} days={30} />
+      <TenantDashboardDialog open={dashboardOpen} onOpenChange={setDashboardOpen} />
 
       <ConfirmDialog
         confirmText="删除"

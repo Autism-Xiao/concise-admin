@@ -21,6 +21,7 @@ import {
   Network
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useFeature } from '@/lib/features'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { RefreshButton } from '@/components/ui/refresh-button'
@@ -90,6 +91,8 @@ export function UsersPage() {
   const [watermarkTarget, setWatermarkTarget] = useState<User | null>(null)
   const [vipTarget, setVipTarget] = useState<User | null>(null)
   const [superviseTarget, setSuperviseTarget] = useState<User | null>(null)
+  // 特性开关（GET /v1/features，租户视角）：监管部门能力可按租户关闭
+  const superviseDeptEnabled = useFeature('rbac.superviseDept')
   const [importOpen, setImportOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   /** 重置密码结果：非空时弹一次性明文展示框 */
@@ -333,8 +336,9 @@ export function UsersPage() {
                       登录日志
                     </DropdownMenuItem>
                   )}
-                  {/* 管辖部门（ReBAC 监管数据权限）：data_scope 部门档的用户额外可见所选部门的数据 */}
-                  {hasPermission('system:user:update') && (
+                  {/* 管辖部门（ReBAC 监管数据权限）：data_scope 部门档的用户额外可见所选部门的数据；
+                      特性开关 rbac.superviseDept 关闭的租户直接隐藏入口（后端 FeatureGuard 同步拦截） */}
+                  {hasPermission('system:user:update') && superviseDeptEnabled && (
                     <DropdownMenuItem onClick={() => setSuperviseTarget(user)}>
                       <Network className="size-4" />
                       管辖部门

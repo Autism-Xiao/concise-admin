@@ -1,4 +1,5 @@
 import { clearLocalSettings } from '@/lib/settings'
+import { notifyFeaturesReset } from '@/lib/features'
 import { clearRememberToken, getRememberToken } from '@/lib/remember-token'
 
 const AUTH_KEY = 'concise-auth'
@@ -149,6 +150,8 @@ export function logout(): void {
   localStorage.removeItem('concise-tenant-info')
   // 强制改密标记同样不能跨账号残留
   clearMustChangePassword()
+  // 特性开关是租户视角数据：随登出失效，下个账号按自己的租户重新拉取
+  notifyFeaturesReset()
   notifyAuthChanged()
 }
 

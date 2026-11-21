@@ -1,4 +1,5 @@
 import { getApiResult, type PageResult } from '@/lib/http'
+import { notifyFeaturesReset } from '@/lib/features'
 
 /** 展示层文案（后端存 code / 0|1，前端统一用中文，页面不用关心枚举映射） */
 export type TenantStatus = '正常' | '停用'
@@ -137,6 +138,32 @@ export function fetchExpiringTenants(days = 30): Promise<ExpiringTenant[]> {
   return getApiResult(`${API}/expiring?days=${days}`)
 }
 
+/* ---------- 平台运营仪表盘 ---------- */
+
+/** 概览计数：expiredActive = 已到期但未停用（读取判定会拦用户，运营要人工跟进） */
+export interface TenantDashboardOverview {
+  total: number
+  active: number
+  disabled: number
+  expiredActive: number
+  expiringIn30: number
+}
+
+export interface TenantDashboard {
+  overview: TenantDashboardOverview
+  planDistribution: Array<{ plan: string; count: number }>
+  /** 近 6 个自然月新开租户数（含当月） */
+  registerTrend: Array<{ month: string; count: number }>
+  /** 当月 API 调用量 Top10（metering 攒批有 ≤30s 延迟） */
+  apiCallsTop: Array<{ tenantId: number; name: string; calls: number }>
+  /** 配额水位：限额 0 = 不限制；只含有限额或有用量的活跃租户 */
+  quotaWater: Array<{ tenantId: number; name: string; users: number; maxUsers: number; storageMb: number; maxStorageMb: number }>
+}
+
+export function fetchTenantDashboard(): Promise<TenantDashboard> {
+  return getApiResult(`${API}/dashboard`)
+}
+
 /* ---------- 我的租户 / 切换（所有登录用户） ---------- */
 
 export function fetchMyTenants(): Promise<{ current: number | null; isSuper: boolean; tenants: MyTenant[] }> {
@@ -149,6 +176,8 @@ export async function switchTenant(tenantId: number): Promise<number | null> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ tenantId })
   })
+  // 特性开关按租户视角生效：切换后旧租户的开关快照必须作废
+  notifyFeaturesReset()
   return result?.tenantId ?? null
 }
 
